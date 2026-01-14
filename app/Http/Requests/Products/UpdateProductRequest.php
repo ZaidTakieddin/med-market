@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Http\Requests\Products;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class UpdateProductRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true; // Authorization handled in controller
+    }
+
+    public function rules(): array
+    {
+        $productId = $this->route('product')->id ?? null;
+
+        return [
+            'name' => ['sometimes', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:2000'],
+            'sku' => ['sometimes', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($productId)],
+            'barcode' => ['nullable', 'string', 'max:100'],
+            'unit' => ['sometimes', 'string', 'max:50', Rule::in(['piece', 'box', 'bottle', 'pack', 'carton'])],
+            'price' => ['sometimes', 'numeric', 'min:0'],
+            'min_stock_level' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
+            'metadata' => ['nullable', 'array'],
+        ];
+    }
+}
+

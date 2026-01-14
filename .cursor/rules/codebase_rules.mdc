@@ -1,0 +1,206 @@
+---
+alwaysApply: true
+---
+
+# Backend Codebase Rules – B2B Medical Delivery System
+
+## 1. General Principles
+
+- The backend is the single source of truth.
+- Favor correctness, clarity, and data integrity over cleverness.
+- Medical-related data must never be silently lost or overwritten.
+- The system must be API-first and client-agnostic (Web + Mobile).
+
+---
+
+## 2. Architecture Rules
+
+- Use a modular monolith (NOT microservices).
+- Controllers must be thin.
+- Business logic must NOT live in controllers or models.
+- Core logic must live in Services / Actions / Domain classes.
+- Models represent data, not behavior-heavy objects.
+
+Recommended structure:
+app/
+
+- Http/Controllers
+- Domain/
+  - Orders/
+  - Inventory/
+  - Companies/
+  - Products/
+  - Deliveries/
+- Services/
+- Jobs/
+- Policies/
+- Observers/
+
+---
+
+## 3. Controllers
+
+- Controllers:
+  - Validate input
+  - Call domain/services
+  - Return standardized API responses
+- No database queries inside controllers.
+- No business rules inside controllers.
+
+---
+
+## 4. Models & Database
+
+- Use soft deletes for all critical tables.
+- Never hard-delete:
+  - Orders
+  - Invoices
+  - Stock movements
+- All stock and order changes must be transactional.
+- Use database transactions for:
+  - Order creation
+  - Stock deduction
+  - Order status transitions
+
+---
+
+## 5. Orders (Critical Domain)
+
+- Orders must have explicit states:
+  - pending
+  - accepted
+  - prepared
+  - shipped
+  - delivered
+  - cancelled
+- State transitions must be validated.
+- Invalid transitions must be rejected.
+- All state changes must be logged (audit trail).
+
+---
+
+## 6. Inventory Rules
+
+- Stock changes must always be recorded as movements.
+- Never directly overwrite stock quantities.
+- Every stock change must reference:
+  - Order (if applicable)
+  - Actor (user/system)
+  - Timestamp
+
+---
+
+## 7. Authentication & Authorization
+
+- Use token-based authentication.
+- Authorization must be role-based AND company-based.
+- Roles:
+  - Admin
+  - Supplier
+  - Buyer - The Pharmacist
+  - Driver (if applicable) - Belongs to Supplier and Will be managed by Supplier at first phase
+- Never trust client-side role claims.
+- Policies must guard all sensitive actions.
+
+---
+
+## 8. API Design Rules
+
+- Version all APIs (e.g. /api/v1).
+- Use consistent response structure:
+  - success
+  - data
+  - error
+- Never expose internal IDs unnecessarily.
+- Paginate all list endpoints.
+- Do not return excessive nested data by default.
+
+---
+
+## 9. Validation & Error Handling
+
+- All input must be validated.
+- Validation rules belong in Form Request classes.
+- Business rule violations must return meaningful errors.
+- Never swallow exceptions silently.
+- Log all unexpected exceptions.
+
+---
+
+## 10. Background Jobs & Queues
+
+- Use queues for:
+  - Notifications
+  - Invoice generation
+  - Heavy exports
+- Jobs must be idempotent.
+- Failed jobs must be retry-safe.
+
+---
+
+## 11. Logging & Auditing
+
+- Log:
+  - Order status changes
+  - Payment-related events
+  - Inventory changes
+- Logs must include:
+  - Actor
+  - Action
+  - Timestamp
+- Do not log sensitive credentials.
+
+---
+
+## 12. Performance Rules
+
+- Avoid N+1 queries.
+- Use eager loading intentionally.
+- Cache read-heavy endpoints.
+- Do not prematurely optimize.
+
+---
+
+## 13. Security Rules
+
+- Never trust client input.
+- Rate-limit authentication endpoints.
+- Encrypt sensitive data at rest when needed.
+- Use HTTPS everywhere.
+- Never commit secrets to the repository.
+
+---
+
+## 14. Code Quality
+
+- Prefer readability over brevity.
+- Use meaningful method and variable names.
+- No commented-out dead code.
+- Keep methods small and focused.
+- Write code assuming someone else will maintain it.
+
+---
+
+## 15. Documentation
+
+- Use Swagger for API documentation.
+- Every major domain must have a short README.
+- Public API endpoints must be documented.
+- Complex business logic must be commented.
+
+---
+
+## 16. What NOT to Do
+
+- No microservices in MVP.
+- No logic in Blade / frontend.
+- No direct DB writes from jobs without validation.
+- No magic numbers (use constants).
+- No assumptions about user behavior.
+
+---
+
+## 17. Final Rule
+
+If a decision affects data integrity, security, or money:
+STOP → THINK → IMPLEMENT SAFELY.
