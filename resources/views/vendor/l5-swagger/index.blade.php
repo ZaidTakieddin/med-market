@@ -4,17 +4,18 @@
     <meta charset="UTF-8">
     <title>{{ $documentationTitle }}</title>
     @php
+        // Determine if we should force HTTPS
+        // Force HTTPS if:
+        // 1. APP_URL is HTTPS, OR
+        // 2. Current request is HTTPS, OR
+        // 3. We're in production
+        $forceHttps = str_starts_with(config('app.url'), 'https://') 
+                   || (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on')
+                   || config('app.env') === 'production';
+        
         // Force HTTPS for asset URLs
-        $assetUrl = function($asset) use ($documentation) {
+        $assetUrl = function($asset) use ($documentation, $forceHttps) {
             $url = l5_swagger_asset($documentation, $asset);
-            // Force HTTPS if:
-            // 1. APP_URL is HTTPS, OR
-            // 2. Current request is HTTPS, OR
-            // 3. We're in production
-            $forceHttps = str_starts_with(config('app.url'), 'https://') 
-                       || (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on')
-                       || config('app.env') === 'production';
-            
             if ($forceHttps) {
                 $url = str_replace('http://', 'https://', $url);
             }
@@ -144,7 +145,11 @@
         const urls = [];
 
         @foreach($urlsToDocs as $title => $url)
-            urls.push({name: "{{ $title }}", url: "{{ $url }}"});
+            @php
+                // Force HTTPS for API docs URLs
+                $docUrl = $forceHttps ? str_replace('http://', 'https://', $url) : $url;
+            @endphp
+            urls.push({name: "{{ $title }}", url: "{{ $docUrl }}"});
         @endforeach
 
         // Build a system
@@ -155,7 +160,7 @@
             operationsSorter: {!! isset($operationsSorter) ? '"' . $operationsSorter . '"' : 'null' !!},
             configUrl: {!! isset($configUrl) ? '"' . $configUrl . '"' : 'null' !!},
             validatorUrl: {!! isset($validatorUrl) ? '"' . $validatorUrl . '"' : 'null' !!},
-            oauth2RedirectUrl: "{{ route('l5-swagger.'.$documentation.'.oauth2_callback', [], $useAbsolutePath) }}",
+            oauth2RedirectUrl: "{{ $forceHttps ? str_replace('http://', 'https://', route('l5-swagger.'.$documentation.'.oauth2_callback', [], $useAbsolutePath)) : route('l5-swagger.'.$documentation.'.oauth2_callback', [], $useAbsolutePath) }}",
 
             requestInterceptor: function(request) {
                 request.headers['X-CSRF-TOKEN'] = '{{ csrf_token() }}';
