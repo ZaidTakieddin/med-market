@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-01-14 (Updated after completing Database Seeders with Arabic data)
+> Last Updated: 2026-01-14 (Updated after deployment setup and Swagger HTTPS fixes)
 
 ## 📋 Table of Contents
 
@@ -136,8 +136,7 @@
 -   [x] README.md - Project overview
 -   [x] API_DOCUMENTATION.md - API endpoint reference
 -   [x] README_SEEDING.md - Database seeding configuration guide
--   [x] DEPLOYMENT.md - Deployment guide for free hosting platforms
--   [x] DEPLOYMENT_CHECKLIST.md - Pre-deployment checklist
+-   [x] DEPLOYMENT.md - Deployment guide (consolidated)
 
 ---
 
@@ -314,7 +313,7 @@ _No future requests yet. This section will be updated as new requirements come i
 -   **Completed Features**: 55+
 -   **Database Seeders**: 4 (CompanySeeder, UserSeeder, ProductSeeder, OrderSeeder)
 -   **Pending Tasks**: 7 categories (4 high-priority items completed)
--   **Documentation Files**: 6 (README.md, API_DOCUMENTATION.md, README_SEEDING.md, DEPLOYMENT.md, DEPLOYMENT_CHECKLIST.md, PROGRESS.md)
+-   **Documentation Files**: 5 (README.md, API_DOCUMENTATION.md, README_SEEDING.md, DEPLOYMENT.md, PROGRESS.md)
 -   **Deployment Files**: 3 (Procfile, render.yaml, railway.json)
 -   **Observers**: 2 (OrderObserver, StockMovementObserver)
 -   **Database Connections**: 2 (pooled for API, unpooled for seeders)

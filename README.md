@@ -105,7 +105,7 @@ The project is configured to use Neon PostgreSQL. Connection details are stored 
 
 ### Production Deployment
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions to free hosting platforms like Render, Railway, or Fly.io.
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for deployment instructions to Render (recommended) or other platforms.
 
 ## Architecture Principles
 
@@ -129,14 +129,12 @@ Orders follow explicit state transitions:
 -   `pending` → `accepted` → `prepared` → `shipped` → `delivered`
 -   `cancelled` (can occur from any state with validation)
 
-## Next Steps
+## Documentation
 
-1. Set up domain models and migrations
-2. Implement authentication endpoints
-3. Create company and user management
-4. Build order management system
-5. Implement inventory tracking
-6. Set up delivery management
+-   [API Documentation](./API_DOCUMENTATION.md) - API endpoints reference
+-   [Deployment Guide](./DEPLOYMENT.md) - Production deployment instructions
+-   [Database Seeding](./README_SEEDING.md) - Seeder configuration guide
+-   [Progress Tracker](./PROGRESS.md) - Development progress and tasks
 
 ## Development Guidelines
 

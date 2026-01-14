@@ -2,9 +2,10 @@
 
 ## Swagger UI
 
-The API documentation is available via Swagger UI at:
-- **URL**: `/api/documentation`
+The API documentation is available via Swagger UI:
+- **URL**: `/api/documentation` (or `https://your-domain.com/api/documentation` in production)
 - **JSON**: `/docs/api-docs.json`
+- **Regenerate**: `php artisan l5-swagger:generate`
 
 ## Available Endpoints
 
