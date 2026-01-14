@@ -45,7 +45,10 @@ APP_NAME="Med Market"
 APP_ENV=production
 APP_KEY=base64:your-generated-key-here
 APP_DEBUG=false
-APP_URL=https://your-app-url.com
+APP_URL=https://your-app-url.onrender.com
+
+# Trust proxies for HTTPS detection (Render, Cloudflare, etc.)
+TRUSTED_PROXIES=*
 
 DB_CONNECTION=pgsql
 DB_HOST=your-neon-host-pooler.c-2.eu-central-1.aws.neon.tech

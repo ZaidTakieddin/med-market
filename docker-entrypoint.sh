@@ -5,8 +5,8 @@ set -e
 # You can add database connection check here if needed
 
 # Run migrations
-echo "Running migrations..."
-php artisan migrate --force || echo "Migrations failed, continuing..."
+# echo "Running migrations..."
+# php artisan migrate --force || echo "Migrations failed, continuing..."
 
 # Cache configuration
 echo "Caching configuration..."

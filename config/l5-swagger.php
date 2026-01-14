@@ -247,10 +247,10 @@ return [
         'generate_yaml_copy' => env('L5_SWAGGER_GENERATE_YAML_COPY', false),
 
         /*
-         * Edit to trust the proxy's ip address - needed for AWS Load Balancer
-         * string[]
+         * Edit to trust the proxy's ip address - needed for AWS Load Balancer, Render, etc.
+         * Set to true to trust all proxies, or specify IP addresses
          */
-        'proxy' => false,
+        'proxy' => env('L5_SWAGGER_PROXY', true),
 
         /*
          * Configs plugin allows to fetch external configs instead of passing them to SwaggerUIBundle.
