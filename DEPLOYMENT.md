@@ -91,31 +91,39 @@ MAIL_FROM_NAME="Med Market"
 3. Connect your Git repository
 4. Configure the service:
 
-**Build Command:**
+**Environment:** Docker
 
-```bash
-composer install --no-dev --optimize-autoloader && php artisan config:cache && php artisan route:cache && php artisan view:cache
-```
+**Dockerfile:** The project includes a `Dockerfile` that will be automatically detected by Render.
 
-**Start Command:**
+**Build Settings:**
 
-```bash
-php artisan serve --host=0.0.0.0 --port=$PORT
-```
+-   Dockerfile Path: `Dockerfile` (default)
+-   Docker Context: `.` (root directory)
 
 **Environment Variables:**
 Add all required variables from the list above.
 
-#### 2. Post-Deploy Script (Optional)
+#### 2. How the Dockerfile Works
 
-Create a `render.yaml` file in your project root:
+The included `Dockerfile`:
+
+-   Uses PHP 8.2 with Apache web server
+-   Installs all required PHP extensions (PostgreSQL, GD, etc.)
+-   Installs Composer and dependencies
+-   Sets up proper file permissions
+-   Configures Apache for Laravel
+-   Runs migrations and caches configuration on startup via `docker-entrypoint.sh`
+
+#### 3. Alternative: Using render.yaml (Without Docker)
+
+If you prefer not to use Docker, you can use `render.yaml`:
 
 ```yaml
 services:
     - type: web
       name: med-market-api
       env: php
-      buildCommand: composer install --no-dev --optimize-autoloader && php artisan config:cache && php artisan route:cache && php artisan view:cache
+      buildCommand: composer install --no-dev --optimize-autoloader && php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan storage:link
       startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
       envVars:
           - key: APP_ENV
@@ -124,9 +132,18 @@ services:
             value: false
 ```
 
-#### 3. Run Migrations
+**Note:** If using `render.yaml` without Docker, you may need to ensure PHP extensions are available or use a PHP buildpack.
 
-After deployment, SSH into your service and run:
+#### 4. Post-Deployment
+
+The Dockerfile automatically:
+
+-   Runs migrations (`php artisan migrate --force`)
+-   Caches configuration, routes, and views
+-   Creates storage symlink
+-   Generates Swagger documentation
+
+No manual steps required after deployment!
 
 ```bash
 php artisan migrate --force

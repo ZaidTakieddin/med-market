@@ -1,9 +1,15 @@
 services:
   - type: web
     name: med-market-api
-    env: php
-    buildCommand: composer install --no-dev --optimize-autoloader && php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan storage:link
-    startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
+    # Using Dockerfile (recommended)
+    # Dockerfile is automatically detected
+    # Alternative: Use env: php with buildCommand/startCommand below
+    
+    # Uncomment these if NOT using Dockerfile:
+    # env: php
+    # buildCommand: composer install --no-dev --optimize-autoloader && php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan storage:link
+    # startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
+    
     envVars:
       - key: APP_ENV
         value: production

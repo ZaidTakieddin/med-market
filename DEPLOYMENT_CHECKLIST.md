@@ -14,6 +14,8 @@ Use this checklist before deploying to production.
 - [ ] `APP_DEBUG=false` in production
 - [ ] `APP_ENV=production` in production
 - [ ] Strong `APP_KEY` generated (`php artisan key:generate`)
+- [ ] Dockerfile tested locally (optional but recommended)
+- [ ] Git repository pushed with all deployment files
 
 ## Environment Variables to Set
 
