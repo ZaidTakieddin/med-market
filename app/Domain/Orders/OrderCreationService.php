@@ -2,6 +2,7 @@
 
 namespace App\Domain\Orders;
 
+use App\Constants\OrderStatus;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Support\Facades\DB;
@@ -106,7 +107,7 @@ class OrderCreationService
             'buyer_company_id' => $buyerCompanyId,
             'supplier_company_id' => $supplierCompanyId,
             'created_by' => $createdBy,
-            'status' => OrderState::PENDING,
+            'status' => OrderStatus::PENDING,
             'subtotal' => $subtotal,
             'tax_amount' => $taxAmount,
             'total_amount' => $totalAmount,

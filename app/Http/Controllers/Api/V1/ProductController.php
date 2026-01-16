@@ -8,6 +8,7 @@ use App\Http\Requests\Products\UpdateProductRequest;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Products', description: 'Product management endpoints')]
@@ -17,7 +18,7 @@ class ProductController extends BaseApiController
      * List products.
      */
     #[OA\Get(
-        path: '/api/v1/products',
+        path: '/products',
         summary: 'List products',
         description: 'Get a paginated list of products. Suppliers see only their products, buyers see all active products.',
         tags: ['Products'],
@@ -36,47 +37,63 @@ class ProductController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
-        $user = auth()->user();
-        $query = Product::with('supplierCompany');
+        try {
+            $user = auth()->user();
+            $query = Product::with('supplierCompany');
 
-        // Suppliers see only their products
-        if ($user->isSupplier()) {
-            $query->where('supplier_company_id', $user->company_id);
-        } else {
-            // Buyers see all active products
-            $query->where('is_active', true);
-        }
+            // Suppliers see only their products
+            if ($user->isSupplier()) {
+                $query->where('supplier_company_id', $user->company_id);
+            } else {
+                // Buyers see all active products
+                $query->where('is_active', true);
+            }
 
-        // Filter by supplier
-        if ($request->has('supplier_company_id')) {
-            $query->where('supplier_company_id', $request->supplier_company_id);
-        }
+            // Filter by supplier
+            if ($request->has('supplier_company_id')) {
+                $query->where('supplier_company_id', $request->supplier_company_id);
+            }
 
-        // Filter by active status
-        if ($request->has('is_active')) {
-            $query->where('is_active', $request->boolean('is_active'));
-        }
+            // Filter by active status
+            if ($request->has('is_active')) {
+                $query->where('is_active', $request->boolean('is_active'));
+            }
 
-        // Search
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                  ->orWhere('sku', 'ilike', "%{$search}%")
-                  ->orWhere('description', 'ilike', "%{$search}%");
+            // Search
+            if ($request->has('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'ilike', "%{$search}%")
+                      ->orWhere('sku', 'ilike', "%{$search}%")
+                      ->orWhere('description', 'ilike', "%{$search}%");
+                });
+            }
+
+            $products = $query->latest()->paginate($request->get('per_page', 15));
+
+            // Prevent circular references by hiding unnecessary relationships
+            $products->getCollection()->each(function ($product) {
+                if ($product->relationLoaded('supplierCompany') && $product->supplierCompany) {
+                    $product->supplierCompany->makeHidden(['users', 'products', 'buyerOrders', 'supplierOrders']);
+                }
+                $product->makeHidden(['orderItems', 'stockMovements']);
             });
+
+            return $this->paginated($products, 'Products retrieved successfully');
+        } catch (\Exception $e) {
+            Log::error('Product list error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->error('Failed to retrieve products: ' . $e->getMessage(), null, 500);
         }
-
-        $products = $query->latest()->paginate($request->get('per_page', 15));
-
-        return $this->paginated($products, 'Products retrieved successfully');
     }
 
     /**
      * Create a new product.
      */
     #[OA\Post(
-        path: '/api/v1/products',
+        path: '/products',
         summary: 'Create product',
         description: 'Create a new product. Only suppliers can create products.',
         tags: ['Products'],
@@ -137,7 +154,7 @@ class ProductController extends BaseApiController
      * Get a specific product.
      */
     #[OA\Get(
-        path: '/api/v1/products/{id}',
+        path: '/products/{id}',
         summary: 'Get product',
         description: 'Get details of a specific product',
         tags: ['Products'],
@@ -164,7 +181,7 @@ class ProductController extends BaseApiController
      * Update a product.
      */
     #[OA\Put(
-        path: '/api/v1/products/{id}',
+        path: '/products/{id}',
         summary: 'Update product',
         description: 'Update product details. Only suppliers from the same company can update.',
         tags: ['Products'],
@@ -210,7 +227,7 @@ class ProductController extends BaseApiController
      * Delete a product.
      */
     #[OA\Delete(
-        path: '/api/v1/products/{id}',
+        path: '/products/{id}',
         summary: 'Delete product',
         description: 'Soft delete a product. Only suppliers from the same company can delete.',
         tags: ['Products'],
@@ -234,4 +251,3 @@ class ProductController extends BaseApiController
         return $this->success(null, 'Product deleted successfully');
     }
 }
-

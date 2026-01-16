@@ -8,6 +8,7 @@ use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Authentication', description: 'User authentication endpoints')]
@@ -17,7 +18,7 @@ class AuthController extends BaseApiController
      * Register a new user.
      */
     #[OA\Post(
-            path: '/api/v1/auth/register',
+            path: '/auth/register',
             summary: 'Register a new user',
             description: 'Creates a new user account and returns an authentication token',
             tags: ['Authentication'],
@@ -79,7 +80,7 @@ class AuthController extends BaseApiController
      * Login user and return token.
      */
     #[OA\Post(
-            path: '/api/v1/auth/login',
+            path: '/auth/login',
             summary: 'Login user',
             description: 'Authenticate user and return access token. Rate limited to 5 requests per minute.',
             tags: ['Authentication'],
@@ -119,28 +120,33 @@ class AuthController extends BaseApiController
         )]
     public function login(LoginRequest $request): JsonResponse
     {
-        $user = User::where('email', $request->email)->first();
+        try {
+            $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return $this->error('Invalid credentials', null, 401);
+            if (!$user || !Hash::check($request->password, $user->password)) {
+                return $this->error('Invalid credentials', null, 401);
+            }
+
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            return $this->success([
+                'user' => $user->load('company'),
+                'token' => $token,
+            ], 'Login successful');
+        } catch (\Exception $e) {
+            Log::error('Login error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->error('Login failed: ' . $e->getMessage(), null, 500);
         }
-
-        // Revoke all existing tokens (optional - for single device login)
-        // $user->tokens()->delete();
-
-        $token = $user->createToken('auth-token')->plainTextToken;
-
-        return $this->success([
-            'user' => $user->load('company'),
-            'token' => $token,
-        ], 'Login successful');
     }
 
     /**
      * Logout user (revoke current token).
      */
     #[OA\Post(
-            path: '/api/v1/auth/logout',
+            path: '/auth/logout',
             summary: 'Logout user',
             description: 'Revoke the current authentication token',
             tags: ['Authentication'],
@@ -175,7 +181,7 @@ class AuthController extends BaseApiController
      * Get authenticated user.
      */
     #[OA\Get(
-            path: '/api/v1/auth/me',
+            path: '/auth/me',
             summary: 'Get authenticated user',
             description: 'Returns the currently authenticated user with company information',
             tags: ['Authentication'],
@@ -209,4 +215,3 @@ class AuthController extends BaseApiController
         ]);
     }
 }
-

@@ -45,7 +45,7 @@ Quick deployment guide for Med Market Laravel application.
 
     SESSION_DRIVER=database
     QUEUE_CONNECTION=database
-    CACHE_STORE=database
+    CACHE_STORE=file
     ```
 
     **Important**:

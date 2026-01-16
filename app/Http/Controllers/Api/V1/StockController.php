@@ -24,7 +24,7 @@ class StockController extends BaseApiController
      * Get stock movements for a product.
      */
     #[OA\Get(
-        path: '/api/v1/products/{id}/stock/movements',
+        path: '/products/{id}/stock/movements',
         summary: 'Get stock movement history',
         description: 'Get a paginated list of stock movements for a specific product',
         tags: ['Stock Management'],
@@ -66,7 +66,7 @@ class StockController extends BaseApiController
      * Add stock to a product.
      */
     #[OA\Post(
-        path: '/api/v1/products/{id}/stock/add',
+        path: '/products/{id}/stock/add',
         summary: 'Add stock',
         description: 'Add stock to a product. Only suppliers can add stock to their products.',
         tags: ['Stock Management'],
@@ -130,7 +130,7 @@ class StockController extends BaseApiController
      * Adjust stock (can be positive or negative).
      */
     #[OA\Post(
-        path: '/api/v1/products/{id}/stock/adjust',
+        path: '/products/{id}/stock/adjust',
         summary: 'Adjust stock',
         description: 'Adjust stock quantity (can be positive or negative). Only suppliers can adjust stock for their products.',
         tags: ['Stock Management'],
@@ -199,4 +199,3 @@ class StockController extends BaseApiController
         }
     }
 }
-

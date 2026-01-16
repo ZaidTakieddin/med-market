@@ -12,14 +12,14 @@
         }
     ],
     "paths": {
-        "/api/v1/auth/register": {
+        "/auth/register": {
             "post": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "Register a new user",
                 "description": "Creates a new user account and returns an authentication token",
-                "operationId": "b9e746d77661fb8df55d0ac63e1ece77",
+                "operationId": "8f20688904ee49d0d8739eeb08faf0b1",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -111,14 +111,14 @@
                 }
             }
         },
-        "/api/v1/auth/login": {
+        "/auth/login": {
             "post": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "Login user",
                 "description": "Authenticate user and return access token. Rate limited to 5 requests per minute.",
-                "operationId": "a7997e7c1e3bfed64d4e56de82415931",
+                "operationId": "985cd5203e2d0a820e113f2f4fdb2847",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -190,14 +190,14 @@
                 }
             }
         },
-        "/api/v1/auth/logout": {
+        "/auth/logout": {
             "post": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "Logout user",
                 "description": "Revoke the current authentication token",
-                "operationId": "f6b8957b4c0b25636613a9f0512a8ba9",
+                "operationId": "a05022a34eef599e04fb0a5254375b84",
                 "responses": {
                     "200": {
                         "description": "Logged out successfully",
@@ -230,14 +230,14 @@
                 ]
             }
         },
-        "/api/v1/auth/me": {
+        "/auth/me": {
             "get": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "Get authenticated user",
                 "description": "Returns the currently authenticated user with company information",
-                "operationId": "37d33f0281f67d31d05b4c45eea0143b",
+                "operationId": "e339e0e74860c0647fd1d41bbbbc13b2",
                 "responses": {
                     "200": {
                         "description": "User retrieved successfully",
@@ -274,14 +274,14 @@
                 ]
             }
         },
-        "/api/v1/companies": {
+        "/companies": {
             "get": {
                 "tags": [
                     "Companies"
                 ],
                 "summary": "List companies",
                 "description": "Get a paginated list of companies",
-                "operationId": "707a45d5190cbbe1b43f69f6e5d0131d",
+                "operationId": "3b8c8a787fa3cd0d0c1b296889d73daf",
                 "parameters": [
                     {
                         "name": "type",
@@ -338,7 +338,7 @@
                 ],
                 "summary": "Create company",
                 "description": "Create a new company. Only admins can create companies.",
-                "operationId": "8c4a1d582268449c242009ff20c2dfe7",
+                "operationId": "beb4f2f65714cfd956e1f2a3d16c2147",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -413,14 +413,14 @@
                 ]
             }
         },
-        "/api/v1/companies/{id}": {
+        "/companies/{id}": {
             "get": {
                 "tags": [
                     "Companies"
                 ],
                 "summary": "Get company",
                 "description": "Get details of a specific company",
-                "operationId": "f0f1a3d86918a593a0aaa37a0c9fb1c3",
+                "operationId": "11721cc0b514cb7d7fb095980b3cc206",
                 "parameters": [
                     {
                         "name": "id",
@@ -454,7 +454,7 @@
                 ],
                 "summary": "Update company",
                 "description": "Update company details. Only admins can update companies.",
-                "operationId": "e1521de8d65f0ab70f079174789b8b9c",
+                "operationId": "5628df4e847183e1e0bd849a0462f031",
                 "parameters": [
                     {
                         "name": "id",
@@ -533,7 +533,7 @@
                 ],
                 "summary": "Delete company",
                 "description": "Soft delete a company. Only admins can delete companies.",
-                "operationId": "4b2b739cc0dc94bdc5feebb74e4e9914",
+                "operationId": "f569a932a01b62b0a3ededa03cd4d558",
                 "parameters": [
                     {
                         "name": "id",
@@ -565,14 +565,14 @@
                 ]
             }
         },
-        "/api/v1/orders": {
+        "/orders": {
             "get": {
                 "tags": [
                     "Orders"
                 ],
                 "summary": "List orders",
                 "description": "Get a paginated list of orders. Filtered by user's company.",
-                "operationId": "00d3856d2d3d93124e0cc021d0cb5b79",
+                "operationId": "5894f7ae19272fefaf73e3a6f9d9782d",
                 "parameters": [
                     {
                         "name": "status",
@@ -626,7 +626,7 @@
                 ],
                 "summary": "Create order",
                 "description": "Create a new order. Only buyers can create orders.",
-                "operationId": "79da0a1adcc617490783dfd61927ff56",
+                "operationId": "fccc497d8bcac727afdc854cf0521698",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -703,14 +703,14 @@
                 ]
             }
         },
-        "/api/v1/orders/{id}": {
+        "/orders/{id}": {
             "get": {
                 "tags": [
                     "Orders"
                 ],
                 "summary": "Get order",
                 "description": "Get details of a specific order",
-                "operationId": "b2f9845bf9fe11158e0e43f1dd0c5802",
+                "operationId": "37b9054f8bb7c660ae6ee13bfb030a08",
                 "parameters": [
                     {
                         "name": "id",
@@ -742,14 +742,14 @@
                 ]
             }
         },
-        "/api/v1/orders/{id}/status": {
+        "/orders/{id}/status": {
             "post": {
                 "tags": [
                     "Orders"
                 ],
                 "summary": "Update order status",
                 "description": "Transition order to a new status. Valid transitions are enforced.",
-                "operationId": "a455c7e017c32c7da3173b7604a4c6cb",
+                "operationId": "095399ee4f8a9705f1402d0fffd49790",
                 "parameters": [
                     {
                         "name": "id",
@@ -815,14 +815,14 @@
                 ]
             }
         },
-        "/api/v1/orders/{id}/cancel": {
+        "/orders/{id}/cancel": {
             "post": {
                 "tags": [
                     "Orders"
                 ],
                 "summary": "Cancel order",
                 "description": "Cancel an order. Requires cancellation reason.",
-                "operationId": "7fb5c5cde4a48c07f8f7551e1abfac97",
+                "operationId": "831be17775c50dbb11f0c1185abe3384",
                 "parameters": [
                     {
                         "name": "id",
@@ -876,14 +876,14 @@
                 ]
             }
         },
-        "/api/v1/products": {
+        "/products": {
             "get": {
                 "tags": [
                     "Products"
                 ],
                 "summary": "List products",
                 "description": "Get a paginated list of products. Suppliers see only their products, buyers see all active products.",
-                "operationId": "1ce27f90dd8c39cea9520bf45d58c7c2",
+                "operationId": "c821c7f9e41e08594ad4eae5a99e812e",
                 "parameters": [
                     {
                         "name": "supplier_company_id",
@@ -943,7 +943,7 @@
                 ],
                 "summary": "Create product",
                 "description": "Create a new product. Only suppliers can create products.",
-                "operationId": "acaa0d3fdc74fd4b534e70fc016cf7f1",
+                "operationId": "a59d7d76c37cb085c473698dba983938",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -1026,14 +1026,14 @@
                 ]
             }
         },
-        "/api/v1/products/{id}": {
+        "/products/{id}": {
             "get": {
                 "tags": [
                     "Products"
                 ],
                 "summary": "Get product",
                 "description": "Get details of a specific product",
-                "operationId": "249e765b6489191fb8167474db8867f7",
+                "operationId": "900da7e5cb549dc28cfd19d90d1f6710",
                 "parameters": [
                     {
                         "name": "id",
@@ -1067,7 +1067,7 @@
                 ],
                 "summary": "Update product",
                 "description": "Update product details. Only suppliers from the same company can update.",
-                "operationId": "436a5b5d1aff1d5fd341389786161044",
+                "operationId": "1ab61d88b4cfff271ad6afe7d8cf0388",
                 "parameters": [
                     {
                         "name": "id",
@@ -1147,7 +1147,7 @@
                 ],
                 "summary": "Delete product",
                 "description": "Soft delete a product. Only suppliers from the same company can delete.",
-                "operationId": "cc01048629edd9759ba1d7ffc989f667",
+                "operationId": "9dcbacba304004f42c516998d50fe6fa",
                 "parameters": [
                     {
                         "name": "id",
@@ -1179,14 +1179,14 @@
                 ]
             }
         },
-        "/api/v1/products/{id}/stock/movements": {
+        "/products/{id}/stock/movements": {
             "get": {
                 "tags": [
                     "Stock Management"
                 ],
                 "summary": "Get stock movement history",
                 "description": "Get a paginated list of stock movements for a specific product",
-                "operationId": "215b777d7379ecc47bac39be5139cc38",
+                "operationId": "65c174ec1a8db17da5e4cd1b569f3cea",
                 "parameters": [
                     {
                         "name": "id",
@@ -1244,14 +1244,14 @@
                 ]
             }
         },
-        "/api/v1/products/{id}/stock/add": {
+        "/products/{id}/stock/add": {
             "post": {
                 "tags": [
                     "Stock Management"
                 ],
                 "summary": "Add stock",
                 "description": "Add stock to a product. Only suppliers can add stock to their products.",
-                "operationId": "1e5d743b597d8da495829f6aa457d1e0",
+                "operationId": "382fe14440999ab9642e524c127d006d",
                 "parameters": [
                     {
                         "name": "id",
@@ -1310,14 +1310,14 @@
                 ]
             }
         },
-        "/api/v1/products/{id}/stock/adjust": {
+        "/products/{id}/stock/adjust": {
             "post": {
                 "tags": [
                     "Stock Management"
                 ],
                 "summary": "Adjust stock",
                 "description": "Adjust stock quantity (can be positive or negative). Only suppliers can adjust stock for their products.",
-                "operationId": "116397dbae25aecdd45ae785636257a0",
+                "operationId": "637caf0ac3b46b106bb616e0d435c2c0",
                 "parameters": [
                     {
                         "name": "id",

@@ -11,6 +11,7 @@ use App\Http\Requests\Orders\UpdateOrderStatusRequest;
 use App\Models\Order;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Orders', description: 'Order management endpoints')]
@@ -25,7 +26,7 @@ class OrderController extends BaseApiController
      * List orders.
      */
     #[OA\Get(
-        path: '/api/v1/orders',
+        path: '/orders',
         summary: 'List orders',
         description: 'Get a paginated list of orders. Filtered by user\'s company.',
         tags: ['Orders'],
@@ -49,31 +50,61 @@ class OrderController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
-        $user = auth()->user();
-        $query = Order::with(['buyerCompany', 'supplierCompany', 'items.product']);
+        try {
+            $user = auth()->user();
+            $query = Order::with([
+                'buyerCompany',
+                'supplierCompany',
+                'items',
+                'items.product'
+            ]);
 
-        // Filter by company
-        if ($user->isBuyer()) {
-            $query->where('buyer_company_id', $user->company_id);
-        } elseif ($user->isSupplier()) {
-            $query->where('supplier_company_id', $user->company_id);
+            // Filter by company
+            if ($user->isBuyer()) {
+                $query->where('buyer_company_id', $user->company_id);
+            } elseif ($user->isSupplier()) {
+                $query->where('supplier_company_id', $user->company_id);
+            }
+
+            // Filter by status
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+
+            $orders = $query->latest()->paginate($request->get('per_page', 15));
+
+            // Prevent circular references by hiding unnecessary relationships
+            $orders->getCollection()->each(function ($order) {
+                if ($order->relationLoaded('buyerCompany') && $order->buyerCompany) {
+                    $order->buyerCompany->makeHidden(['users', 'products', 'buyerOrders', 'supplierOrders']);
+                }
+                if ($order->relationLoaded('supplierCompany') && $order->supplierCompany) {
+                    $order->supplierCompany->makeHidden(['users', 'products', 'buyerOrders', 'supplierOrders']);
+                }
+                if ($order->relationLoaded('items')) {
+                    $order->items->each(function ($item) {
+                        if ($item->relationLoaded('product') && $item->product) {
+                            $item->product->makeHidden(['orderItems', 'stockMovements', 'supplierCompany']);
+                        }
+                    });
+                }
+            });
+
+            return $this->paginated($orders, 'Orders retrieved successfully');
+        } catch (\Exception $e) {
+            Log::error('Order list error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->error('Failed to retrieve orders: ' . $e->getMessage(), null, 500);
         }
-
-        // Filter by status
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
-
-        $orders = $query->latest()->paginate($request->get('per_page', 15));
-
-        return $this->paginated($orders, 'Orders retrieved successfully');
     }
 
     /**
      * Create a new order.
      */
     #[OA\Post(
-        path: '/api/v1/orders',
+        path: '/orders',
         summary: 'Create order',
         description: 'Create a new order. Only buyers can create orders.',
         tags: ['Orders'],
@@ -134,7 +165,7 @@ class OrderController extends BaseApiController
      * Get a specific order.
      */
     #[OA\Get(
-        path: '/api/v1/orders/{id}',
+        path: '/orders/{id}',
         summary: 'Get order',
         description: 'Get details of a specific order',
         tags: ['Orders'],
@@ -164,7 +195,7 @@ class OrderController extends BaseApiController
      * Update order status.
      */
     #[OA\Post(
-        path: '/api/v1/orders/{id}/status',
+        path: '/orders/{id}/status',
         summary: 'Update order status',
         description: 'Transition order to a new status. Valid transitions are enforced.',
         tags: ['Orders'],
@@ -219,7 +250,7 @@ class OrderController extends BaseApiController
      * Cancel an order.
      */
     #[OA\Post(
-        path: '/api/v1/orders/{id}/cancel',
+        path: '/orders/{id}/cancel',
         summary: 'Cancel order',
         description: 'Cancel an order. Requires cancellation reason.',
         tags: ['Orders'],
@@ -271,4 +302,3 @@ class OrderController extends BaseApiController
         }
     }
 }
-

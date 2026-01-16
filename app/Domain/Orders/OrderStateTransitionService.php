@@ -22,7 +22,7 @@ class OrderStateTransitionService
      */
     public function transition(Order $order, string $newStatus, ?int $userId = null, ?string $notes = null): Order
     {
-        if (!OrderState::isValid($newStatus)) {
+        if (!OrderStatus::isValid($newStatus)) {
             throw new \InvalidArgumentException("Invalid order state: {$newStatus}");
         }
 
@@ -172,11 +172,11 @@ class OrderStateTransitionService
     private function updateStatusTimestamp(Order $order, string $status): void
     {
         match ($status) {
-            OrderState::ACCEPTED => $order->accepted_at = now(),
-            OrderState::PREPARED => $order->prepared_at = now(),
-            OrderState::SHIPPED => $order->shipped_at = now(),
-            OrderState::DELIVERED => $order->delivered_at = now(),
-            OrderState::CANCELLED => $order->cancelled_at = now(),
+            OrderStatus::ACCEPTED => $order->accepted_at = now(),
+            OrderStatus::PREPARED => $order->prepared_at = now(),
+            OrderStatus::SHIPPED => $order->shipped_at = now(),
+            OrderStatus::DELIVERED => $order->delivered_at = now(),
+            OrderStatus::CANCELLED => $order->cancelled_at = now(),
             default => null,
         };
     }

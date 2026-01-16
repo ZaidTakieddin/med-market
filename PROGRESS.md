@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-01-14 (Updated after deployment setup and Swagger HTTPS fixes)
+> Last Updated: 2026-01-15 (Updated after transaction fixes, code cleanup, and documentation consolidation)
 
 ## 📋 Table of Contents
 
@@ -23,6 +23,9 @@
 -   [x] API versioning structure (`/api/v1`)
 -   [x] Base API controller with standardized responses
 -   [x] Directory structure following modular monolith architecture
+-   [x] Transaction cleanup middleware for PostgreSQL connection pooling
+-   [x] Exception handling for API routes (JSON responses)
+-   [x] File-based cache configuration (Redis ready)
 
 ### Database Schema
 
@@ -131,12 +134,18 @@
 -   [x] Separate database configuration for seeders (unpooled connection)
 -   [x] All seeders use Arabic data for names, addresses, and descriptions
 
+### Infrastructure & Reliability
+
+-   [x] Transaction cleanup middleware (CleanupTransactions) - Handles failed transactions
+-   [x] API exception handling - Proper JSON error responses for unauthenticated requests
+-   [x] File-based cache configuration - Eliminates transaction conflicts
+-   [x] Code cleanup - Removed commented code, fixed imports, standardized constants
+
 ### Documentation
 
--   [x] README.md - Project overview
--   [x] API_DOCUMENTATION.md - API endpoint reference
--   [x] README_SEEDING.md - Database seeding configuration guide
--   [x] DEPLOYMENT.md - Deployment guide (consolidated)
+-   [x] README.md - Consolidated project documentation (includes API docs, seeding, troubleshooting)
+-   [x] DEPLOYMENT.md - Production deployment guide
+-   [x] PROGRESS.md - Development progress tracker
 
 ---
 
@@ -208,10 +217,11 @@ _Currently no tasks in progress_
 
 #### 7. Error Handling Improvements
 
--   [ ] Custom exception handler
--   [ ] Consistent error response formatting
+-   [x] API exception handling - JSON responses for unauthenticated requests
+-   [x] Route not found handling - Proper 401/404 JSON responses
+-   [ ] Custom exception handler (enhanced)
 -   [ ] Better validation error messages
--   [ ] API error response standardization
+-   [ ] API error response standardization (enhanced)
 
 ### Low Priority
 
@@ -282,6 +292,13 @@ _No future requests yet. This section will be updated as new requirements come i
 -   **Connection Strategy**:
     -   Pooled connection (`-pooler`) for API requests (high concurrency)
     -   Unpooled connection (direct) for seeders and migrations (reliable transactions)
+-   **Transaction Handling**: Global cleanup middleware handles failed transactions automatically
+
+### Cache Decisions
+
+-   **Current**: File-based cache (eliminates transaction conflicts)
+-   **Production Ready**: Redis configuration available for scaling
+-   **Strategy**: File cache for development, Redis for production high-traffic scenarios
 
 ### API Design Decisions
 
@@ -300,23 +317,34 @@ _No future requests yet. This section will be updated as new requirements come i
 ### Known Issues
 
 -   **Neon Connection Pooling**: Pooled connections don't handle complex transactions well during seeding. Solution: Use separate unpooled connection configuration for seeders.
+-   ~~**Transaction Errors**: Fixed with transaction cleanup middleware and file-based cache.~~
 
 ### Technical Debt
 
 -   None currently
+
+### Recent Improvements
+
+-   **Transaction Handling**: Implemented global transaction cleanup middleware to handle PostgreSQL connection pooling issues
+-   **Error Handling**: Improved API error responses for unauthenticated requests
+-   **Cache Strategy**: Configured file-based cache (eliminates transaction conflicts), Redis ready for production
+-   **Code Quality**: Cleaned up commented code, standardized imports, fixed constant usage
+-   **Documentation**: Consolidated documentation files for better maintainability
 
 ---
 
 ## 📊 Statistics
 
 -   **Total Endpoints**: 24 routes
--   **Completed Features**: 55+
+-   **Completed Features**: 60+
 -   **Database Seeders**: 4 (CompanySeeder, UserSeeder, ProductSeeder, OrderSeeder)
 -   **Pending Tasks**: 7 categories (4 high-priority items completed)
--   **Documentation Files**: 5 (README.md, API_DOCUMENTATION.md, README_SEEDING.md, DEPLOYMENT.md, PROGRESS.md)
+-   **Documentation Files**: 3 (README.md, DEPLOYMENT.md, PROGRESS.md)
 -   **Deployment Files**: 3 (Procfile, render.yaml, railway.json)
 -   **Observers**: 2 (OrderObserver, StockMovementObserver)
+-   **Middleware**: 1 (CleanupTransactions)
 -   **Database Connections**: 2 (pooled for API, unpooled for seeders)
+-   **Cache Driver**: File-based (Redis ready)
 
 ---
 
@@ -326,9 +354,13 @@ _No future requests yet. This section will be updated as new requirements come i
 2. ✅ ~~Create Stock Management Endpoints~~ - COMPLETED
 3. ✅ ~~Implement Automatic Stock Deduction~~ - COMPLETED
 4. ✅ ~~Create Database Seeders~~ - COMPLETED (with Arabic data)
-5. Create Background Jobs (Medium Priority)
-6. Create Domain READMEs (Medium Priority)
-7. Error Handling Improvements (Medium Priority)
+5. ✅ ~~Fix Transaction Errors~~ - COMPLETED (middleware + file cache)
+6. ✅ ~~Improve Error Handling~~ - COMPLETED (API exception handling)
+7. ✅ ~~Code Cleanup~~ - COMPLETED
+8. ✅ ~~Documentation Consolidation~~ - COMPLETED
+9. **Create Domain READMEs** ⚠️ Required by Rules (Medium Priority)
+10. **Create Background Jobs** (Medium Priority)
+11. **Enhanced Error Handling** (Medium Priority - further improvements)
 
 ---
 
