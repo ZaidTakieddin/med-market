@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -82,6 +83,30 @@ class User extends Authenticatable
     public function orderStatusLogs(): HasMany
     {
         return $this->hasMany(OrderStatusLog::class);
+    }
+
+    /**
+     * Get cart for this user.
+     */
+    public function cart(): HasMany
+    {
+        return $this->hasMany(Cart::class);
+    }
+
+    /**
+     * Get the user's current cart (one-to-one).
+     */
+    public function currentCart(): HasOne
+    {
+        return $this->hasOne(Cart::class)->latestOfMany();
+    }
+
+    /**
+     * Get orders assigned to this driver.
+     */
+    public function driverOrders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'driver_id');
     }
 
     /**

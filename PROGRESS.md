@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-01-15 (Updated after transaction fixes, code cleanup, and documentation consolidation)
+> Last Updated: 2026-01-15 (All new requirements implemented: product enhancements, offers system, cart management with multi-supplier support, driver management, and profile management)
 
 ## 📋 Table of Contents
 
@@ -268,7 +268,105 @@ _Currently no tasks in progress_
 
 ## 🔮 Future Requests
 
-_No future requests yet. This section will be updated as new requirements come in._
+### Product Enhancements ✅ COMPLETED
+
+1. **Product Category System** ✅
+
+    - [x] Add `category` field to products table
+    - [x] Update Product model and migrations
+    - [x] Add category filtering to product list endpoint
+    - [x] Update Swagger documentation
+
+2. **Dual Pricing System** ✅
+
+    - [x] Add `pharmacist_price` field (selling price for pharmacist/buyer)
+    - [x] Add `customer_price` field (selling price for end customer)
+    - [x] Update existing `price` field handling (migration strategy)
+    - [x] Update Product model and validation
+    - [x] Update product endpoints to handle both prices
+    - [x] Update Swagger documentation
+
+3. **Discount System** ✅
+    - [x] Add `discount` field (discount amount/percentage)
+    - [x] Add `discount_type` field (enum: 'percentage', 'fixed')
+    - [x] Update Product model and validation
+    - [x] Calculate effective price based on discount (getFinalPharmacistPrice, getFinalCustomerPrice methods)
+    - [x] Update product endpoints
+    - [x] Update Swagger documentation
+
+### Offers/Promotions System ✅ COMPLETED
+
+4. **Product Offers Management** ✅
+    - [x] Create `offers` table with all required fields
+    - [x] Create `offer_products` pivot table
+    - [x] Create Offer model with relationships
+    - [x] Create OfferController with CRUD endpoints
+    - [x] Support offer types:
+        - Buy X Get Y Free
+        - Percentage discount
+        - Fixed amount discount
+        - Bundle offers
+    - [x] Offer validation (dates, active status)
+    - [x] Authorization (suppliers can only manage their offers)
+    - [x] Swagger documentation
+
+### Cart Management ✅ COMPLETED
+
+5. **Shopping Cart System** ✅
+
+    - [x] Create `carts` table with totals (subtotal, tax_amount, total_amount)
+    - [x] Create `cart_items` table
+    - [x] Create Cart and CartItem models with relationships
+    - [x] Cart management endpoints:
+        - [x] `GET /api/v1/cart` - Get current user's cart
+        - [x] `POST /api/v1/cart/items` - Add item to cart
+        - [x] `PUT /api/v1/cart/items/{id}` - Update cart item quantity
+        - [x] `DELETE /api/v1/cart/items/{id}` - Remove item from cart
+        - [x] `DELETE /api/v1/cart` - Clear entire cart
+        - [x] `POST /api/v1/cart/checkout` - Convert cart to order(s)
+    - [x] Cart calculations (subtotal, tax, total)
+    - [x] Apply product discounts to cart (uses getFinalPharmacistPrice)
+    - [x] Handle multi-supplier carts (see decision below)
+    - [x] Authorization (users can only manage their own cart)
+    - [x] Swagger documentation
+
+6. **Multi-Supplier Order Handling** ✅ **IMPLEMENTED - Option A**
+    - **✅ Option A: Backend handles splitting** - IMPLEMENTED
+        - [x] Backend automatically splits cart into multiple orders by supplier
+        - [x] Returns array of created orders
+        - [x] Single API call for checkout
+        - [x] Atomic transaction ensures all orders created or none
+        - [x] Cart cleared after successful checkout
+    - **Decision**: Option A implemented - Better data integrity, atomic operations, cleaner API
+
+### Driver Management ✅ COMPLETED
+
+7. **Driver Management for Suppliers** ✅
+    - [x] Driver role handling (already exists in UserRole constants)
+    - [x] Create driver management endpoints:
+        - [x] `GET /api/v1/drivers` - List drivers (supplier only, their company)
+        - [x] `POST /api/v1/drivers` - Create driver (supplier/admin only)
+        - [x] `GET /api/v1/drivers/{id}` - Get driver details
+        - [x] `PUT /api/v1/drivers/{id}` - Update driver
+        - [x] `DELETE /api/v1/drivers/{id}` - Delete driver
+        - [x] `GET /api/v1/drivers/{id}/orders` - Get driver's assigned orders
+        - [x] `POST /api/v1/orders/{order}/assign-driver` - Assign driver to order
+    - [x] Driver assignment to orders
+    - [x] Authorization (suppliers manage their drivers)
+    - [x] Update Order model to include driver relationship
+    - [x] Swagger documentation
+
+### Profile Management ✅ COMPLETED
+
+8. **User Profile Management** ✅
+    - [x] `GET /api/v1/profile` - Get current user profile
+    - [x] `PUT /api/v1/profile` - Update current user profile
+    - [x] `PUT /api/v1/profile/password` - Change password
+    - [x] `PUT /api/v1/profile/company` - Update company information (if user is company admin)
+    - [x] Profile validation
+    - [x] Password change validation (current password required)
+    - [x] Authorization (users can only update their own profile)
+    - [x] Swagger documentation
 
 ---
 
@@ -319,6 +417,10 @@ _No future requests yet. This section will be updated as new requirements come i
 -   **Neon Connection Pooling**: Pooled connections don't handle complex transactions well during seeding. Solution: Use separate unpooled connection configuration for seeders.
 -   ~~**Transaction Errors**: Fixed with transaction cleanup middleware and file-based cache.~~
 
+### Pending Decisions
+
+-   ~~**Multi-Supplier Cart Checkout**: Need to decide between backend automatic splitting vs frontend bulk order creation. Recommendation: Backend handles splitting for better data integrity and atomic operations.~~ ✅ **DECIDED & IMPLEMENTED**: Option A (Backend handles splitting) - Implemented in CartController checkout method
+
 ### Technical Debt
 
 -   None currently
@@ -335,8 +437,8 @@ _No future requests yet. This section will be updated as new requirements come i
 
 ## 📊 Statistics
 
--   **Total Endpoints**: 24 routes
--   **Completed Features**: 60+
+-   **Total Endpoints**: 40+ routes (including cart, offers, drivers, profile endpoints)
+-   **Completed Features**: 80+ (including all new requirements)
 -   **Database Seeders**: 4 (CompanySeeder, UserSeeder, ProductSeeder, OrderSeeder)
 -   **Pending Tasks**: 7 categories (4 high-priority items completed)
 -   **Documentation Files**: 3 (README.md, DEPLOYMENT.md, PROGRESS.md)
@@ -350,17 +452,36 @@ _No future requests yet. This section will be updated as new requirements come i
 
 ## 🎯 Next Steps
 
-1. ✅ ~~Implement Model Observers~~ - COMPLETED
-2. ✅ ~~Create Stock Management Endpoints~~ - COMPLETED
-3. ✅ ~~Implement Automatic Stock Deduction~~ - COMPLETED
-4. ✅ ~~Create Database Seeders~~ - COMPLETED (with Arabic data)
-5. ✅ ~~Fix Transaction Errors~~ - COMPLETED (middleware + file cache)
-6. ✅ ~~Improve Error Handling~~ - COMPLETED (API exception handling)
-7. ✅ ~~Code Cleanup~~ - COMPLETED
-8. ✅ ~~Documentation Consolidation~~ - COMPLETED
-9. **Create Domain READMEs** ⚠️ Required by Rules (Medium Priority)
-10. **Create Background Jobs** (Medium Priority)
-11. **Enhanced Error Handling** (Medium Priority - further improvements)
+### Immediate Priority (New Requirements) ✅ ALL COMPLETED
+
+1. ✅ ~~**Product Enhancements**~~ - COMPLETED (category, dual pricing, discount)
+2. ✅ ~~**Offers/Promotions System**~~ - COMPLETED
+3. ✅ ~~**Cart Management**~~ - COMPLETED (with multi-supplier checkout - Option A)
+4. ✅ ~~**Multi-Supplier Order Handling**~~ - COMPLETED (Option A: Backend splits orders)
+5. ✅ ~~**Driver Management**~~ - COMPLETED
+6. ✅ ~~**Profile Management**~~ - COMPLETED
+
+### Previous Tasks (Still Pending)
+
+7. ✅ ~~**Product Enhancements**~~ - COMPLETED (category, dual pricing, discount)
+8. ✅ ~~**Offers/Promotions System**~~ - COMPLETED
+9. ✅ ~~**Cart Management**~~ - COMPLETED (with multi-supplier checkout)
+10. ✅ ~~**Driver Management**~~ - COMPLETED
+11. ✅ ~~**Profile Management**~~ - COMPLETED
+12. **Create Domain READMEs** ⚠️ Required by Rules (Medium Priority)
+13. **Create Background Jobs** (Medium Priority)
+14. **Enhanced Error Handling** (Medium Priority - further improvements)
+
+### Completed Tasks
+
+-   ✅ ~~Implement Model Observers~~ - COMPLETED
+-   ✅ ~~Create Stock Management Endpoints~~ - COMPLETED
+-   ✅ ~~Implement Automatic Stock Deduction~~ - COMPLETED
+-   ✅ ~~Create Database Seeders~~ - COMPLETED (with Arabic data)
+-   ✅ ~~Fix Transaction Errors~~ - COMPLETED (middleware + file cache)
+-   ✅ ~~Improve Error Handling~~ - COMPLETED (API exception handling)
+-   ✅ ~~Code Cleanup~~ - COMPLETED
+-   ✅ ~~Documentation Consolidation~~ - COMPLETED
 
 ---
 

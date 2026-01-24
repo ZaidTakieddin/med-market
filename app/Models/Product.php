@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -16,10 +17,15 @@ class Product extends Model
         'supplier_company_id',
         'name',
         'description',
+        'category',
         'sku',
         'barcode',
         'unit',
-        'price',
+        'price', // Legacy field - kept for backward compatibility
+        'pharmacist_price',
+        'customer_price',
+        'discount',
+        'discount_type',
         'stock_quantity',
         'min_stock_level',
         'is_active',
@@ -28,6 +34,9 @@ class Product extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'pharmacist_price' => 'decimal:2',
+        'customer_price' => 'decimal:2',
+        'discount' => 'decimal:2',
         'stock_quantity' => 'integer',
         'min_stock_level' => 'integer',
         'is_active' => 'boolean',
@@ -59,10 +68,74 @@ class Product extends Model
     }
 
     /**
+     * Get offers associated with this product.
+     */
+    public function offers(): BelongsToMany
+    {
+        return $this->belongsToMany(Offer::class, 'offer_products')
+            ->withPivot(['quantity_required', 'quantity_free', 'discount_override', 'discount_type_override'])
+            ->withTimestamps();
+    }
+
+    /**
      * Check if product is low on stock.
      */
     public function isLowStock(): bool
     {
         return $this->stock_quantity <= $this->min_stock_level;
+    }
+
+    /**
+     * Get the effective price for pharmacists (buyers).
+     * Uses pharmacist_price if set, otherwise falls back to price.
+     */
+    public function getEffectivePharmacistPrice(): float
+    {
+        return $this->pharmacist_price ?? $this->price;
+    }
+
+    /**
+     * Get the effective price for end customers.
+     * Uses customer_price if set, otherwise falls back to pharmacist_price or price.
+     */
+    public function getEffectiveCustomerPrice(): float
+    {
+        return $this->customer_price ?? $this->pharmacist_price ?? $this->price;
+    }
+
+    /**
+     * Calculate the final price after discount for pharmacists.
+     */
+    public function getFinalPharmacistPrice(): float
+    {
+        $price = $this->getEffectivePharmacistPrice();
+        
+        if ($this->discount && $this->discount_type) {
+            if ($this->discount_type === 'percentage') {
+                return $price * (1 - ($this->discount / 100));
+            } else {
+                return max(0, $price - $this->discount);
+            }
+        }
+        
+        return $price;
+    }
+
+    /**
+     * Calculate the final price after discount for customers.
+     */
+    public function getFinalCustomerPrice(): float
+    {
+        $price = $this->getEffectiveCustomerPrice();
+        
+        if ($this->discount && $this->discount_type) {
+            if ($this->discount_type === 'percentage') {
+                return $price * (1 - ($this->discount / 100));
+            } else {
+                return max(0, $price - $this->discount);
+            }
+        }
+        
+        return $price;
     }
 }

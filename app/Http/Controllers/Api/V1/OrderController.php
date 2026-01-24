@@ -106,7 +106,7 @@ class OrderController extends BaseApiController
     #[OA\Post(
         path: '/orders',
         summary: 'Create order',
-        description: 'Create a new order. Only buyers can create orders.',
+        description: 'Create a new order. Only buyers can create orders. If unit_price is not provided, it will use the product\'s pharmacist_price with any applicable discounts applied (getFinalPharmacistPrice method).',
         tags: ['Orders'],
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(
@@ -114,26 +114,26 @@ class OrderController extends BaseApiController
             content: new OA\JsonContent(
                 required: ['supplier_company_id', 'items'],
                 properties: [
-                    new OA\Property(property: 'supplier_company_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'supplier_company_id', type: 'integer', example: 1, description: 'Supplier company ID'),
                     new OA\Property(
                         property: 'items',
                         type: 'array',
                         items: new OA\Items(
                             properties: [
-                                new OA\Property(property: 'product_id', type: 'integer', example: 1),
-                                new OA\Property(property: 'quantity', type: 'integer', example: 10),
-                                new OA\Property(property: 'unit_price', type: 'number', format: 'float', example: 25.50),
-                                new OA\Property(property: 'notes', type: 'string', nullable: true),
+                                new OA\Property(property: 'product_id', type: 'integer', example: 1, description: 'Product ID'),
+                                new OA\Property(property: 'quantity', type: 'integer', example: 10, description: 'Quantity ordered'),
+                                new OA\Property(property: 'unit_price', type: 'number', format: 'float', nullable: true, description: 'Optional - will use product pharmacist_price with discounts applied (getFinalPharmacistPrice) if not provided', example: 25.50),
+                                new OA\Property(property: 'notes', type: 'string', nullable: true, description: 'Item-specific notes'),
                             ]
                         )
                     ),
-                    new OA\Property(property: 'notes', type: 'string', nullable: true),
-                    new OA\Property(property: 'tax_rate', type: 'number', format: 'float', default: 0, example: 15),
+                    new OA\Property(property: 'notes', type: 'string', nullable: true, description: 'Order-level notes'),
+                    new OA\Property(property: 'tax_rate', type: 'number', format: 'float', default: 0, example: 15, description: 'Tax rate as percentage (e.g., 15 for 15%)'),
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 201, description: 'Order created successfully'),
+            new OA\Response(response: 201, description: 'Order created successfully. Order includes buyerCompany, supplierCompany, and items.product relationships.'),
             new OA\Response(response: 401, description: 'Unauthenticated'),
             new OA\Response(response: 403, description: 'Forbidden - Only buyers can create orders'),
             new OA\Response(response: 422, description: 'Validation error'),
@@ -147,11 +147,27 @@ class OrderController extends BaseApiController
             return $this->error('Only buyers can create orders', null, 403);
         }
 
+        // Prepare items with pharmacist_price from products
+        $items = [];
+        foreach ($request->items as $item) {
+            $product = \App\Models\Product::findOrFail($item['product_id']);
+            
+            // Use provided unit_price or calculate from product's pharmacist_price
+            $unitPrice = $item['unit_price'] ?? $product->getFinalPharmacistPrice();
+            
+            $items[] = [
+                'product_id' => $item['product_id'],
+                'quantity' => $item['quantity'],
+                'unit_price' => $unitPrice,
+                'notes' => $item['notes'] ?? null,
+            ];
+        }
+
         $order = $this->orderCreationService->create(
             buyerCompanyId: $user->company_id,
             supplierCompanyId: $request->supplier_company_id,
             createdBy: $user->id,
-            items: $request->items,
+            items: $items,
             notes: $request->notes,
             taxRate: $request->tax_rate ?? 0
         );
@@ -167,14 +183,14 @@ class OrderController extends BaseApiController
     #[OA\Get(
         path: '/orders/{id}',
         summary: 'Get order',
-        description: 'Get details of a specific order',
+        description: 'Get details of a specific order including buyerCompany, supplierCompany, creator, items.product, statusLogs.user, and driver (if assigned)',
         tags: ['Orders'],
         security: [['sanctum' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Order retrieved successfully'),
+            new OA\Response(response: 200, description: 'Order retrieved successfully. Includes all relationships and driver information if assigned.'),
             new OA\Response(response: 401, description: 'Unauthenticated'),
             new OA\Response(response: 403, description: 'Forbidden'),
             new OA\Response(response: 404, description: 'Order not found'),
@@ -299,6 +315,89 @@ class OrderController extends BaseApiController
             ], 'Order cancelled successfully');
         } catch (\InvalidArgumentException $e) {
             return $this->error($e->getMessage(), null, 400);
+        } catch (\Exception $e) {
+            Log::error('Cancel order error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->error('Failed to cancel order: ' . $e->getMessage(), null, 500);
+        }
+    }
+
+    /**
+     * Assign driver to order.
+     */
+    #[OA\Post(
+        path: '/orders/{id}/assign-driver',
+        summary: 'Assign driver to order',
+        description: 'Assign a driver to an order. Only suppliers can assign drivers to their own orders. The driver must belong to the supplier\'s company.',
+        tags: ['Orders'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'), description: 'Order ID'),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['driver_id'],
+                properties: [
+                    new OA\Property(property: 'driver_id', type: 'integer', example: 5, description: 'Driver user ID'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Driver assigned successfully. Order includes driver relationship.'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden - Only suppliers can assign drivers to their own orders'),
+            new OA\Response(response: 404, description: 'Order or driver not found'),
+            new OA\Response(response: 422, description: 'Validation error'),
+        ]
+    )]
+    public function assignDriver(Request $request, Order $order): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+
+            // Only suppliers can assign drivers to their orders
+            if (!$user->isSupplier() && !$user->isAdmin()) {
+                return $this->error('Only suppliers can assign drivers', null, 403);
+            }
+
+            // Verify order belongs to supplier's company
+            if ($order->supplier_company_id !== $user->company_id && !$user->isAdmin()) {
+                return $this->error('You can only assign drivers to your own orders', null, 403);
+            }
+
+            $request->validate([
+                'driver_id' => ['required', 'integer', 'exists:users,id'],
+            ]);
+
+            $driver = \App\Models\User::findOrFail($request->driver_id);
+
+            // Verify driver belongs to supplier's company and is actually a driver
+            if ($driver->role !== 'driver') {
+                return $this->error('User is not a driver', null, 400);
+            }
+
+            if ($driver->company_id !== $user->company_id && !$user->isAdmin()) {
+                return $this->error('Driver must belong to your company', null, 403);
+            }
+
+            $order->update(['driver_id' => $driver->id]);
+
+            $order->load(['buyerCompany', 'supplierCompany', 'driver', 'items.product']);
+
+            return $this->success([
+                'order' => $order,
+            ], 'Driver assigned successfully');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return $this->error('Validation failed', $e->errors(), 422);
+        } catch (\Exception $e) {
+            Log::error('Assign driver error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->error('Failed to assign driver: ' . $e->getMessage(), null, 500);
         }
     }
 }

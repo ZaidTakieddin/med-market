@@ -18,6 +18,7 @@ class Order extends Model
         'buyer_company_id',
         'supplier_company_id',
         'created_by',
+        'driver_id',
         'status',
         'subtotal',
         'tax_amount',
@@ -72,6 +73,14 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    /**
+     * Get the driver assigned to this order.
+     */
+    public function driver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'driver_id');
     }
 
     /**

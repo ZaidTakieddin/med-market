@@ -274,6 +274,296 @@
                 ]
             }
         },
+        "/cart": {
+            "get": {
+                "tags": [
+                    "Cart"
+                ],
+                "summary": "Get cart",
+                "description": "Get the current user's shopping cart with all items",
+                "operationId": "6b8e02358626c72cbf572b555a21b9f6",
+                "responses": {
+                    "200": {
+                        "description": "Cart retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Cart"
+                ],
+                "summary": "Clear cart",
+                "description": "Remove all items from the shopping cart",
+                "operationId": "2ce37586344c0b5b4563f33c962dc273",
+                "responses": {
+                    "200": {
+                        "description": "Cart cleared successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/cart/items": {
+            "post": {
+                "tags": [
+                    "Cart"
+                ],
+                "summary": "Add item to cart",
+                "description": "Add a product to the shopping cart. The unit_price is automatically calculated using the product's pharmacist_price with any applicable discounts applied.",
+                "operationId": "e036af844498fff8d600d1deeb9436e6",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "product_id",
+                                    "quantity"
+                                ],
+                                "properties": {
+                                    "product_id": {
+                                        "description": "Product ID to add to cart",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "quantity": {
+                                        "description": "Quantity to add",
+                                        "type": "integer",
+                                        "example": 2
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Special instructions",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Item added to cart successfully. Price uses product pharmacist_price with discounts applied."
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - Only buyers can add items to cart"
+                    },
+                    "404": {
+                        "description": "Product not found"
+                    },
+                    "400": {
+                        "description": "Product is not active"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/cart/items/{id}": {
+            "put": {
+                "tags": [
+                    "Cart"
+                ],
+                "summary": "Update cart item",
+                "description": "Update quantity or notes of a cart item",
+                "operationId": "ea94cd0b1a73da425dfeaddbed019f2d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "quantity": {
+                                        "type": "integer",
+                                        "example": 3
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Updated notes"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Cart item updated successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Cart item not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Cart"
+                ],
+                "summary": "Remove cart item",
+                "description": "Remove an item from the shopping cart",
+                "operationId": "69b9d42c3cbeb43afa63cbda7a2b27ab",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Item removed from cart successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Cart item not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/cart/checkout": {
+            "post": {
+                "tags": [
+                    "Cart"
+                ],
+                "summary": "Checkout cart",
+                "description": "Convert cart items to orders. If cart contains items from multiple suppliers, multiple orders will be created automatically (one per supplier). All orders are created in a single atomic transaction - either all succeed or all fail. Cart is cleared after successful checkout.",
+                "operationId": "0828f2d0d3702f88bfb754cc8a45d808",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Order notes",
+                                        "nullable": true
+                                    },
+                                    "tax_rate": {
+                                        "description": "Tax rate as percentage (e.g., 15 for 15%)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "default": 0,
+                                        "example": 15
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Orders created successfully. Returns array of orders if multiple suppliers, single order if one supplier.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Cart checked out. Multiple orders created for different suppliers."
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "orders": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "description": "Order object with buyerCompany, supplierCompany, and items.product relationships",
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "orders_count": {
+                                                    "description": "Number of orders created",
+                                                    "type": "integer",
+                                                    "example": 2
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - Only buyers can checkout"
+                    },
+                    "400": {
+                        "description": "Cart is empty"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/companies": {
             "get": {
                 "tags": [
@@ -565,6 +855,549 @@
                 ]
             }
         },
+        "/drivers": {
+            "get": {
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "List drivers",
+                "description": "Get a paginated list of drivers. Suppliers see only their company drivers.",
+                "operationId": "7ba15867fb07b75bdf2c5feb37e6a82f",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Drivers retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "Create driver",
+                "description": "Create a new driver (suppliers and admins only)",
+                "operationId": "8d6bacf909497456823ea9142e55d5e7",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Ahmed Ali"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "ahmed@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Driver created successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/drivers/{id}": {
+            "get": {
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "Get driver",
+                "description": "Get details of a specific driver",
+                "operationId": "dffcdf3f3a9993f9d988408e678348cf",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Driver retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Driver not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "Update driver",
+                "description": "Update an existing driver",
+                "operationId": "0613d5b80db05da154442bfc18ed541e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Driver updated successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Driver not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "Delete driver",
+                "description": "Delete a driver (soft delete)",
+                "operationId": "a2b4b57b4e72c65aeb084bf2d34ac067",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Driver deleted successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Driver not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/drivers/{id}/orders": {
+            "get": {
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "Get driver orders",
+                "description": "Get all orders assigned to a specific driver",
+                "operationId": "6b3e18f55803d993aa76171f332db437",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Orders retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Driver not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/offers": {
+            "get": {
+                "tags": [
+                    "Offers"
+                ],
+                "summary": "List offers",
+                "description": "Get a paginated list of offers. Suppliers see only their offers, buyers see all active offers.",
+                "operationId": "1c493e29b79a76d2b014efcf07eb504c",
+                "parameters": [
+                    {
+                        "name": "supplier_company_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "offer_type",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "buy_x_get_y",
+                                "percentage_discount",
+                                "fixed_discount",
+                                "bundle"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "is_active",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Offers retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Offers"
+                ],
+                "summary": "Create offer",
+                "description": "Create a new product offer or promotion (suppliers only)",
+                "operationId": "dd38976d492305d9255839335d5bf687",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "offer_type",
+                                    "start_date",
+                                    "end_date",
+                                    "product_ids"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Buy 2 Get 1 Free"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Special promotion"
+                                    },
+                                    "offer_type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "buy_x_get_y",
+                                            "percentage_discount",
+                                            "fixed_discount",
+                                            "bundle"
+                                        ]
+                                    },
+                                    "discount_value": {
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "discount_type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "percentage",
+                                            "fixed"
+                                        ]
+                                    },
+                                    "quantity_required": {
+                                        "type": "integer"
+                                    },
+                                    "quantity_free": {
+                                        "type": "integer"
+                                    },
+                                    "start_date": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "end_date": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "product_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Offer created successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/offers/{id}": {
+            "get": {
+                "tags": [
+                    "Offers"
+                ],
+                "summary": "Get offer",
+                "description": "Get details of a specific offer",
+                "operationId": "bd98d2f27641677be59147366406a423",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Offer retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Offer not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Offers"
+                ],
+                "summary": "Update offer",
+                "description": "Update an existing offer (suppliers can only update their own offers)",
+                "operationId": "e2d43515b3aeb3b691cb532ecda55668",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Offer updated successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Offer not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Offers"
+                ],
+                "summary": "Delete offer",
+                "description": "Delete an offer (soft delete, suppliers can only delete their own offers)",
+                "operationId": "e218657418dbb2238f749200e7695a51",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Offer deleted successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Offer not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/orders": {
             "get": {
                 "tags": [
@@ -625,7 +1458,7 @@
                     "Orders"
                 ],
                 "summary": "Create order",
-                "description": "Create a new order. Only buyers can create orders.",
+                "description": "Create a new order. Only buyers can create orders. If unit_price is not provided, it will use the product's pharmacist_price with any applicable discounts applied (getFinalPharmacistPrice method).",
                 "operationId": "fccc497d8bcac727afdc854cf0521698",
                 "requestBody": {
                     "required": true,
@@ -638,6 +1471,7 @@
                                 ],
                                 "properties": {
                                     "supplier_company_id": {
+                                        "description": "Supplier company ID",
                                         "type": "integer",
                                         "example": 1
                                     },
@@ -646,19 +1480,24 @@
                                         "items": {
                                             "properties": {
                                                 "product_id": {
+                                                    "description": "Product ID",
                                                     "type": "integer",
                                                     "example": 1
                                                 },
                                                 "quantity": {
+                                                    "description": "Quantity ordered",
                                                     "type": "integer",
                                                     "example": 10
                                                 },
                                                 "unit_price": {
+                                                    "description": "Optional - will use product pharmacist_price with discounts applied (getFinalPharmacistPrice) if not provided",
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 25.5
+                                                    "example": 25.5,
+                                                    "nullable": true
                                                 },
                                                 "notes": {
+                                                    "description": "Item-specific notes",
                                                     "type": "string",
                                                     "nullable": true
                                                 }
@@ -667,10 +1506,12 @@
                                         }
                                     },
                                     "notes": {
+                                        "description": "Order-level notes",
                                         "type": "string",
                                         "nullable": true
                                     },
                                     "tax_rate": {
+                                        "description": "Tax rate as percentage (e.g., 15 for 15%)",
                                         "type": "number",
                                         "format": "float",
                                         "default": 0,
@@ -684,7 +1525,7 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Order created successfully"
+                        "description": "Order created successfully. Order includes buyerCompany, supplierCompany, and items.product relationships."
                     },
                     "401": {
                         "description": "Unauthenticated"
@@ -709,7 +1550,7 @@
                     "Orders"
                 ],
                 "summary": "Get order",
-                "description": "Get details of a specific order",
+                "description": "Get details of a specific order including buyerCompany, supplierCompany, creator, items.product, statusLogs.user, and driver (if assigned)",
                 "operationId": "37b9054f8bb7c660ae6ee13bfb030a08",
                 "parameters": [
                     {
@@ -723,7 +1564,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Order retrieved successfully"
+                        "description": "Order retrieved successfully. Includes all relationships and driver information if assigned."
                     },
                     "401": {
                         "description": "Unauthenticated"
@@ -876,25 +1717,98 @@
                 ]
             }
         },
+        "/orders/{id}/assign-driver": {
+            "post": {
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "Assign driver to order",
+                "description": "Assign a driver to an order. Only suppliers can assign drivers to their own orders. The driver must belong to the supplier's company.",
+                "operationId": "d5d7ed166cb2e4d6c1a1a1576d805b7c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Order ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "driver_id"
+                                ],
+                                "properties": {
+                                    "driver_id": {
+                                        "description": "Driver user ID",
+                                        "type": "integer",
+                                        "example": 5
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Driver assigned successfully. Order includes driver relationship."
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - Only suppliers can assign drivers to their own orders"
+                    },
+                    "404": {
+                        "description": "Order or driver not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/products": {
             "get": {
                 "tags": [
                     "Products"
                 ],
                 "summary": "List products",
-                "description": "Get a paginated list of products. Suppliers see only their products, buyers see all active products.",
+                "description": "Get a paginated list of products. Suppliers see only their products, buyers see all active products. Products include category, dual pricing (pharmacist_price, customer_price), and discount information.",
                 "operationId": "c821c7f9e41e08594ad4eae5a99e812e",
                 "parameters": [
                     {
                         "name": "supplier_company_id",
                         "in": "query",
+                        "description": "Filter by supplier company ID",
                         "schema": {
                             "type": "integer"
                         }
                     },
                     {
+                        "name": "category",
+                        "in": "query",
+                        "description": "Filter by product category",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
                         "name": "is_active",
                         "in": "query",
+                        "description": "Filter by active status",
                         "schema": {
                             "type": "boolean"
                         }
@@ -902,6 +1816,7 @@
                     {
                         "name": "search",
                         "in": "query",
+                        "description": "Search in name, SKU, description, or category",
                         "schema": {
                             "type": "string"
                         }
@@ -925,7 +1840,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Products retrieved successfully"
+                        "description": "Products retrieved successfully. Each product includes category, pharmacist_price, customer_price, discount, and discount_type fields."
                     },
                     "401": {
                         "description": "Unauthenticated"
@@ -951,8 +1866,7 @@
                             "schema": {
                                 "required": [
                                     "name",
-                                    "sku",
-                                    "price"
+                                    "sku"
                                 ],
                                 "properties": {
                                     "name": {
@@ -961,6 +1875,12 @@
                                     },
                                     "description": {
                                         "type": "string",
+                                        "example": "Pain reliever and fever reducer",
+                                        "nullable": true
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "example": "Analgesics",
                                         "nullable": true
                                     },
                                     "sku": {
@@ -969,17 +1889,57 @@
                                     },
                                     "barcode": {
                                         "type": "string",
+                                        "example": "1234567890123",
                                         "nullable": true
                                     },
                                     "unit": {
                                         "type": "string",
                                         "default": "piece",
+                                        "enum": [
+                                            "piece",
+                                            "box",
+                                            "bottle",
+                                            "pack",
+                                            "carton"
+                                        ],
                                         "example": "box"
                                     },
                                     "price": {
+                                        "description": "Legacy field - kept for backward compatibility. Use pharmacist_price instead.",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 25.5,
+                                        "nullable": true
+                                    },
+                                    "pharmacist_price": {
+                                        "description": "Selling price for pharmacists/buyers. Required if price is not provided.",
                                         "type": "number",
                                         "format": "float",
                                         "example": 25.5
+                                    },
+                                    "customer_price": {
+                                        "description": "Selling price for end customers",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 30,
+                                        "nullable": true
+                                    },
+                                    "discount": {
+                                        "description": "Discount amount (percentage or fixed based on discount_type)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 10,
+                                        "nullable": true
+                                    },
+                                    "discount_type": {
+                                        "description": "Type of discount: percentage or fixed amount",
+                                        "type": "string",
+                                        "enum": [
+                                            "percentage",
+                                            "fixed"
+                                        ],
+                                        "example": "percentage",
+                                        "nullable": true
                                     },
                                     "stock_quantity": {
                                         "type": "integer",
@@ -996,6 +1956,7 @@
                                         "default": true
                                     },
                                     "metadata": {
+                                        "description": "Additional product information as JSON object",
                                         "type": "object",
                                         "nullable": true
                                     }
@@ -1032,7 +1993,7 @@
                     "Products"
                 ],
                 "summary": "Get product",
-                "description": "Get details of a specific product",
+                "description": "Get details of a specific product including category, dual pricing (pharmacist_price, customer_price), discount, and discount_type",
                 "operationId": "900da7e5cb549dc28cfd19d90d1f6710",
                 "parameters": [
                     {
@@ -1046,7 +2007,85 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Product retrieved successfully"
+                        "description": "Product retrieved successfully. Includes category, pharmacist_price, customer_price, discount, and discount_type fields.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "product": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "Paracetamol 500mg"
+                                                        },
+                                                        "description": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "category": {
+                                                            "type": "string",
+                                                            "example": "Analgesics",
+                                                            "nullable": true
+                                                        },
+                                                        "sku": {
+                                                            "type": "string",
+                                                            "example": "PAR-500-001"
+                                                        },
+                                                        "pharmacist_price": {
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 25.5
+                                                        },
+                                                        "customer_price": {
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 30,
+                                                            "nullable": true
+                                                        },
+                                                        "discount": {
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 10,
+                                                            "nullable": true
+                                                        },
+                                                        "discount_type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "percentage",
+                                                                "fixed"
+                                                            ],
+                                                            "example": "percentage",
+                                                            "nullable": true
+                                                        },
+                                                        "stock_quantity": {
+                                                            "type": "integer",
+                                                            "example": 100
+                                                        },
+                                                        "is_active": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "Unauthenticated"
@@ -1085,30 +2124,93 @@
                             "schema": {
                                 "properties": {
                                     "name": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "example": "Paracetamol 500mg"
                                     },
                                     "description": {
                                         "type": "string",
+                                        "example": "Pain reliever and fever reducer",
                                         "nullable": true
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "example": "Analgesics",
+                                        "nullable": true
+                                    },
+                                    "sku": {
+                                        "type": "string",
+                                        "example": "PAR-500-001"
                                     },
                                     "barcode": {
                                         "type": "string",
+                                        "example": "1234567890123",
                                         "nullable": true
                                     },
                                     "unit": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "enum": [
+                                            "piece",
+                                            "box",
+                                            "bottle",
+                                            "pack",
+                                            "carton"
+                                        ],
+                                        "example": "box"
                                     },
                                     "price": {
+                                        "description": "Legacy field - kept for backward compatibility",
                                         "type": "number",
-                                        "format": "float"
+                                        "format": "float",
+                                        "nullable": true
+                                    },
+                                    "pharmacist_price": {
+                                        "description": "Selling price for pharmacists/buyers",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 25.5,
+                                        "nullable": true
+                                    },
+                                    "customer_price": {
+                                        "description": "Selling price for end customers",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 30,
+                                        "nullable": true
+                                    },
+                                    "discount": {
+                                        "description": "Discount amount (percentage or fixed based on discount_type)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 10,
+                                        "nullable": true
+                                    },
+                                    "discount_type": {
+                                        "description": "Type of discount: percentage or fixed amount",
+                                        "type": "string",
+                                        "enum": [
+                                            "percentage",
+                                            "fixed"
+                                        ],
+                                        "example": "percentage",
+                                        "nullable": true
+                                    },
+                                    "stock_quantity": {
+                                        "type": "integer",
+                                        "example": 100,
+                                        "nullable": true
                                     },
                                     "min_stock_level": {
-                                        "type": "integer"
+                                        "type": "integer",
+                                        "example": 10,
+                                        "nullable": true
                                     },
                                     "is_active": {
-                                        "type": "boolean"
+                                        "type": "boolean",
+                                        "example": true,
+                                        "nullable": true
                                     },
                                     "metadata": {
+                                        "description": "Additional product information as JSON object",
                                         "type": "object",
                                         "nullable": true
                                     }
@@ -1170,6 +2272,183 @@
                     },
                     "404": {
                         "description": "Product not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/profile": {
+            "get": {
+                "tags": [
+                    "Profile"
+                ],
+                "summary": "Get profile",
+                "description": "Get the authenticated user's profile information",
+                "operationId": "7addf8d5759285de730066dc9e6ffce6",
+                "responses": {
+                    "200": {
+                        "description": "Profile retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Profile"
+                ],
+                "summary": "Update profile",
+                "description": "Update the authenticated user's profile information",
+                "operationId": "a09c307c84fa858af3701d419ba3e2b5",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "John Doe"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "john@example.com"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Profile updated successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/profile/password": {
+            "put": {
+                "tags": [
+                    "Profile"
+                ],
+                "summary": "Change password",
+                "description": "Change the authenticated user's password",
+                "operationId": "3843526f41097fd6193f4387ce6207fc",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "current_password",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "current_password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password changed successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/profile/company": {
+            "put": {
+                "tags": [
+                    "Profile"
+                ],
+                "summary": "Update company",
+                "description": "Update company information (only for company admins)",
+                "operationId": "8dce6c06169f109cd4be76b35adf8dc2",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "phone": {
+                                        "type": "string"
+                                    },
+                                    "address": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Company updated successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "422": {
+                        "description": "Validation error"
                     }
                 },
                 "security": [
@@ -1406,8 +2685,20 @@
             "description": "User authentication endpoints"
         },
         {
+            "name": "Cart",
+            "description": "Shopping cart management endpoints"
+        },
+        {
             "name": "Companies",
             "description": "Company management endpoints"
+        },
+        {
+            "name": "Drivers",
+            "description": "Driver management endpoints"
+        },
+        {
+            "name": "Offers",
+            "description": "Product offers and promotions management endpoints"
         },
         {
             "name": "Orders",
@@ -1416,6 +2707,10 @@
         {
             "name": "Products",
             "description": "Product management endpoints"
+        },
+        {
+            "name": "Profile",
+            "description": "User profile management endpoints"
         },
         {
             "name": "Stock Management",

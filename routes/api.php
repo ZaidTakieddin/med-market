@@ -46,6 +46,34 @@ Route::prefix('v1')->group(function () {
 
         // Companies
         Route::apiResource('companies', App\Http\Controllers\Api\V1\CompanyController::class);
+
+        // Cart Management
+        Route::prefix('cart')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\V1\CartController::class, 'index']);
+            Route::post('/items', [App\Http\Controllers\Api\V1\CartController::class, 'addItem']);
+            Route::put('/items/{id}', [App\Http\Controllers\Api\V1\CartController::class, 'updateItem']);
+            Route::delete('/items/{id}', [App\Http\Controllers\Api\V1\CartController::class, 'removeItem']);
+            Route::delete('/', [App\Http\Controllers\Api\V1\CartController::class, 'clear']);
+            Route::post('/checkout', [App\Http\Controllers\Api\V1\CartController::class, 'checkout']);
+        });
+
+        // Offers
+        Route::apiResource('offers', App\Http\Controllers\Api\V1\OfferController::class);
+
+        // Drivers
+        Route::apiResource('drivers', App\Http\Controllers\Api\V1\DriverController::class);
+        Route::get('drivers/{id}/orders', [App\Http\Controllers\Api\V1\DriverController::class, 'orders']);
+
+        // Profile
+        Route::prefix('profile')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\V1\ProfileController::class, 'show']);
+            Route::put('/', [App\Http\Controllers\Api\V1\ProfileController::class, 'update']);
+            Route::put('/password', [App\Http\Controllers\Api\V1\ProfileController::class, 'changePassword']);
+            Route::put('/company', [App\Http\Controllers\Api\V1\ProfileController::class, 'updateCompany']);
+        });
+
+        // Order driver assignment
+        Route::post('orders/{order}/assign-driver', [App\Http\Controllers\Api\V1\OrderController::class, 'assignDriver']);
     });
 });
 

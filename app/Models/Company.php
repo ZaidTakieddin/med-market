@@ -73,5 +73,21 @@ class Company extends Model
     {
         return $this->type === 'buyer';
     }
+
+    /**
+     * Get offers created by this company (if supplier).
+     */
+    public function offers(): HasMany
+    {
+        return $this->hasMany(Offer::class, 'supplier_company_id');
+    }
+
+    /**
+     * Get carts for this company (if buyer).
+     */
+    public function carts(): HasMany
+    {
+        return $this->hasMany(Cart::class);
+    }
 }
 
