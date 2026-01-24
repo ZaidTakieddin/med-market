@@ -1404,12 +1404,13 @@
                     "Orders"
                 ],
                 "summary": "List orders",
-                "description": "Get a paginated list of orders. Filtered by user's company.",
+                "description": "Get a paginated list of orders filtered by user's company. **Multi-supplier context:** Buyers see all their orders (potentially from multiple suppliers - one order per supplier). Suppliers see all orders placed with them (from multiple buyers). Each order represents a single supplier-buyer transaction. When a cart contains items from multiple suppliers and is checked out, multiple orders are created automatically (one per supplier).",
                 "operationId": "5894f7ae19272fefaf73e3a6f9d9782d",
                 "parameters": [
                     {
                         "name": "status",
                         "in": "query",
+                        "description": "Filter orders by status",
                         "schema": {
                             "type": "string",
                             "enum": [
@@ -1420,6 +1421,22 @@
                                 "delivered",
                                 "cancelled"
                             ]
+                        }
+                    },
+                    {
+                        "name": "supplier_company_id",
+                        "in": "query",
+                        "description": "Filter by supplier company ID (for buyers)",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "buyer_company_id",
+                        "in": "query",
+                        "description": "Filter by buyer company ID (for suppliers)",
+                        "schema": {
+                            "type": "integer"
                         }
                     },
                     {
@@ -1441,7 +1458,40 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Orders retrieved successfully"
+                        "description": "Orders retrieved successfully. Each order includes buyerCompany, supplierCompany, items, and items.product relationships. Orders are grouped by supplier - if a buyer purchased from 3 suppliers, they will see 3 separate orders.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "description": "Order object with buyerCompany, supplierCompany, items.product relationships",
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "Unauthenticated"
@@ -1458,7 +1508,7 @@
                     "Orders"
                 ],
                 "summary": "Create order",
-                "description": "Create a new order. Only buyers can create orders. If unit_price is not provided, it will use the product's pharmacist_price with any applicable discounts applied (getFinalPharmacistPrice method).",
+                "description": "Create a new order for a **single supplier**. Only buyers can create orders. If unit_price is not provided, it will use the product's pharmacist_price with any applicable discounts applied (getFinalPharmacistPrice method). **Important:** This endpoint creates ONE order for ONE supplier. If you need to order from multiple suppliers, use the cart checkout endpoint (`POST /cart/checkout`) which automatically splits the cart into multiple orders (one per supplier).",
                 "operationId": "fccc497d8bcac727afdc854cf0521698",
                 "requestBody": {
                     "required": true,
@@ -1471,16 +1521,17 @@
                                 ],
                                 "properties": {
                                     "supplier_company_id": {
-                                        "description": "Supplier company ID",
+                                        "description": "Supplier company ID - all items must belong to this supplier",
                                         "type": "integer",
                                         "example": 1
                                     },
                                     "items": {
+                                        "description": "Array of order items. All products must belong to the specified supplier_company_id",
                                         "type": "array",
                                         "items": {
                                             "properties": {
                                                 "product_id": {
-                                                    "description": "Product ID",
+                                                    "description": "Product ID (must belong to supplier_company_id)",
                                                     "type": "integer",
                                                     "example": 1
                                                 },
@@ -1525,7 +1576,29 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Order created successfully. Order includes buyerCompany, supplierCompany, and items.product relationships."
+                        "description": "Order created successfully. Returns a single order object. For multi-supplier orders, use cart checkout which returns an array of orders.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "order": {
+                                                    "description": "Single order object with buyerCompany, supplierCompany, and items.product relationships",
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "Unauthenticated"
@@ -1534,7 +1607,7 @@
                         "description": "Forbidden - Only buyers can create orders"
                     },
                     "422": {
-                        "description": "Validation error"
+                        "description": "Validation error - products must belong to the specified supplier"
                     }
                 },
                 "security": [
@@ -1550,12 +1623,13 @@
                     "Orders"
                 ],
                 "summary": "Get order",
-                "description": "Get details of a specific order including buyerCompany, supplierCompany, creator, items.product, statusLogs.user, and driver (if assigned)",
+                "description": "Get details of a specific order. **Multi-supplier context:** Each order represents a transaction between ONE buyer and ONE supplier. If a buyer checked out a cart with items from multiple suppliers, they will have multiple separate orders (one per supplier). This endpoint returns details for a single order, including buyerCompany, supplierCompany, creator, items.product, statusLogs.user, and driver (if assigned).",
                 "operationId": "37b9054f8bb7c660ae6ee13bfb030a08",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
+                        "description": "Order ID",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -1564,13 +1638,35 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Order retrieved successfully. Includes all relationships and driver information if assigned."
+                        "description": "Order retrieved successfully. Includes all relationships and driver information if assigned. The order represents a single supplier-buyer transaction.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "order": {
+                                                    "description": "Order object with buyerCompany (buyer info), supplierCompany (supplier info), creator, items.product, statusLogs.user, and driver relationships",
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "Unauthenticated"
                     },
                     "403": {
-                        "description": "Forbidden"
+                        "description": "Forbidden - User can only view orders from their own company"
                     },
                     "404": {
                         "description": "Order not found"
@@ -1589,12 +1685,13 @@
                     "Orders"
                 ],
                 "summary": "Update order status",
-                "description": "Transition order to a new status. Valid transitions are enforced.",
+                "description": "Transition order to a new status. Valid transitions are enforced. **Multi-supplier context:** Each order is managed independently. If a buyer has multiple orders from different suppliers, each order's status must be updated separately. Suppliers can update status for orders placed with them, buyers can view status updates.",
                 "operationId": "095399ee4f8a9705f1402d0fffd49790",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
+                        "description": "Order ID",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -1611,6 +1708,7 @@
                                 ],
                                 "properties": {
                                     "status": {
+                                        "description": "New order status. Must be a valid transition from current status.",
                                         "type": "string",
                                         "enum": [
                                             "pending",
@@ -1623,6 +1721,7 @@
                                         "example": "accepted"
                                     },
                                     "notes": {
+                                        "description": "Optional notes about the status change",
                                         "type": "string",
                                         "nullable": true
                                     }
@@ -1634,16 +1733,38 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Order status updated successfully"
+                        "description": "Order status updated successfully. Returns updated order with buyerCompany, supplierCompany, and items.product relationships.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "order": {
+                                                    "description": "Updated order object",
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "400": {
-                        "description": "Invalid status transition"
+                        "description": "Invalid status transition - cannot transition from current status to requested status"
                     },
                     "401": {
                         "description": "Unauthenticated"
                     },
                     "403": {
-                        "description": "Forbidden"
+                        "description": "Forbidden - Suppliers can only update their own orders"
                     },
                     "404": {
                         "description": "Order not found"
@@ -1662,12 +1783,13 @@
                     "Orders"
                 ],
                 "summary": "Cancel order",
-                "description": "Cancel an order. Requires cancellation reason.",
+                "description": "Cancel an order. Requires cancellation reason. **Multi-supplier context:** Each order can be cancelled independently. If a buyer has multiple orders from different suppliers and wants to cancel all, each order must be cancelled separately. Stock is automatically reverted when an order is cancelled.",
                 "operationId": "831be17775c50dbb11f0c1185abe3384",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
+                        "description": "Order ID",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -1684,6 +1806,7 @@
                                 ],
                                 "properties": {
                                     "reason": {
+                                        "description": "Reason for cancellation (max 500 characters)",
                                         "type": "string",
                                         "example": "Out of stock"
                                     }
@@ -1695,16 +1818,38 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Order cancelled successfully"
+                        "description": "Order cancelled successfully. Stock has been automatically reverted. Returns updated order with cancellation_reason.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "order": {
+                                                    "description": "Cancelled order object with status set to cancelled and cancellation_reason populated",
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "400": {
-                        "description": "Cannot cancel order in current status"
+                        "description": "Cannot cancel order in current status - order may already be delivered or cancelled"
                     },
                     "401": {
                         "description": "Unauthenticated"
                     },
                     "403": {
-                        "description": "Forbidden"
+                        "description": "Forbidden - Buyers can cancel their own orders, suppliers can cancel orders placed with them"
                     },
                     "404": {
                         "description": "Order not found"

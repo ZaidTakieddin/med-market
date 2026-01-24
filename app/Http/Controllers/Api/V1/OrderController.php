@@ -28,7 +28,7 @@ class OrderController extends BaseApiController
     #[OA\Get(
         path: '/orders',
         summary: 'List orders',
-        description: 'Get a paginated list of orders. Filtered by user\'s company.',
+        description: 'Get a paginated list of orders filtered by user\'s company. **Multi-supplier context:** Buyers see all their orders (potentially from multiple suppliers - one order per supplier). Suppliers see all orders placed with them (from multiple buyers). Each order represents a single supplier-buyer transaction. When a cart contains items from multiple suppliers and is checked out, multiple orders are created automatically (one per supplier).',
         tags: ['Orders'],
         security: [['sanctum' => []]],
         parameters: [
@@ -38,13 +38,40 @@ class OrderController extends BaseApiController
                 schema: new OA\Schema(
                     type: 'string',
                     enum: ['pending', 'accepted', 'prepared', 'shipped', 'delivered', 'cancelled']
-                )
+                ),
+                description: 'Filter orders by status'
             ),
+            new OA\Parameter(name: 'supplier_company_id', in: 'query', schema: new OA\Schema(type: 'integer'), description: 'Filter by supplier company ID (for buyers)'),
+            new OA\Parameter(name: 'buyer_company_id', in: 'query', schema: new OA\Schema(type: 'integer'), description: 'Filter by buyer company ID (for suppliers)'),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
             new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15)),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Orders retrieved successfully'),
+            new OA\Response(
+                response: 200,
+                description: 'Orders retrieved successfully. Each order includes buyerCompany, supplierCompany, items, and items.product relationships. Orders are grouped by supplier - if a buyer purchased from 3 suppliers, they will see 3 separate orders.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                        new OA\Property(
+                            property: 'data',
+                            type: 'object',
+                            properties: [
+                                new OA\Property(
+                                    property: 'data',
+                                    type: 'array',
+                                    items: new OA\Items(
+                                        type: 'object',
+                                        description: 'Order object with buyerCompany, supplierCompany, items.product relationships'
+                                    )
+                                ),
+                                new OA\Property(property: 'current_page', type: 'integer', example: 1),
+                                new OA\Property(property: 'total', type: 'integer', example: 15),
+                            ]
+                        )
+                    ]
+                )
+            ),
             new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
     )]
@@ -69,6 +96,16 @@ class OrderController extends BaseApiController
             // Filter by status
             if ($request->has('status')) {
                 $query->where('status', $request->status);
+            }
+
+            // Filter by supplier (for buyers)
+            if ($request->has('supplier_company_id')) {
+                $query->where('supplier_company_id', $request->supplier_company_id);
+            }
+
+            // Filter by buyer (for suppliers)
+            if ($request->has('buyer_company_id')) {
+                $query->where('buyer_company_id', $request->buyer_company_id);
             }
 
             $orders = $query->latest()->paginate($request->get('per_page', 15));
@@ -106,7 +143,7 @@ class OrderController extends BaseApiController
     #[OA\Post(
         path: '/orders',
         summary: 'Create order',
-        description: 'Create a new order. Only buyers can create orders. If unit_price is not provided, it will use the product\'s pharmacist_price with any applicable discounts applied (getFinalPharmacistPrice method).',
+        description: 'Create a new order for a **single supplier**. Only buyers can create orders. If unit_price is not provided, it will use the product\'s pharmacist_price with any applicable discounts applied (getFinalPharmacistPrice method). **Important:** This endpoint creates ONE order for ONE supplier. If you need to order from multiple suppliers, use the cart checkout endpoint (`POST /cart/checkout`) which automatically splits the cart into multiple orders (one per supplier).',
         tags: ['Orders'],
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(
@@ -114,13 +151,14 @@ class OrderController extends BaseApiController
             content: new OA\JsonContent(
                 required: ['supplier_company_id', 'items'],
                 properties: [
-                    new OA\Property(property: 'supplier_company_id', type: 'integer', example: 1, description: 'Supplier company ID'),
+                    new OA\Property(property: 'supplier_company_id', type: 'integer', example: 1, description: 'Supplier company ID - all items must belong to this supplier'),
                     new OA\Property(
                         property: 'items',
                         type: 'array',
+                        description: 'Array of order items. All products must belong to the specified supplier_company_id',
                         items: new OA\Items(
                             properties: [
-                                new OA\Property(property: 'product_id', type: 'integer', example: 1, description: 'Product ID'),
+                                new OA\Property(property: 'product_id', type: 'integer', example: 1, description: 'Product ID (must belong to supplier_company_id)'),
                                 new OA\Property(property: 'quantity', type: 'integer', example: 10, description: 'Quantity ordered'),
                                 new OA\Property(property: 'unit_price', type: 'number', format: 'float', nullable: true, description: 'Optional - will use product pharmacist_price with discounts applied (getFinalPharmacistPrice) if not provided', example: 25.50),
                                 new OA\Property(property: 'notes', type: 'string', nullable: true, description: 'Item-specific notes'),
@@ -133,10 +171,29 @@ class OrderController extends BaseApiController
             )
         ),
         responses: [
-            new OA\Response(response: 201, description: 'Order created successfully. Order includes buyerCompany, supplierCompany, and items.product relationships.'),
+            new OA\Response(
+                response: 201,
+                description: 'Order created successfully. Returns a single order object. For multi-supplier orders, use cart checkout which returns an array of orders.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                        new OA\Property(
+                            property: 'data',
+                            type: 'object',
+                            properties: [
+                                new OA\Property(
+                                    property: 'order',
+                                    type: 'object',
+                                    description: 'Single order object with buyerCompany, supplierCompany, and items.product relationships'
+                                )
+                            ]
+                        )
+                    ]
+                )
+            ),
             new OA\Response(response: 401, description: 'Unauthenticated'),
             new OA\Response(response: 403, description: 'Forbidden - Only buyers can create orders'),
-            new OA\Response(response: 422, description: 'Validation error'),
+            new OA\Response(response: 422, description: 'Validation error - products must belong to the specified supplier'),
         ]
     )]
     public function store(CreateOrderRequest $request): JsonResponse
@@ -183,16 +240,35 @@ class OrderController extends BaseApiController
     #[OA\Get(
         path: '/orders/{id}',
         summary: 'Get order',
-        description: 'Get details of a specific order including buyerCompany, supplierCompany, creator, items.product, statusLogs.user, and driver (if assigned)',
+        description: 'Get details of a specific order. **Multi-supplier context:** Each order represents a transaction between ONE buyer and ONE supplier. If a buyer checked out a cart with items from multiple suppliers, they will have multiple separate orders (one per supplier). This endpoint returns details for a single order, including buyerCompany, supplierCompany, creator, items.product, statusLogs.user, and driver (if assigned).',
         tags: ['Orders'],
         security: [['sanctum' => []]],
         parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'), description: 'Order ID'),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Order retrieved successfully. Includes all relationships and driver information if assigned.'),
+            new OA\Response(
+                response: 200,
+                description: 'Order retrieved successfully. Includes all relationships and driver information if assigned. The order represents a single supplier-buyer transaction.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                        new OA\Property(
+                            property: 'data',
+                            type: 'object',
+                            properties: [
+                                new OA\Property(
+                                    property: 'order',
+                                    type: 'object',
+                                    description: 'Order object with buyerCompany (buyer info), supplierCompany (supplier info), creator, items.product, statusLogs.user, and driver relationships'
+                                )
+                            ]
+                        )
+                    ]
+                )
+            ),
             new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 403, description: 'Forbidden - User can only view orders from their own company'),
             new OA\Response(response: 404, description: 'Order not found'),
         ]
     )]
@@ -213,11 +289,11 @@ class OrderController extends BaseApiController
     #[OA\Post(
         path: '/orders/{id}/status',
         summary: 'Update order status',
-        description: 'Transition order to a new status. Valid transitions are enforced.',
+        description: 'Transition order to a new status. Valid transitions are enforced. **Multi-supplier context:** Each order is managed independently. If a buyer has multiple orders from different suppliers, each order\'s status must be updated separately. Suppliers can update status for orders placed with them, buyers can view status updates.',
         tags: ['Orders'],
         security: [['sanctum' => []]],
         parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'), description: 'Order ID'),
         ],
         requestBody: new OA\RequestBody(
             required: true,
@@ -228,17 +304,37 @@ class OrderController extends BaseApiController
                         property: 'status',
                         type: 'string',
                         enum: ['pending', 'accepted', 'prepared', 'shipped', 'delivered', 'cancelled'],
-                        example: 'accepted'
+                        example: 'accepted',
+                        description: 'New order status. Must be a valid transition from current status.'
                     ),
-                    new OA\Property(property: 'notes', type: 'string', nullable: true),
+                    new OA\Property(property: 'notes', type: 'string', nullable: true, description: 'Optional notes about the status change'),
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: 'Order status updated successfully'),
-            new OA\Response(response: 400, description: 'Invalid status transition'),
+            new OA\Response(
+                response: 200,
+                description: 'Order status updated successfully. Returns updated order with buyerCompany, supplierCompany, and items.product relationships.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                        new OA\Property(
+                            property: 'data',
+                            type: 'object',
+                            properties: [
+                                new OA\Property(
+                                    property: 'order',
+                                    type: 'object',
+                                    description: 'Updated order object'
+                                )
+                            ]
+                        )
+                    ]
+                )
+            ),
+            new OA\Response(response: 400, description: 'Invalid status transition - cannot transition from current status to requested status'),
             new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 403, description: 'Forbidden - Suppliers can only update their own orders'),
             new OA\Response(response: 404, description: 'Order not found'),
         ]
     )]
@@ -268,26 +364,45 @@ class OrderController extends BaseApiController
     #[OA\Post(
         path: '/orders/{id}/cancel',
         summary: 'Cancel order',
-        description: 'Cancel an order. Requires cancellation reason.',
+        description: 'Cancel an order. Requires cancellation reason. **Multi-supplier context:** Each order can be cancelled independently. If a buyer has multiple orders from different suppliers and wants to cancel all, each order must be cancelled separately. Stock is automatically reverted when an order is cancelled.',
         tags: ['Orders'],
         security: [['sanctum' => []]],
         parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'), description: 'Order ID'),
         ],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
                 required: ['reason'],
                 properties: [
-                    new OA\Property(property: 'reason', type: 'string', example: 'Out of stock'),
+                    new OA\Property(property: 'reason', type: 'string', example: 'Out of stock', description: 'Reason for cancellation (max 500 characters)'),
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: 'Order cancelled successfully'),
-            new OA\Response(response: 400, description: 'Cannot cancel order in current status'),
+            new OA\Response(
+                response: 200,
+                description: 'Order cancelled successfully. Stock has been automatically reverted. Returns updated order with cancellation_reason.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                        new OA\Property(
+                            property: 'data',
+                            type: 'object',
+                            properties: [
+                                new OA\Property(
+                                    property: 'order',
+                                    type: 'object',
+                                    description: 'Cancelled order object with status set to cancelled and cancellation_reason populated'
+                                )
+                            ]
+                        )
+                    ]
+                )
+            ),
+            new OA\Response(response: 400, description: 'Cannot cancel order in current status - order may already be delivered or cancelled'),
             new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 403, description: 'Forbidden - Buyers can cancel their own orders, suppliers can cancel orders placed with them'),
             new OA\Response(response: 404, description: 'Order not found'),
         ]
     )]
