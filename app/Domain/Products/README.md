@@ -1,0 +1,228 @@
+# Products Domain
+
+This domain handles product-related business logic in the Med Market B2B system. Products represent medical/pharmaceutical items that suppliers offer to buyers (pharmacies).
+
+## Overview
+
+The Products domain manages product information, pricing, inventory, and relationships. While product CRUD operations are handled in controllers, this domain is prepared for future product-specific business logic and services.
+
+## Key Concepts
+
+### Product Structure
+
+Products contain:
+- **Basic Information**: Name, description, SKU, barcode, category, unit
+- **Pricing**: Pharmacist price, customer price, discount, discount type
+- **Inventory**: Stock quantity, minimum stock level
+- **Relationships**: Supplier company, order items, stock movements, offers
+
+### Dual Pricing System
+
+Products support two pricing tiers:
+- **Pharmacist Price** (`pharmacist_price`) - Price for pharmacies/buyers
+- **Customer Price** (`customer_price`) - Price for end customers
+- **Legacy Price** (`price`) - Kept for backward compatibility
+
+### Discount System
+
+Products can have discounts:
+- **Discount Type**: `percentage` or `fixed`
+- **Discount Value**: Amount or percentage
+- **Effective Price**: Calculated automatically based on discount
+
+### Categories
+
+Products are organized by categories (e.g., "مسكنات", "مضادات حيوية", "فيتامينات").
+
+## Product Model Features
+
+### Price Calculation Methods
+
+```php
+// Get effective pharmacist price (with fallback to legacy price)
+$price = $product->getEffectivePharmacistPrice();
+
+// Get effective customer price (with fallback chain)
+$price = $product->getEffectiveCustomerPrice();
+
+// Get final pharmacist price (after discount)
+$finalPrice = $product->getFinalPharmacistPrice();
+
+// Get final customer price (after discount)
+$finalPrice = $product->getFinalCustomerPrice();
+```
+
+### Stock Management
+
+```php
+// Check if product is low on stock
+if ($product->isLowStock()) {
+    // Trigger low stock alert
+}
+```
+
+### Relationships
+
+- `supplierCompany()` - Belongs to supplier company
+- `orderItems()` - Has many order items
+- `stockMovements()` - Has many stock movements
+- `offers()` - Belongs to many offers (with pivot data)
+
+## Current Implementation
+
+### Controllers
+
+Product operations are handled in `ProductController`:
+- List products with filtering and search
+- Create products (suppliers only)
+- Get product details
+- Update products
+- Delete products (soft delete)
+
+### Validation
+
+Product validation is handled in:
+- `CreateProductRequest` - For creating products
+- `UpdateProductRequest` - For updating products
+
+### Business Logic
+
+Currently, product business logic is in:
+- **Models**: Price calculation methods, stock checking
+- **Controllers**: Filtering, search, authorization
+- **Policies**: Authorization rules
+
+## Future Domain Services
+
+This domain is prepared for future services:
+
+### ProductPricingService (Planned)
+
+**Purpose**: Handle complex pricing logic, bulk price updates, price history.
+
+**Potential Features**:
+- Bulk price updates
+- Price history tracking
+- Dynamic pricing based on offers
+- Price calculation with multiple discounts
+
+### ProductSearchService (Planned)
+
+**Purpose**: Advanced product search and filtering.
+
+**Potential Features**:
+- Full-text search
+- Category-based filtering
+- Price range filtering
+- Stock availability filtering
+- Supplier-based filtering
+
+### ProductOfferService (Planned)
+
+**Purpose**: Manage product-offer relationships and offer application.
+
+**Potential Features**:
+- Apply offers to products
+- Calculate offer-affected prices
+- Validate offer eligibility
+- Handle offer expiration
+
+## Related Models
+
+- `App\Models\Product` - Main product model
+- `App\Models\Company` - Supplier companies
+- `App\Models\OrderItem` - Order line items
+- `App\Models\StockMovement` - Stock movement history
+- `App\Models\Offer` - Product offers/promotions
+- `App\Models\CartItem` - Cart items
+
+## Integration Points
+
+### With Orders Domain
+
+Products are used in orders:
+- Order items reference products
+- Product prices are used for order totals
+- Product stock is deducted when orders are accepted
+
+### With Inventory Domain
+
+Products interact with inventory:
+- Stock movements update product quantities
+- Low stock detection triggers alerts
+- Stock history is tracked per product
+
+### With Offers Domain
+
+Products participate in offers:
+- Products can have multiple offers
+- Offers affect product pricing
+- Offer eligibility is checked per product
+
+### With Cart Management
+
+Products are added to carts:
+- Cart items reference products
+- Product prices (pharmacist_price) are used for cart totals
+- Product availability is checked
+
+## Business Rules
+
+1. **Product Creation**:
+   - SKU must be unique
+   - Supplier must exist
+   - Either `price` or `pharmacist_price` is required
+
+2. **Pricing**:
+   - Pharmacist price is primary pricing for B2B
+   - Customer price is optional (for B2C scenarios)
+   - Discounts are applied to effective prices
+
+3. **Stock Management**:
+   - Stock cannot go negative
+   - Low stock warnings trigger at `min_stock_level`
+   - Stock changes are tracked via movements
+
+4. **Authorization**:
+   - Suppliers can only manage their own products
+   - Buyers can view all active products
+   - Admins have full access
+
+5. **Soft Deletes**:
+   - Products use soft deletes
+   - Deleted products are hidden from listings
+   - Relationships are preserved
+
+## Constants
+
+- `App\Constants\DiscountType` - Discount type constants (`PERCENTAGE`, `FIXED`)
+
+## Observers
+
+`StockMovementObserver` monitors product stock changes:
+- Logs stock movements
+- Triggers low stock warnings
+- Maintains audit trail
+
+## Testing Considerations
+
+- Test product creation with various pricing scenarios
+- Test price calculation methods
+- Test discount application
+- Test stock management
+- Test category filtering
+- Test search functionality
+- Test authorization rules
+- Test soft delete behavior
+
+## Future Enhancements
+
+- Product variants (sizes, colors, etc.)
+- Product images and media
+- Product reviews and ratings
+- Product bundles and kits
+- Product recommendations
+- Product analytics and reporting
+- Bulk import/export
+- Product templates
+
