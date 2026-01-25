@@ -3,10 +3,10 @@
 namespace App\Http\Requests\Products;
 
 use App\Constants\DiscountType;
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\BaseFormRequest;
 use Illuminate\Validation\Rule;
 
-class CreateProductRequest extends FormRequest
+class CreateProductRequest extends BaseFormRequest
 {
     public function authorize(): bool
     {

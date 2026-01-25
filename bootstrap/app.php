@@ -23,35 +23,12 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Ensure API routes return JSON responses
         $exceptions->shouldRenderJsonWhen(function ($request, \Throwable $e) {
-            return $request->is('api/*');
+            return $request->is('api/*') || $request->expectsJson();
         });
 
-        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Unauthenticated.',
-                    'message' => 'Authentication required. Please provide a valid token.',
-                ], 401);
-            }
-        });
-
-        $exceptions->render(function (\Symfony\Component\Routing\Exception\RouteNotFoundException $e, \Illuminate\Http\Request $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
-                if (str_contains($e->getMessage(), 'login')) {
-                    return response()->json([
-                        'success' => false,
-                        'error' => 'Unauthenticated.',
-                        'message' => 'Authentication required. Please provide a valid token.',
-                    ], 401);
-                }
-
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Route not found.',
-                    'message' => $e->getMessage(),
-                ], 404);
-            }
-        });
+        // Enhanced exception handling for API routes
+        // The Handler class (app/Exceptions/Handler.php) provides comprehensive exception handling
+        // with standardized JSON responses for all API routes
     })->create();

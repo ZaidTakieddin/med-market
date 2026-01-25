@@ -4,10 +4,10 @@ namespace App\Http\Requests\Offers;
 
 use App\Constants\DiscountType;
 use App\Constants\OfferType;
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\BaseFormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateOfferRequest extends FormRequest
+class UpdateOfferRequest extends BaseFormRequest
 {
     public function authorize(): bool
     {

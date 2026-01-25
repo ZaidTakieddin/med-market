@@ -3,10 +3,10 @@
 namespace App\Http\Requests\Stock;
 
 use App\Constants\StockMovementType;
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\BaseFormRequest;
 use Illuminate\Validation\Rule;
 
-class AdjustStockRequest extends FormRequest
+class AdjustStockRequest extends BaseFormRequest
 {
     public function authorize(): bool
     {

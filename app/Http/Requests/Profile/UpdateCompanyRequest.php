@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\Profile;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\BaseFormRequest;
 
-class UpdateCompanyRequest extends FormRequest
+class UpdateCompanyRequest extends BaseFormRequest
 {
     public function authorize(): bool
     {

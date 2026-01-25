@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\Stock;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\BaseFormRequest;
 
-class AddStockRequest extends FormRequest
+class AddStockRequest extends BaseFormRequest
 {
     public function authorize(): bool
     {

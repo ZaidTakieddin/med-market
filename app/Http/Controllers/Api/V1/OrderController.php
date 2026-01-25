@@ -505,8 +505,6 @@ class OrderController extends BaseApiController
             return $this->success([
                 'order' => $order,
             ], 'Driver assigned successfully');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return $this->error('Validation failed', $e->errors(), 422);
         } catch (\Exception $e) {
             Log::error('Assign driver error', [
                 'message' => $e->getMessage(),
