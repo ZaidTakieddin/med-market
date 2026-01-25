@@ -130,6 +130,35 @@ return [
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
+        /*
+        |--------------------------------------------------------------------------
+        | Queue Database Connection (Unpooled)
+        |--------------------------------------------------------------------------
+        |
+        | This connection uses Neon's direct (unpooled) endpoint for queue
+        | operations. Pooled connections don't handle long-lived connections
+        | and transactions well for queue workers, so we use a direct connection.
+        |
+        | Queue workers maintain long-lived connections and need reliable
+        | transaction handling, making unpooled connections the better choice.
+        |
+        */
+
+        'pgsql_queue' => [
+            'driver' => 'pgsql',
+            'url' => env('DB_QUEUE_URL'),
+            'host' => env('DB_QUEUE_HOST', env('DB_SEEDER_HOST', env('DB_HOST', '127.0.0.1'))),
+            'port' => env('DB_QUEUE_PORT', env('DB_SEEDER_PORT', env('DB_PORT', '5432'))),
+            'database' => env('DB_QUEUE_DATABASE', env('DB_SEEDER_DATABASE', env('DB_DATABASE', 'laravel'))),
+            'username' => env('DB_QUEUE_USERNAME', env('DB_SEEDER_USERNAME', env('DB_USERNAME', 'root'))),
+            'password' => env('DB_QUEUE_PASSWORD', env('DB_SEEDER_PASSWORD', env('DB_PASSWORD', ''))),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),

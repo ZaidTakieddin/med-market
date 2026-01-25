@@ -4,6 +4,8 @@ namespace App\Domain\Orders;
 
 use App\Constants\OrderStatus;
 use App\Domain\Inventory\StockMovementService;
+use App\Jobs\GenerateInvoiceJob;
+use App\Jobs\SendOrderNotificationJob;
 use App\Models\Order;
 use App\Models\OrderStatusLog;
 use Illuminate\Support\Facades\DB;
@@ -60,6 +62,14 @@ class OrderStateTransitionService
                 'to' => $newStatus,
                 'user_id' => $userId,
             ]);
+
+            // Dispatch notification job
+            SendOrderNotificationJob::dispatch($order->fresh(), $oldStatus, $newStatus, $userId);
+
+            // Generate invoice when order is accepted
+            if ($newStatus === OrderStatus::ACCEPTED) {
+                GenerateInvoiceJob::dispatch($order->fresh());
+            }
 
             return $order->fresh();
         });

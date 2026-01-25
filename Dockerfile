@@ -46,6 +46,10 @@ COPY docker/apache-config.conf /etc/apache2/sites-available/000-default.conf
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
+# Copy queue worker script
+COPY docker/start-queue-worker.sh /var/www/html/docker/
+RUN chmod +x /var/www/html/docker/start-queue-worker.sh
+
 # Expose port (Render uses PORT env var, default to 80)
 EXPOSE 80
 

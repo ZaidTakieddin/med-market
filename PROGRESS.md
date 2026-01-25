@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-01-25 (Domain READMEs created for all domains: Orders, Inventory, Products, Companies, Deliveries)
+> Last Updated: 2026-01-25 (Background jobs implemented: SendOrderNotificationJob, GenerateInvoiceJob, LowStockAlertJob, ExportOrdersJob)
 
 ## 📋 Table of Contents
 
@@ -174,6 +174,7 @@
 -   [x] README.md - Consolidated project documentation (includes API docs, seeding, troubleshooting)
 -   [x] DEPLOYMENT.md - Production deployment guide
 -   [x] PROGRESS.md - Development progress tracker
+-   [x] QUEUE_WORKERS.md - Queue workers setup and configuration guide
 -   [x] Domain READMEs - Complete documentation for all domains
     -   [x] `app/Domain/Orders/README.md` - Order domain documentation
     -   [x] `app/Domain/Inventory/README.md` - Inventory domain documentation
@@ -244,14 +245,34 @@ _Currently no tasks in progress_
 
 ### Medium Priority
 
-#### 5. Background Jobs
+#### 5. Background Jobs ✅ COMPLETED
 
--   [ ] SendOrderNotificationJob - Email notifications on status changes
--   [ ] GenerateInvoiceJob - Invoice generation
--   [ ] LowStockAlertJob - Alert when stock is low
--   [ ] ExportOrdersJob - Heavy exports
--   [ ] Configure queue connection
--   [ ] Set up queue workers
+-   [x] SendOrderNotificationJob - Email notifications on status changes
+    -   [x] Dispatched automatically from OrderStateTransitionService
+    -   [x] Sends notifications to buyer and supplier company users
+    -   [x] Retry logic: 3 tries, 60s backoff
+-   [x] GenerateInvoiceJob - Invoice generation
+    -   [x] Dispatched automatically when order status changes to accepted
+    -   [x] Generates invoice files (text format, ready for PDF conversion)
+    -   [x] Saves invoices to storage
+    -   [x] Retry logic: 3 tries, 120s backoff
+-   [x] LowStockAlertJob - Alert when stock is low
+    -   [x] Dispatched automatically from StockMovementObserver
+    -   [x] Sends alerts to supplier company users
+    -   [x] Retry logic: 2 tries, 300s backoff
+-   [x] ExportOrdersJob - Heavy exports
+    -   [x] Supports CSV and JSON formats
+    -   [x] Filterable by company, status, date range
+    -   [x] Saves exports to storage
+    -   [x] Retry logic: 2 tries, 300s backoff
+-   [x] Configure queue connection
+    -   [x] Database queue configured (default)
+    -   [x] Redis queue ready for production
+    -   [x] Queue configuration documented
+-   [x] Set up queue workers
+    -   [x] Queue workers documentation created (QUEUE_WORKERS.md)
+    -   [x] Supervisor/systemd configuration examples
+    -   [x] Production deployment instructions
 
 #### 6. Domain READMEs ⚠️ Required by Rules ✅ COMPLETED
 
@@ -494,6 +515,8 @@ _Currently no tasks in progress_
 -   **Code Quality**: Cleaned up commented code, standardized imports, fixed constant usage
 -   **Documentation**: Consolidated documentation files for better maintainability
 -   **Domain Documentation**: Created comprehensive READMEs for all 5 domains (Orders, Inventory, Products, Companies, Deliveries)
+-   **Background Jobs**: Implemented 4 background jobs with retry logic and proper error handling
+-   **Queue Workers**: Created comprehensive queue workers setup guide (QUEUE_WORKERS.md)
 -   **Swagger Documentation**: Updated all product endpoints to reflect new fields (category, dual pricing, discounts)
 -   **Swagger Documentation**: Updated all order endpoints to document multi-supplier order handling
 -   **Seeders**: Updated ProductSeeder with all new fields, created OfferSeeder, made all seeders idempotent
@@ -507,7 +530,8 @@ _Currently no tasks in progress_
 -   **Completed Features**: 85+ (including all new requirements and documentation updates)
 -   **Database Seeders**: 5 (CompanySeeder, UserSeeder, ProductSeeder, OfferSeeder, OrderSeeder)
 -   **Pending Tasks**: 7 categories (4 high-priority items completed)
--   **Documentation Files**: 8 (README.md, DEPLOYMENT.md, PROGRESS.md, 5 Domain READMEs)
+-   **Documentation Files**: 9 (README.md, DEPLOYMENT.md, PROGRESS.md, QUEUE_WORKERS.md, 5 Domain READMEs)
+-   **Background Jobs**: 4 (SendOrderNotificationJob, GenerateInvoiceJob, LowStockAlertJob, ExportOrdersJob)
 -   **Deployment Files**: 3 (Procfile, render.yaml, railway.json)
 -   **Observers**: 2 (OrderObserver, StockMovementObserver)
 -   **Middleware**: 1 (CleanupTransactions)

@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Jobs\LowStockAlertJob;
 use App\Models\Product;
 use App\Models\StockMovement;
 use Illuminate\Support\Facades\Log;
@@ -29,7 +30,7 @@ class StockMovementObserver
             'reason' => $stockMovement->reason,
         ]);
 
-        // Log low stock warning if applicable
+        // Dispatch low stock alert job if applicable
         if ($product && $product->isLowStock()) {
             Log::warning('Product low on stock', [
                 'product_id' => $product->id,
@@ -37,6 +38,9 @@ class StockMovementObserver
                 'current_stock' => $product->stock_quantity,
                 'min_stock_level' => $product->min_stock_level,
             ]);
+
+            // Dispatch low stock alert job
+            LowStockAlertJob::dispatch($product);
         }
     }
 

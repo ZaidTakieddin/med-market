@@ -43,6 +43,23 @@ Quick deployment guide for Med Market Laravel application.
     DB_PASSWORD=your-password
     DB_SSLMODE=require
 
+    # Queue Database Connection (Unpooled - Required for queue workers)
+    # Use Neon's direct (non-pooler) endpoint for queue workers
+    # Queue workers MUST use unpooled connection for reliable transactions
+    DB_QUEUE_CONNECTION=pgsql_queue
+    DB_QUEUE_HOST=your-neon-direct-host.c-2.eu-central-1.aws.neon.tech
+    DB_QUEUE_PORT=5432
+    DB_QUEUE_DATABASE=neondb
+    DB_QUEUE_USERNAME=neondb_owner
+    DB_QUEUE_PASSWORD=your-password
+    DB_QUEUE_TABLE=jobs
+    DB_QUEUE=default
+    DB_QUEUE_RETRY_AFTER=90
+
+    # Enable queue worker in Docker container (for development)
+    # Set to false for production when using separate Background Worker service
+    ENABLE_QUEUE_WORKER=true
+
     SESSION_DRIVER=database
     QUEUE_CONNECTION=database
     CACHE_STORE=file
@@ -51,8 +68,10 @@ Quick deployment guide for Med Market Laravel application.
     **Important**:
 
     - Generate `APP_KEY` with: `php artisan key:generate --show`
-    - Use Neon's **pooled** connection (`-pooler` suffix) for `DB_HOST`
+    - Use Neon's **pooled** connection (`-pooler` suffix) for `DB_HOST` (Web Service)
+    - Use Neon's **direct** connection (without `-pooler` suffix) for `DB_QUEUE_HOST` (Queue Workers)
     - Set `APP_URL` to your Render URL (HTTPS)
+    - Set `DB_QUEUE_CONNECTION=pgsql_queue` to use the unpooled connection for queue workers
 
 4. **Deploy**
 
@@ -80,6 +99,51 @@ The included `Dockerfile`:
 -   Caches configuration, routes, and views
 -   Generates Swagger documentation
 -   Configures Apache for Laravel
+-   Includes queue worker script for background job processing
+
+## 📦 Queue Workers
+
+### Development Phase (Single Container)
+
+For development, queue workers run in the same Docker container as the web server:
+
+-   Set `ENABLE_QUEUE_WORKER=true` in environment variables
+-   Queue worker starts automatically in the background
+-   Processes all queues: `notifications`, `invoices`, `alerts`, `exports`
+
+### Production (Recommended: Separate Background Worker)
+
+For production, create a separate **Background Worker** service on Render:
+
+1. **Create Background Worker Service**
+
+    - Go to Render Dashboard → "New +" → "Background Worker"
+    - Connect same Git repository
+    - Use same Dockerfile
+
+2. **Configure Background Worker**
+
+    - **Command**: `php artisan queue:work database --queue=notifications,invoices,alerts,exports --sleep=3 --tries=3 --max-time=3600`
+    - **Environment Variables**: Same as Web Service (copy from Web Service)
+    - **Instance Type**: Choose based on expected load
+
+3. **Set `ENABLE_QUEUE_WORKER=false`** in Web Service (to avoid duplicate workers)
+
+### Database Connection for Queue Workers
+
+**Important**: Queue workers **MUST** use **unpooled** (direct) connection:
+
+-   **Why**: Queue workers maintain long-lived connections and need reliable transaction handling
+-   **Pooled connections** are for short-lived HTTP requests
+-   **Unpooled connections** handle transactions better for background jobs
+
+**Configuration**:
+
+-   Use Neon's **direct** endpoint (without `-pooler` suffix) for `DB_QUEUE_HOST`
+-   Example: `ep-lingering-bush-ag3n7o6u.c-2.eu-central-1.aws.neon.tech` (not `-pooler.c-2...`)
+-   Set `DB_QUEUE_HOST`, `DB_QUEUE_PORT`, `DB_QUEUE_DATABASE`, `DB_QUEUE_USERNAME`, `DB_QUEUE_PASSWORD`
+
+See [QUEUE_WORKERS.md](./QUEUE_WORKERS.md) for detailed queue worker setup guide.
 
 ## 🔐 Security Checklist
 
@@ -116,10 +180,13 @@ The included `Dockerfile`:
 
 ## 📝 Notes
 
--   **Neon Database**: Use pooled connection (`-pooler`) for production
+-   **Neon Database**:
+    -   Use **pooled** connection (`-pooler`) for Web Service (`DB_HOST`)
+    -   Use **unpooled** connection (direct) for Queue Workers (`DB_QUEUE_HOST`)
 -   **HTTPS**: Render provides HTTPS automatically
 -   **Auto-Deploy**: Render auto-deploys on Git push
 -   **Logs**: View logs in Render dashboard
+-   **Queue Workers**: For production, use separate Background Worker service
 
 ## 🔗 Quick Commands
 

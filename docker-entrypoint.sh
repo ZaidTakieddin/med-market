@@ -37,5 +37,14 @@ if [ -n "$PORT" ]; then
     sed -i "s/:80/:$PORT/g" /etc/apache2/sites-available/000-default.conf
 fi
 
+# Start queue worker in background (for Render development)
+# In production, use a separate Background Worker service on Render
+if [ "$ENABLE_QUEUE_WORKER" = "true" ] || [ -z "$ENABLE_QUEUE_WORKER" ]; then
+    echo "Starting queue worker..."
+    chmod +x /var/www/html/docker/start-queue-worker.sh
+    /var/www/html/docker/start-queue-worker.sh &
+    echo "Queue worker started in background"
+fi
+
 # Start Apache
 exec apache2-foreground
