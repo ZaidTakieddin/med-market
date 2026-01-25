@@ -26,7 +26,8 @@ class DatabaseSeeder extends Seeder
                 CompanySeeder::class,  // First: Create companies (suppliers and buyers)
                 UserSeeder::class,      // Second: Create users (depends on companies)
                 ProductSeeder::class,   // Third: Create products (depends on companies)
-                OrderSeeder::class,     // Fourth: Create orders (depends on companies, users, products)
+                OfferSeeder::class,     // Fourth: Create offers (depends on companies and products)
+                OrderSeeder::class,     // Fifth: Create orders (depends on companies, users, products)
             ]);
 
             $this->command->info('تم إنشاء جميع البيانات بنجاح!');

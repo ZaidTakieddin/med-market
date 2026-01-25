@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-01-15 (All new requirements implemented: product enhancements, offers system, cart management with multi-supplier support, driver management, and profile management)
+> Last Updated: 2026-01-25 (Swagger documentation updated for products and orders, seeders updated with new fields and OfferSeeder added)
 
 ## 📋 Table of Contents
 
@@ -115,6 +115,21 @@
 -   [x] All endpoints documented with request/response examples
 -   [x] Authentication scheme documented
 -   [x] Stock management endpoints documented
+-   [x] Product endpoints updated with new fields (category, pharmacist_price, customer_price, discount, discount_type)
+    -   [x] Create product endpoint includes all new fields with descriptions
+    -   [x] Update product endpoint includes all new fields
+    -   [x] List products endpoint documents category filtering
+    -   [x] Get product endpoint shows all new fields in response schema
+-   [x] Order endpoints updated with multi-supplier order handling documentation
+    -   [x] List orders endpoint documents multi-supplier context and filtering
+    -   [x] Create order endpoint clarifies single-supplier vs cart checkout
+    -   [x] Get order endpoint explains single order per supplier
+    -   [x] Status update and cancel endpoints document independent order management
+-   [x] Cart endpoints documented with multi-supplier checkout explanation
+    -   [x] Add item endpoint explains automatic price calculation using pharmacist_price
+    -   [x] Checkout endpoint documents automatic order splitting by supplier
+-   [x] Driver assignment endpoint documented with authorization details
+-   [x] All Swagger docs reflect latest product enhancements and multi-supplier order system
 
 ### Observers & Automatic Logging
 
@@ -128,11 +143,24 @@
 
 -   [x] CompanySeeder - Seeds suppliers and buyers with Arabic names and addresses
 -   [x] UserSeeder - Seeds users with different roles (admin, supplier, buyer, driver) with Arabic names
+    -   [x] Idempotent seeding (updateOrCreate based on email)
+    -   [x] Multiple drivers per supplier (if multiple suppliers exist)
 -   [x] ProductSeeder - Seeds products with stock, Arabic names and descriptions
+    -   [x] Updated with category field
+    -   [x] Updated with pharmacist_price and customer_price (dual pricing)
+    -   [x] Updated with discount and discount_type fields
+    -   [x] Idempotent seeding (updateOrCreate based on SKU)
+-   [x] OfferSeeder - Seeds offers/promotions with Arabic names and descriptions
+    -   [x] Buy X Get Y offers
+    -   [x] Percentage discount offers
+    -   [x] Fixed discount offers
+    -   [x] Bundle offers
+    -   [x] Associates offers with products
 -   [x] OrderSeeder - Seeds sample orders with Arabic notes
 -   [x] DatabaseSeeder - Orchestrates all seeders in correct order
 -   [x] Separate database configuration for seeders (unpooled connection)
 -   [x] All seeders use Arabic data for names, addresses, and descriptions
+-   [x] All seeders are idempotent (can be run multiple times safely)
 
 ### Infrastructure & Reliability
 
@@ -191,11 +219,22 @@ _Currently no tasks in progress_
 
 -   [x] CompanySeeder - Seed suppliers and buyers with Arabic data
 -   [x] ProductSeeder - Seed products with stock and Arabic names
+    -   [x] Updated with category field
+    -   [x] Updated with pharmacist_price and customer_price (dual pricing)
+    -   [x] Updated with discount and discount_type fields
+    -   [x] Idempotent seeding (updateOrCreate based on SKU)
+-   [x] OfferSeeder - Seed offers/promotions with Arabic names
+    -   [x] Creates various offer types (Buy X Get Y, percentage discount, fixed discount, bundle)
+    -   [x] Associates offers with products
+    -   [x] Sets active date ranges
 -   [x] OrderSeeder - Seed sample orders with Arabic notes
 -   [x] UserSeeder - Seed users with different roles and Arabic names
+    -   [x] Idempotent seeding (updateOrCreate based on email)
+    -   [x] Multiple drivers per supplier
 -   [x] DatabaseSeeder - Orchestrates all seeders in correct order
 -   [x] Separate database configuration for seeders (unpooled connection)
 -   [x] All data in Arabic (names, addresses, descriptions, notes)
+-   [x] All seeders are idempotent (can be run multiple times safely)
 
 ### Medium Priority
 
@@ -432,14 +471,18 @@ _Currently no tasks in progress_
 -   **Cache Strategy**: Configured file-based cache (eliminates transaction conflicts), Redis ready for production
 -   **Code Quality**: Cleaned up commented code, standardized imports, fixed constant usage
 -   **Documentation**: Consolidated documentation files for better maintainability
+-   **Swagger Documentation**: Updated all product endpoints to reflect new fields (category, dual pricing, discounts)
+-   **Swagger Documentation**: Updated all order endpoints to document multi-supplier order handling
+-   **Seeders**: Updated ProductSeeder with all new fields, created OfferSeeder, made all seeders idempotent
+-   **Seeders**: Enhanced UserSeeder with multiple drivers per supplier
 
 ---
 
 ## 📊 Statistics
 
 -   **Total Endpoints**: 40+ routes (including cart, offers, drivers, profile endpoints)
--   **Completed Features**: 80+ (including all new requirements)
--   **Database Seeders**: 4 (CompanySeeder, UserSeeder, ProductSeeder, OrderSeeder)
+-   **Completed Features**: 85+ (including all new requirements and documentation updates)
+-   **Database Seeders**: 5 (CompanySeeder, UserSeeder, ProductSeeder, OfferSeeder, OrderSeeder)
 -   **Pending Tasks**: 7 categories (4 high-priority items completed)
 -   **Documentation Files**: 3 (README.md, DEPLOYMENT.md, PROGRESS.md)
 -   **Deployment Files**: 3 (Procfile, render.yaml, railway.json)
@@ -447,6 +490,7 @@ _Currently no tasks in progress_
 -   **Middleware**: 1 (CleanupTransactions)
 -   **Database Connections**: 2 (pooled for API, unpooled for seeders)
 -   **Cache Driver**: File-based (Redis ready)
+-   **Swagger Documentation**: Fully updated with all new fields and multi-supplier order handling
 
 ---
 
