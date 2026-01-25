@@ -8,6 +8,7 @@ use App\Domain\Orders\OrderStateTransitionService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Orders\CreateOrderRequest;
 use App\Http\Requests\Orders\UpdateOrderStatusRequest;
+use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -110,24 +111,19 @@ class OrderController extends BaseApiController
 
             $orders = $query->latest()->paginate($request->get('per_page', 15));
 
-            // Prevent circular references by hiding unnecessary relationships
-            $orders->getCollection()->each(function ($order) {
-                if ($order->relationLoaded('buyerCompany') && $order->buyerCompany) {
-                    $order->buyerCompany->makeHidden(['users', 'products', 'buyerOrders', 'supplierOrders']);
-                }
-                if ($order->relationLoaded('supplierCompany') && $order->supplierCompany) {
-                    $order->supplierCompany->makeHidden(['users', 'products', 'buyerOrders', 'supplierOrders']);
-                }
-                if ($order->relationLoaded('items')) {
-                    $order->items->each(function ($item) {
-                        if ($item->relationLoaded('product') && $item->product) {
-                            $item->product->makeHidden(['orderItems', 'stockMovements', 'supplierCompany']);
-                        }
-                    });
-                }
-            });
-
-            return $this->paginated($orders, 'Orders retrieved successfully');
+            return $this->success(
+                OrderResource::collection($orders->items()),
+                'Orders retrieved successfully'
+            )->additional([
+                'pagination' => [
+                    'current_page' => $orders->currentPage(),
+                    'per_page' => $orders->perPage(),
+                    'total' => $orders->total(),
+                    'last_page' => $orders->lastPage(),
+                    'from' => $orders->firstItem(),
+                    'to' => $orders->lastItem(),
+                ],
+            ]);
         } catch (\Exception $e) {
             Log::error('Order list error', [
                 'message' => $e->getMessage(),
@@ -229,9 +225,11 @@ class OrderController extends BaseApiController
             taxRate: $request->tax_rate ?? 0
         );
 
-        return $this->success([
-            'order' => $order->load(['buyerCompany', 'supplierCompany', 'items.product']),
-        ], 'Order created successfully', 201);
+        return $this->success(
+            new OrderResource($order->load(['buyerCompany', 'supplierCompany', 'items.product'])),
+            'Order created successfully',
+            201
+        );
     }
 
     /**
@@ -278,9 +276,7 @@ class OrderController extends BaseApiController
 
         $order->load(['buyerCompany', 'supplierCompany', 'creator', 'items.product', 'statusLogs.user']);
 
-        return $this->success([
-            'order' => $order,
-        ]);
+        return $this->success(new OrderResource($order));
     }
 
     /**
@@ -350,9 +346,10 @@ class OrderController extends BaseApiController
                 notes: $request->notes
             );
 
-            return $this->success([
-                'order' => $order->load(['buyerCompany', 'supplierCompany', 'items.product']),
-            ], 'Order status updated successfully');
+            return $this->success(
+                new OrderResource($order->load(['buyerCompany', 'supplierCompany', 'items.product'])),
+                'Order status updated successfully'
+            );
         } catch (\InvalidArgumentException $e) {
             return $this->error($e->getMessage(), null, 400);
         }
@@ -425,9 +422,10 @@ class OrderController extends BaseApiController
                 notes: $request->reason
             );
 
-            return $this->success([
-                'order' => $order->load(['buyerCompany', 'supplierCompany', 'items.product']),
-            ], 'Order cancelled successfully');
+            return $this->success(
+                new OrderResource($order->load(['buyerCompany', 'supplierCompany', 'items.product'])),
+                'Order cancelled successfully'
+            );
         } catch (\InvalidArgumentException $e) {
             return $this->error($e->getMessage(), null, 400);
         } catch (\Exception $e) {
@@ -502,9 +500,10 @@ class OrderController extends BaseApiController
 
             $order->load(['buyerCompany', 'supplierCompany', 'driver', 'items.product']);
 
-            return $this->success([
-                'order' => $order,
-            ], 'Driver assigned successfully');
+            return $this->success(
+                new OrderResource($order),
+                'Driver assigned successfully'
+            );
         } catch (\Exception $e) {
             Log::error('Assign driver error', [
                 'message' => $e->getMessage(),

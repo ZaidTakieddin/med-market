@@ -6,6 +6,8 @@ use App\Domain\Orders\OrderCreationService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Cart\AddCartItemRequest;
 use App\Http\Requests\Cart\UpdateCartItemRequest;
+use App\Http\Resources\CartResource;
+use App\Http\Resources\OrderResource;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
@@ -46,19 +48,12 @@ class CartController extends BaseApiController
                 ['company_id' => $user->company_id]
             );
 
-            $cart->load(['items.product.supplierCompany']);
+            $cart->load(['items.product.supplierCompany', 'user', 'company']);
 
-            // Prevent circular references
-            $cart->items->each(function ($item) {
-                if ($item->product && $item->product->supplierCompany) {
-                    $item->product->supplierCompany->makeHidden(['users', 'products', 'buyerOrders', 'supplierOrders']);
-                }
-                $item->product->makeHidden(['orderItems', 'stockMovements']);
-            });
-
-            return $this->success([
-                'cart' => $cart,
-            ], 'Cart retrieved successfully');
+            return $this->success(
+                new CartResource($cart),
+                'Cart retrieved successfully'
+            );
         } catch (\Exception $e) {
             Log::error('Cart retrieval error', [
                 'message' => $e->getMessage(),
@@ -141,11 +136,12 @@ class CartController extends BaseApiController
             // Recalculate cart totals
             $cart->calculateTotals();
 
-            $cart->load(['items.product.supplierCompany']);
+            $cart->load(['items.product.supplierCompany', 'user', 'company']);
 
-            return $this->success([
-                'cart' => $cart,
-            ], 'Item added to cart successfully');
+            return $this->success(
+                new CartResource($cart),
+                'Item added to cart successfully'
+            );
         } catch (\Exception $e) {
             Log::error('Add cart item error', [
                 'message' => $e->getMessage(),
@@ -207,10 +203,12 @@ class CartController extends BaseApiController
 
             // Recalculate cart totals
             $cartItem->cart->calculateTotals();
+            $cartItem->load('product');
 
-            return $this->success([
-                'cart_item' => $cartItem->load('product'),
-            ], 'Cart item updated successfully');
+            return $this->success(
+                \App\Http\Resources\CartItemResource::make($cartItem),
+                'Cart item updated successfully'
+            );
         } catch (\Exception $e) {
             Log::error('Update cart item error', [
                 'message' => $e->getMessage(),
@@ -405,12 +403,14 @@ class CartController extends BaseApiController
 
                 DB::commit();
 
-                return $this->success([
-                    'orders' => $createdOrders,
+                return $this->success(
+                    OrderResource::collection($createdOrders),
+                    count($createdOrders) > 1 
+                        ? 'Cart checked out. Multiple orders created for different suppliers.' 
+                        : 'Order created successfully'
+                )->additional([
                     'orders_count' => count($createdOrders),
-                ], count($createdOrders) > 1 
-                    ? 'Cart checked out. Multiple orders created for different suppliers.' 
-                    : 'Order created successfully');
+                ]);
             } catch (\Exception $e) {
                 DB::rollBack();
                 throw $e;

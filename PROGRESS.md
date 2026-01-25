@@ -328,12 +328,45 @@ _Currently no tasks in progress_
 -   [ ] Cache frequently accessed data
 -   [ ] Implement cache invalidation strategies
 
-#### 9. API Resources/Transformers
+#### 9. API Resources/Transformers ✅ COMPLETED
 
--   [ ] OrderResource - Transform order data
--   [ ] ProductResource - Transform product data
--   [ ] CompanyResource - Transform company data
--   [ ] Consistent API response structure
+-   [x] OrderResource - Transform order data
+    -   [x] Includes buyerCompany, supplierCompany, creator, driver, items relationships
+    -   [x] Formats dates as ISO strings
+    -   [x] Handles nested OrderItemResource
+-   [x] OrderItemResource - Transform order item data
+    -   [x] Includes product relationship
+    -   [x] Formats prices as floats
+-   [x] ProductResource - Transform product data
+    -   [x] Includes supplierCompany relationship
+    -   [x] Handles dual pricing (pharmacist_price, customer_price)
+    -   [x] Formats prices and stock quantities
+-   [x] CompanyResource - Transform company data
+    -   [x] Includes all company fields
+    -   [x] Formats dates as ISO strings
+-   [x] CartResource - Transform cart data
+    -   [x] Includes user, company, items relationships
+    -   [x] Includes has_multiple_suppliers flag
+    -   [x] Handles nested CartItemResource
+-   [x] CartItemResource - Transform cart item data
+    -   [x] Includes product and appliedOffer relationships
+    -   [x] Formats prices as floats
+-   [x] OfferResource - Transform offer data
+    -   [x] Includes supplierCompany and products relationships
+    -   [x] Includes is_currently_active computed field
+    -   [x] Formats dates as ISO strings
+-   [x] UserResource - Transform user data (for drivers/profile)
+    -   [x] Includes company relationship
+    -   [x] Excludes sensitive fields (password, remember_token)
+    -   [x] Formats dates as ISO strings
+-   [x] StockMovementResource - Transform stock movement data
+    -   [x] Includes product, order, user relationships
+    -   [x] Formats quantities as integers
+-   [x] Consistent API response structure
+    -   [x] All controllers updated to use resources
+    -   [x] Removed makeHidden() calls (resources handle relationships)
+    -   [x] Consistent pagination format across all list endpoints
+    -   [x] Resources handle conditional loading with whenLoaded()
 
 #### 10. Testing
 

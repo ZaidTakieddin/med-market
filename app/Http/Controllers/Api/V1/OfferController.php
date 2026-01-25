@@ -7,6 +7,7 @@ use App\Constants\OfferType;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Offers\CreateOfferRequest;
 use App\Http\Requests\Offers\UpdateOfferRequest;
+use App\Http\Resources\OfferResource;
 use App\Models\Offer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -75,16 +76,21 @@ class OfferController extends BaseApiController
                 $query->where('is_active', $request->boolean('is_active'));
             }
 
-            $offers = $query->latest()->paginate($request->get('per_page', 15));
+            $offers = $query->with('products')->latest()->paginate($request->get('per_page', 15));
 
-            // Prevent circular references
-            $offers->getCollection()->each(function ($offer) {
-                if ($offer->supplierCompany) {
-                    $offer->supplierCompany->makeHidden(['users', 'products', 'buyerOrders', 'supplierOrders']);
-                }
-            });
-
-            return $this->paginated($offers, 'Offers retrieved successfully');
+            return $this->success(
+                OfferResource::collection($offers->items()),
+                'Offers retrieved successfully'
+            )->additional([
+                'pagination' => [
+                    'current_page' => $offers->currentPage(),
+                    'per_page' => $offers->perPage(),
+                    'total' => $offers->total(),
+                    'last_page' => $offers->lastPage(),
+                    'from' => $offers->firstItem(),
+                    'to' => $offers->lastItem(),
+                ],
+            ]);
         } catch (\Exception $e) {
             Log::error('Offer list error', [
                 'message' => $e->getMessage(),
@@ -157,9 +163,11 @@ class OfferController extends BaseApiController
 
             $offer->load(['supplierCompany', 'products']);
 
-            return $this->success([
-                'offer' => $offer,
-            ], 'Offer created successfully', 201);
+            return $this->success(
+                new OfferResource($offer),
+                'Offer created successfully',
+                201
+            );
         } catch (\Exception $e) {
             Log::error('Create offer error', [
                 'message' => $e->getMessage(),
@@ -192,9 +200,7 @@ class OfferController extends BaseApiController
         try {
             $offer->load(['supplierCompany', 'products']);
 
-            return $this->success([
-                'offer' => $offer,
-            ]);
+            return $this->success(new OfferResource($offer));
         } catch (\Exception $e) {
             Log::error('Get offer error', [
                 'message' => $e->getMessage(),
@@ -241,9 +247,10 @@ class OfferController extends BaseApiController
 
             $offer->load(['supplierCompany', 'products']);
 
-            return $this->success([
-                'offer' => $offer,
-            ], 'Offer updated successfully');
+            return $this->success(
+                new OfferResource($offer),
+                'Offer updated successfully'
+            );
         } catch (\Exception $e) {
             Log::error('Update offer error', [
                 'message' => $e->getMessage(),

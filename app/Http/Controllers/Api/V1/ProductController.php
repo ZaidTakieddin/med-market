@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Products\CreateProductRequest;
 use App\Http\Requests\Products\UpdateProductRequest;
+use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -78,15 +79,19 @@ class ProductController extends BaseApiController
 
             $products = $query->latest()->paginate($request->get('per_page', 15));
 
-            // Prevent circular references by hiding unnecessary relationships
-            $products->getCollection()->each(function ($product) {
-                if ($product->relationLoaded('supplierCompany') && $product->supplierCompany) {
-                    $product->supplierCompany->makeHidden(['users', 'products', 'buyerOrders', 'supplierOrders']);
-                }
-                $product->makeHidden(['orderItems', 'stockMovements']);
-            });
-
-            return $this->paginated($products, 'Products retrieved successfully');
+            return $this->success(
+                ProductResource::collection($products->items()),
+                'Products retrieved successfully'
+            )->additional([
+                        'pagination' => [
+                            'current_page' => $products->currentPage(),
+                            'per_page' => $products->perPage(),
+                            'total' => $products->total(),
+                            'last_page' => $products->lastPage(),
+                            'from' => $products->firstItem(),
+                            'to' => $products->lastItem(),
+                        ],
+                    ]);
         } catch (\Exception $e) {
             Log::error('Product list error', [
                 'message' => $e->getMessage(),
@@ -166,9 +171,11 @@ class ProductController extends BaseApiController
             'metadata' => $request->metadata,
         ]);
 
-        return $this->success([
-            'product' => $product->load('supplierCompany'),
-        ], 'Product created successfully', 201);
+        return $this->success(
+            new ProductResource($product->load('supplierCompany')),
+            'Product created successfully',
+            201
+        );
     }
 
     /**
@@ -224,9 +231,7 @@ class ProductController extends BaseApiController
     {
         $product->load('supplierCompany');
 
-        return $this->success([
-            'product' => $product,
-        ]);
+        return $this->success(new ProductResource($product));
     }
 
     /**
@@ -276,10 +281,12 @@ class ProductController extends BaseApiController
         $this->authorize('update', $product);
 
         $product->update($request->validated());
+        $product->load('supplierCompany');
 
-        return $this->success([
-            'product' => $product->load('supplierCompany'),
-        ], 'Product updated successfully');
+        return $this->success(
+            new ProductResource($product),
+            'Product updated successfully'
+        );
     }
 
     /**

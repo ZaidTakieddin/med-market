@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Profile\UpdateProfileRequest;
 use App\Http\Requests\Profile\ChangePasswordRequest;
 use App\Http\Requests\Profile\UpdateCompanyRequest;
+use App\Http\Resources\CompanyResource;
+use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -33,9 +35,7 @@ class ProfileController extends BaseApiController
         try {
             $user = auth()->user()->load('company');
 
-            return $this->success([
-                'user' => $user,
-            ]);
+            return $this->success(new UserResource($user));
         } catch (\Exception $e) {
             Log::error('Get profile error', [
                 'message' => $e->getMessage(),
@@ -180,9 +180,10 @@ class ProfileController extends BaseApiController
 
             $company->update($request->validated());
 
-            return $this->success([
-                'company' => $company,
-            ], 'Company updated successfully');
+            return $this->success(
+                new CompanyResource($company),
+                'Company updated successfully'
+            );
         } catch (\Exception $e) {
             Log::error('Update company error', [
                 'message' => $e->getMessage(),

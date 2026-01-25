@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Drivers\CreateDriverRequest;
 use App\Http\Requests\Drivers\UpdateDriverRequest;
+use App\Http\Resources\OrderResource;
+use App\Http\Resources\UserResource;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -51,19 +53,23 @@ class DriverController extends BaseApiController
                 $query->where('company_id', $user->company_id);
             }
 
-            $drivers = $query->with('company:id,name,type')
+            $drivers = $query->with('company')
                 ->latest()
                 ->paginate($request->get('per_page', 15));
 
-            // Prevent circular references
-            $drivers->getCollection()->each(function ($driver) {
-                if ($driver->company) {
-                    $driver->company->makeHidden(['users', 'products', 'buyerOrders', 'supplierOrders']);
-                }
-                $driver->makeHidden(['password', 'remember_token']);
-            });
-
-            return $this->paginated($drivers, 'Drivers retrieved successfully');
+            return $this->success(
+                UserResource::collection($drivers->items()),
+                'Drivers retrieved successfully'
+            )->additional([
+                'pagination' => [
+                    'current_page' => $drivers->currentPage(),
+                    'per_page' => $drivers->perPage(),
+                    'total' => $drivers->total(),
+                    'last_page' => $drivers->lastPage(),
+                    'from' => $drivers->firstItem(),
+                    'to' => $drivers->lastItem(),
+                ],
+            ]);
         } catch (\Exception $e) {
             Log::error('Driver list error', [
                 'message' => $e->getMessage(),
@@ -116,9 +122,11 @@ class DriverController extends BaseApiController
                 'role' => 'driver',
             ]);
 
-            return $this->success([
-                'driver' => $driver->load('company'),
-            ], 'Driver created successfully', 201);
+            return $this->success(
+                new UserResource($driver->load('company')),
+                'Driver created successfully',
+                201
+            );
         } catch (\Exception $e) {
             Log::error('Create driver error', [
                 'message' => $e->getMessage(),
@@ -160,9 +168,7 @@ class DriverController extends BaseApiController
 
             $driver->load('company');
 
-            return $this->success([
-                'driver' => $driver,
-            ]);
+            return $this->success(new UserResource($driver));
         } catch (\Exception $e) {
             Log::error('Get driver error', [
                 'message' => $e->getMessage(),
@@ -204,9 +210,10 @@ class DriverController extends BaseApiController
 
             $driver->update($request->validated());
 
-            return $this->success([
-                'driver' => $driver->load('company'),
-            ], 'Driver updated successfully');
+            return $this->success(
+                new UserResource($driver->load('company')),
+                'Driver updated successfully'
+            );
         } catch (\Exception $e) {
             Log::error('Update driver error', [
                 'message' => $e->getMessage(),
@@ -300,7 +307,19 @@ class DriverController extends BaseApiController
 
             $orders = $query->latest()->paginate($request->get('per_page', 15));
 
-            return $this->paginated($orders, 'Driver orders retrieved successfully');
+            return $this->success(
+                OrderResource::collection($orders->items()),
+                'Driver orders retrieved successfully'
+            )->additional([
+                'pagination' => [
+                    'current_page' => $orders->currentPage(),
+                    'per_page' => $orders->perPage(),
+                    'total' => $orders->total(),
+                    'last_page' => $orders->lastPage(),
+                    'from' => $orders->firstItem(),
+                    'to' => $orders->lastItem(),
+                ],
+            ]);
         } catch (\Exception $e) {
             Log::error('Get driver orders error', [
                 'message' => $e->getMessage(),

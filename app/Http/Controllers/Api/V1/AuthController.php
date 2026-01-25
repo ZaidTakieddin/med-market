@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
@@ -71,7 +72,7 @@ class AuthController extends BaseApiController
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return $this->success([
-            'user' => $user->load('company'),
+            'user' => new UserResource($user->load('company')),
             'token' => $token,
         ], 'User registered successfully', 201);
     }
@@ -130,7 +131,7 @@ class AuthController extends BaseApiController
             $token = $user->createToken('auth-token')->plainTextToken;
 
             return $this->success([
-                'user' => $user->load('company'),
+                'user' => new UserResource($user->load('company')),
                 'token' => $token,
             ], 'Login successful');
         } catch (\Exception $e) {
@@ -210,8 +211,8 @@ class AuthController extends BaseApiController
     {
         $user = auth()->user()->load('company');
 
-        return $this->success([
-            'user' => $user,
-        ]);
+        return $this->success(
+            new UserResource($user)
+        );
     }
 }

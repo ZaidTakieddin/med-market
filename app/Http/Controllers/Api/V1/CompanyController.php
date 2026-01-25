@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Companies\CreateCompanyRequest;
 use App\Http\Requests\Companies\UpdateCompanyRequest;
+use App\Http\Resources\CompanyResource;
 use App\Models\Company;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -49,12 +50,19 @@ class CompanyController extends BaseApiController
 
             $companies = $query->latest()->paginate($request->get('per_page', 15));
 
-            // Prevent circular references (no relationships loaded, but hide them just in case)
-            $companies->getCollection()->each(function ($company) {
-                $company->makeHidden(['users', 'products', 'buyerOrders', 'supplierOrders']);
-            });
-
-            return $this->paginated($companies, 'Companies retrieved successfully');
+            return $this->success(
+                CompanyResource::collection($companies->items()),
+                'Companies retrieved successfully'
+            )->additional([
+                        'pagination' => [
+                            'current_page' => $companies->currentPage(),
+                            'per_page' => $companies->perPage(),
+                            'total' => $companies->total(),
+                            'last_page' => $companies->lastPage(),
+                            'from' => $companies->firstItem(),
+                            'to' => $companies->lastItem(),
+                        ],
+                    ]);
         } catch (\Exception $e) {
             Log::error('Company list error', [
                 'message' => $e->getMessage(),
@@ -100,9 +108,11 @@ class CompanyController extends BaseApiController
     {
         $company = Company::create($request->validated());
 
-        return $this->success([
-            'company' => $company,
-        ], 'Company created successfully', 201);
+        return $this->success(
+            new CompanyResource($company),
+            'Company created successfully',
+            201
+        );
     }
 
     /**
@@ -125,9 +135,7 @@ class CompanyController extends BaseApiController
         )]
     public function show(Company $company): JsonResponse
     {
-        return $this->success([
-            'company' => $company,
-        ]);
+        return $this->success(new CompanyResource($company));
     }
 
     /**
@@ -170,9 +178,10 @@ class CompanyController extends BaseApiController
 
         $company->update($request->validated());
 
-        return $this->success([
-            'company' => $company,
-        ], 'Company updated successfully');
+        return $this->success(
+            new CompanyResource($company),
+            'Company updated successfully'
+        );
     }
 
     /**
