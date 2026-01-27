@@ -403,14 +403,15 @@ class CartController extends BaseApiController
 
                 DB::commit();
 
-                return $this->success(
-                    OrderResource::collection($createdOrders),
-                    count($createdOrders) > 1 
-                        ? 'Cart checked out. Multiple orders created for different suppliers.' 
-                        : 'Order created successfully'
-                )->additional([
-                    'orders_count' => count($createdOrders),
-                ]);
+                return OrderResource::collection($createdOrders)
+                    ->additional([
+                        'success' => true,
+                        'message' => count($createdOrders) > 1 
+                            ? 'Cart checked out. Multiple orders created for different suppliers.' 
+                            : 'Order created successfully',
+                        'orders_count' => count($createdOrders),
+                    ])
+                    ->response();
             } catch (\Exception $e) {
                 DB::rollBack();
                 throw $e;

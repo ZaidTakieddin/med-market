@@ -79,10 +79,10 @@ class ProductController extends BaseApiController
 
             $products = $query->latest()->paginate($request->get('per_page', 15));
 
-            return $this->success(
-                ProductResource::collection($products->items()),
-                'Products retrieved successfully'
-            )->additional([
+            return ProductResource::collection($products->items())
+                ->additional([
+                        'success' => true,
+                        'message' => 'Products retrieved successfully',
                         'pagination' => [
                             'current_page' => $products->currentPage(),
                             'per_page' => $products->perPage(),
@@ -91,7 +91,8 @@ class ProductController extends BaseApiController
                             'from' => $products->firstItem(),
                             'to' => $products->lastItem(),
                         ],
-                    ]);
+                    ])
+                ->response();
         } catch (\Exception $e) {
             Log::error('Product list error', [
                 'message' => $e->getMessage(),

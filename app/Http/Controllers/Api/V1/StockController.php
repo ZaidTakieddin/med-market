@@ -59,19 +59,20 @@ class StockController extends BaseApiController
 
             $movements = $query->latest()->paginate($request->get('per_page', 15));
 
-            return $this->success(
-                StockMovementResource::collection($movements->items()),
-                'Stock movements retrieved successfully'
-            )->additional([
-                'pagination' => [
-                    'current_page' => $movements->currentPage(),
-                    'per_page' => $movements->perPage(),
-                    'total' => $movements->total(),
-                    'last_page' => $movements->lastPage(),
-                    'from' => $movements->firstItem(),
-                    'to' => $movements->lastItem(),
-                ],
-            ]);
+            return StockMovementResource::collection($movements->items())
+                ->additional([
+                    'success' => true,
+                    'message' => 'Stock movements retrieved successfully',
+                    'pagination' => [
+                        'current_page' => $movements->currentPage(),
+                        'per_page' => $movements->perPage(),
+                        'total' => $movements->total(),
+                        'last_page' => $movements->lastPage(),
+                        'from' => $movements->firstItem(),
+                        'to' => $movements->lastItem(),
+                    ],
+                ])
+                ->response();
     }
 
     /**

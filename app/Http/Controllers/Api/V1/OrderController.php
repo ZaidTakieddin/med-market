@@ -111,19 +111,20 @@ class OrderController extends BaseApiController
 
             $orders = $query->latest()->paginate($request->get('per_page', 15));
 
-            return $this->success(
-                OrderResource::collection($orders->items()),
-                'Orders retrieved successfully'
-            )->additional([
-                'pagination' => [
-                    'current_page' => $orders->currentPage(),
-                    'per_page' => $orders->perPage(),
-                    'total' => $orders->total(),
-                    'last_page' => $orders->lastPage(),
-                    'from' => $orders->firstItem(),
-                    'to' => $orders->lastItem(),
-                ],
-            ]);
+            return OrderResource::collection($orders->items())
+                ->additional([
+                    'success' => true,
+                    'message' => 'Orders retrieved successfully',
+                    'pagination' => [
+                        'current_page' => $orders->currentPage(),
+                        'per_page' => $orders->perPage(),
+                        'total' => $orders->total(),
+                        'last_page' => $orders->lastPage(),
+                        'from' => $orders->firstItem(),
+                        'to' => $orders->lastItem(),
+                    ],
+                ])
+                ->response();
         } catch (\Exception $e) {
             Log::error('Order list error', [
                 'message' => $e->getMessage(),

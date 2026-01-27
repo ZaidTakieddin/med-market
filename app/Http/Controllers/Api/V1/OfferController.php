@@ -78,19 +78,20 @@ class OfferController extends BaseApiController
 
             $offers = $query->with('products')->latest()->paginate($request->get('per_page', 15));
 
-            return $this->success(
-                OfferResource::collection($offers->items()),
-                'Offers retrieved successfully'
-            )->additional([
-                'pagination' => [
-                    'current_page' => $offers->currentPage(),
-                    'per_page' => $offers->perPage(),
-                    'total' => $offers->total(),
-                    'last_page' => $offers->lastPage(),
-                    'from' => $offers->firstItem(),
-                    'to' => $offers->lastItem(),
-                ],
-            ]);
+            return OfferResource::collection($offers->items())
+                ->additional([
+                    'success' => true,
+                    'message' => 'Offers retrieved successfully',
+                    'pagination' => [
+                        'current_page' => $offers->currentPage(),
+                        'per_page' => $offers->perPage(),
+                        'total' => $offers->total(),
+                        'last_page' => $offers->lastPage(),
+                        'from' => $offers->firstItem(),
+                        'to' => $offers->lastItem(),
+                    ],
+                ])
+                ->response();
         } catch (\Exception $e) {
             Log::error('Offer list error', [
                 'message' => $e->getMessage(),

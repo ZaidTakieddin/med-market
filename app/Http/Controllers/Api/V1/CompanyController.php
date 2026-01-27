@@ -50,10 +50,10 @@ class CompanyController extends BaseApiController
 
             $companies = $query->latest()->paginate($request->get('per_page', 15));
 
-            return $this->success(
-                CompanyResource::collection($companies->items()),
-                'Companies retrieved successfully'
-            )->additional([
+            return CompanyResource::collection($companies->items())
+                ->additional([
+                        'success' => true,
+                        'message' => 'Companies retrieved successfully',
                         'pagination' => [
                             'current_page' => $companies->currentPage(),
                             'per_page' => $companies->perPage(),
@@ -62,7 +62,8 @@ class CompanyController extends BaseApiController
                             'from' => $companies->firstItem(),
                             'to' => $companies->lastItem(),
                         ],
-                    ]);
+                    ])
+                ->response();
         } catch (\Exception $e) {
             Log::error('Company list error', [
                 'message' => $e->getMessage(),

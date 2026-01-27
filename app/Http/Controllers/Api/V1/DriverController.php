@@ -57,19 +57,20 @@ class DriverController extends BaseApiController
                 ->latest()
                 ->paginate($request->get('per_page', 15));
 
-            return $this->success(
-                UserResource::collection($drivers->items()),
-                'Drivers retrieved successfully'
-            )->additional([
-                'pagination' => [
-                    'current_page' => $drivers->currentPage(),
-                    'per_page' => $drivers->perPage(),
-                    'total' => $drivers->total(),
-                    'last_page' => $drivers->lastPage(),
-                    'from' => $drivers->firstItem(),
-                    'to' => $drivers->lastItem(),
-                ],
-            ]);
+            return UserResource::collection($drivers->items())
+                ->additional([
+                    'success' => true,
+                    'message' => 'Drivers retrieved successfully',
+                    'pagination' => [
+                        'current_page' => $drivers->currentPage(),
+                        'per_page' => $drivers->perPage(),
+                        'total' => $drivers->total(),
+                        'last_page' => $drivers->lastPage(),
+                        'from' => $drivers->firstItem(),
+                        'to' => $drivers->lastItem(),
+                    ],
+                ])
+                ->response();
         } catch (\Exception $e) {
             Log::error('Driver list error', [
                 'message' => $e->getMessage(),
@@ -307,19 +308,20 @@ class DriverController extends BaseApiController
 
             $orders = $query->latest()->paginate($request->get('per_page', 15));
 
-            return $this->success(
-                OrderResource::collection($orders->items()),
-                'Driver orders retrieved successfully'
-            )->additional([
-                'pagination' => [
-                    'current_page' => $orders->currentPage(),
-                    'per_page' => $orders->perPage(),
-                    'total' => $orders->total(),
-                    'last_page' => $orders->lastPage(),
-                    'from' => $orders->firstItem(),
-                    'to' => $orders->lastItem(),
-                ],
-            ]);
+            return OrderResource::collection($orders->items())
+                ->additional([
+                    'success' => true,
+                    'message' => 'Driver orders retrieved successfully',
+                    'pagination' => [
+                        'current_page' => $orders->currentPage(),
+                        'per_page' => $orders->perPage(),
+                        'total' => $orders->total(),
+                        'last_page' => $orders->lastPage(),
+                        'from' => $orders->firstItem(),
+                        'to' => $orders->lastItem(),
+                    ],
+                ])
+                ->response();
         } catch (\Exception $e) {
             Log::error('Get driver orders error', [
                 'message' => $e->getMessage(),
