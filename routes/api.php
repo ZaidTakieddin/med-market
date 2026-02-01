@@ -40,6 +40,12 @@ Route::prefix('v1')->group(function () {
         // Manufacturers (admin managed, but list available to all)
         Route::apiResource('manufacturers', App\Http\Controllers\Api\V1\ManufacturerController::class);
 
+        // Cities (admin managed, but list available to all)
+        Route::apiResource('cities', App\Http\Controllers\Api\V1\CityController::class);
+
+        // Regions (admin managed, but list available to all)
+        Route::apiResource('regions', App\Http\Controllers\Api\V1\RegionController::class);
+
         // Products
         Route::apiResource('products', App\Http\Controllers\Api\V1\ProductController::class);
 
@@ -69,6 +75,9 @@ Route::prefix('v1')->group(function () {
         // Drivers
         Route::apiResource('drivers', App\Http\Controllers\Api\V1\DriverController::class);
         Route::get('drivers/{id}/orders', [App\Http\Controllers\Api\V1\DriverController::class, 'orders']);
+        Route::get('drivers/{id}/regions', [App\Http\Controllers\Api\V1\DriverController::class, 'regions']);
+        Route::post('drivers/{id}/regions', [App\Http\Controllers\Api\V1\DriverController::class, 'assignRegions']);
+        Route::delete('drivers/{id}/regions/{region_id}', [App\Http\Controllers\Api\V1\DriverController::class, 'removeRegion']);
 
         // Profile
         Route::prefix('profile')->group(function () {

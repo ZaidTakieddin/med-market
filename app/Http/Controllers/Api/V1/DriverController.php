@@ -6,8 +6,10 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Drivers\CreateDriverRequest;
 use App\Http\Requests\Drivers\UpdateDriverRequest;
 use App\Http\Resources\OrderResource;
+use App\Http\Resources\RegionResource;
 use App\Http\Resources\UserResource;
 use App\Models\Order;
+use App\Models\Region;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -301,7 +303,7 @@ class DriverController extends BaseApiController
 
             $query = Order::where('driver_id', $id)
                 ->with([
-                    'buyerCompany',
+                    'buyerCompany.region.city',
                     'supplierCompany.categories',
                     'supplierCompany.manufacturers',
                     'items.product.category',
@@ -335,6 +337,176 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString()
             ]);
             return $this->error('Failed to retrieve driver orders: ' . $e->getMessage(), null, 500);
+        }
+    }
+
+    /**
+     * Get driver's assigned regions.
+     */
+    #[OA\Get(
+        path: '/drivers/{id}/regions',
+        summary: 'Get driver regions',
+        description: 'Get all regions assigned to a specific driver',
+        tags: ['Drivers'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Regions retrieved successfully'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 404, description: 'Driver not found'),
+        ]
+    )]
+    public function regions(int $id): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            $driver = User::where('role', 'driver')->findOrFail($id);
+
+            // Suppliers can only see regions for their company drivers
+            if ($user->isSupplier() && !$user->isAdmin() && $driver->company_id !== $user->company_id) {
+                return $this->error('Unauthorized', null, 403);
+            }
+
+            $regions = $driver->driverRegions()->with('city')->get();
+
+            return $this->success(
+                RegionResource::collection($regions),
+                'Driver regions retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            Log::error('Get driver regions error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->error('Failed to retrieve driver regions: ' . $e->getMessage(), null, 500);
+        }
+    }
+
+    /**
+     * Assign regions to driver.
+     */
+    #[OA\Post(
+        path: '/drivers/{id}/regions',
+        summary: 'Assign regions to driver',
+        description: 'Assign regions to a driver. This replaces all existing region assignments. Only suppliers can assign regions to their own drivers.',
+        tags: ['Drivers'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['region_ids'],
+                properties: [
+                    new OA\Property(
+                        property: 'region_ids',
+                        type: 'array',
+                        items: new OA\Items(type: 'integer'),
+                        example: [1, 2, 3],
+                        description: 'Array of region IDs'
+                    ),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Regions assigned successfully'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 404, description: 'Driver not found'),
+            new OA\Response(response: 422, description: 'Validation error'),
+        ]
+    )]
+    public function assignRegions(Request $request, int $id): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            $driver = User::where('role', 'driver')->findOrFail($id);
+
+            // Only suppliers can assign regions to their drivers
+            if (!$user->isSupplier() && !$user->isAdmin()) {
+                return $this->error('Only suppliers can assign regions to drivers', null, 403);
+            }
+
+            // Verify driver belongs to supplier's company
+            if ($driver->company_id !== $user->company_id && !$user->isAdmin()) {
+                return $this->error('You can only assign regions to your own drivers', null, 403);
+            }
+
+            $request->validate([
+                'region_ids' => ['required', 'array'],
+                'region_ids.*' => ['integer', 'exists:regions,id'],
+            ]);
+
+            // Sync regions (replace all existing assignments)
+            $driver->driverRegions()->sync($request->region_ids);
+
+            $regions = $driver->driverRegions()->with('city')->get();
+
+            return $this->success(
+                RegionResource::collection($regions),
+                'Regions assigned successfully'
+            );
+        } catch (\Exception $e) {
+            Log::error('Assign driver regions error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->error('Failed to assign regions: ' . $e->getMessage(), null, 500);
+        }
+    }
+
+    /**
+     * Remove a region from driver.
+     */
+    #[OA\Delete(
+        path: '/drivers/{id}/regions/{region_id}',
+        summary: 'Remove region from driver',
+        description: 'Remove a specific region from a driver. Only suppliers can remove regions from their own drivers.',
+        tags: ['Drivers'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'region_id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Region removed successfully'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 404, description: 'Driver or region not found'),
+        ]
+    )]
+    public function removeRegion(int $id, int $region_id): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            $driver = User::where('role', 'driver')->findOrFail($id);
+
+            // Only suppliers can remove regions from their drivers
+            if (!$user->isSupplier() && !$user->isAdmin()) {
+                return $this->error('Only suppliers can remove regions from drivers', null, 403);
+            }
+
+            // Verify driver belongs to supplier's company
+            if ($driver->company_id !== $user->company_id && !$user->isAdmin()) {
+                return $this->error('You can only remove regions from your own drivers', null, 403);
+            }
+
+            // Verify region exists
+            Region::findOrFail($region_id);
+
+            $driver->driverRegions()->detach($region_id);
+
+            return $this->success(null, 'Region removed successfully');
+        } catch (\Exception $e) {
+            Log::error('Remove driver region error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->error('Failed to remove region: ' . $e->getMessage(), null, 500);
         }
     }
 }

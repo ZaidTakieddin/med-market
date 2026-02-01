@@ -280,11 +280,85 @@
                     "Cart"
                 ],
                 "summary": "Get cart",
-                "description": "Get the current user's shopping cart with all items",
+                "description": "Get the current user's shopping cart with all items. Items are grouped by supplier to show how checkout will split orders. If cart contains items from multiple suppliers, itemsBySupplier will contain multiple groups.",
                 "operationId": "6b8e02358626c72cbf572b555a21b9f6",
                 "responses": {
                     "200": {
-                        "description": "Cart retrieved successfully"
+                        "description": "Cart retrieved successfully. Response includes items array (flat) and itemsBySupplier array (grouped by supplier)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "items": {
+                                                    "description": "All cart items (flat array)",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "itemsBySupplier": {
+                                                    "description": "Items grouped by supplier (matches checkout behavior)",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "supplier": {
+                                                                "description": "Supplier company object",
+                                                                "type": "object"
+                                                            },
+                                                            "items": {
+                                                                "description": "Cart items for this supplier",
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object"
+                                                                }
+                                                            },
+                                                            "subtotal": {
+                                                                "description": "Subtotal for this supplier's items",
+                                                                "type": "number",
+                                                                "format": "float"
+                                                            },
+                                                            "itemCount": {
+                                                                "description": "Number of items from this supplier",
+                                                                "type": "integer"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "hasMultipleSuppliers": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "suppliersCount": {
+                                                    "type": "integer",
+                                                    "example": 2
+                                                },
+                                                "subtotal": {
+                                                    "type": "number",
+                                                    "format": "float"
+                                                },
+                                                "totalAmount": {
+                                                    "type": "number",
+                                                    "format": "float"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "Unauthenticated"
@@ -564,6 +638,544 @@
                 ]
             }
         },
+        "/categories": {
+            "get": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "List categories",
+                "description": "Get a paginated list of categories. Available to all authenticated users for product creation.",
+                "operationId": "2eb9088f8a869db09d83eaa9c605312f",
+                "parameters": [
+                    {
+                        "name": "is_active",
+                        "in": "query",
+                        "description": "Filter by active status",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search in name or description",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Categories retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Create category",
+                "description": "Create a new category. Only admins can create categories.",
+                "operationId": "7bdbe2d756cdbeeb0e8332a71bfde4a0",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "مسكنات"
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "default": true
+                                    },
+                                    "sort_order": {
+                                        "type": "integer",
+                                        "default": 0
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Category created successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - Only admins can create categories"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/categories/{id}": {
+            "get": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Get category",
+                "description": "Get details of a specific category",
+                "operationId": "4e846dc2578e3be376fef50f753a1859",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Category retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Category not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Update category",
+                "description": "Update category details. Only admins can update categories.",
+                "operationId": "1288a970d20e27471ee65193d80a7376",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "type": "boolean"
+                                    },
+                                    "sort_order": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Category updated successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Category not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Delete category",
+                "description": "Soft delete a category. Only admins can delete categories.",
+                "operationId": "b44a8c51f51902cd21c41c92ba0076f2",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Category deleted successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Category not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/cities": {
+            "get": {
+                "tags": [
+                    "Cities"
+                ],
+                "summary": "List cities",
+                "description": "Get a paginated list of cities. Available to all authenticated users.",
+                "operationId": "7a98960203c8028b92c060c3df72d886",
+                "parameters": [
+                    {
+                        "name": "is_active",
+                        "in": "query",
+                        "description": "Filter by active status",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search in name or description",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "with_regions",
+                        "in": "query",
+                        "description": "Include regions in response",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cities retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Cities"
+                ],
+                "summary": "Create city",
+                "description": "Create a new city. Only admins can create cities.",
+                "operationId": "781415b8d18863781461087eebbe6c02",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Damascus"
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "default": true
+                                    },
+                                    "sort_order": {
+                                        "type": "integer",
+                                        "default": 0
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "City created successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - Only admins can create cities"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/cities/{id}": {
+            "get": {
+                "tags": [
+                    "Cities"
+                ],
+                "summary": "Get city",
+                "description": "Get details of a specific city",
+                "operationId": "1b63e63c5142f261f2b76a2d432679d3",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "with_regions",
+                        "in": "query",
+                        "description": "Include regions in response",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "City retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "City not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Cities"
+                ],
+                "summary": "Update city",
+                "description": "Update city details. Only admins can update cities.",
+                "operationId": "c65482b54e5739d10a678b4fa63ac6b1",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "type": "boolean"
+                                    },
+                                    "sort_order": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "City updated successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "City not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Cities"
+                ],
+                "summary": "Delete city",
+                "description": "Soft delete a city. Only admins can delete cities.",
+                "operationId": "745ec7eb155ba33a97ebea97da7e94a7",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "City deleted successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "City not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/companies": {
             "get": {
                 "tags": [
@@ -589,6 +1201,30 @@
                         "in": "query",
                         "schema": {
                             "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "category_id",
+                        "in": "query",
+                        "description": "Filter suppliers by category ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "manufacturer_id",
+                        "in": "query",
+                        "description": "Filter suppliers by manufacturer ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search in company name, email, or associated category/manufacturer names",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     {
@@ -661,7 +1297,37 @@
                                         "nullable": true
                                     },
                                     "address": {
+                                        "description": "Legacy address field",
                                         "type": "string",
+                                        "nullable": true
+                                    },
+                                    "latitude": {
+                                        "description": "Latitude coordinate (-90 to 90)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 24.7136,
+                                        "nullable": true
+                                    },
+                                    "longitude": {
+                                        "description": "Longitude coordinate (-180 to 180)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 46.6753,
+                                        "nullable": true
+                                    },
+                                    "city": {
+                                        "type": "string",
+                                        "example": "Riyadh",
+                                        "nullable": true
+                                    },
+                                    "region": {
+                                        "type": "string",
+                                        "example": "Riyadh Region",
+                                        "nullable": true
+                                    },
+                                    "address_line": {
+                                        "type": "string",
+                                        "example": "King Fahd Road, Building 123, Floor 5",
                                         "nullable": true
                                     },
                                     "tax_id": {
@@ -774,7 +1440,37 @@
                                         "nullable": true
                                     },
                                     "address": {
+                                        "description": "Legacy address field",
                                         "type": "string",
+                                        "nullable": true
+                                    },
+                                    "latitude": {
+                                        "description": "Latitude coordinate (-90 to 90)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 24.7136,
+                                        "nullable": true
+                                    },
+                                    "longitude": {
+                                        "description": "Longitude coordinate (-180 to 180)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 46.6753,
+                                        "nullable": true
+                                    },
+                                    "city": {
+                                        "type": "string",
+                                        "example": "Riyadh",
+                                        "nullable": true
+                                    },
+                                    "region": {
+                                        "type": "string",
+                                        "example": "Riyadh Region",
+                                        "nullable": true
+                                    },
+                                    "address_line": {
+                                        "type": "string",
+                                        "example": "King Fahd Road, Building 123, Floor 5",
                                         "nullable": true
                                     },
                                     "tax_id": {
@@ -1129,6 +1825,456 @@
                 ]
             }
         },
+        "/drivers/{id}/regions": {
+            "get": {
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "Get driver regions",
+                "description": "Get all regions assigned to a specific driver",
+                "operationId": "50a573a817ba0e1aa05af573b9bf7032",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Regions retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Driver not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "Assign regions to driver",
+                "description": "Assign regions to a driver. This replaces all existing region assignments. Only suppliers can assign regions to their own drivers.",
+                "operationId": "8bbe35967b255004dc487519ebf07238",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "region_ids"
+                                ],
+                                "properties": {
+                                    "region_ids": {
+                                        "description": "Array of region IDs",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            1,
+                                            2,
+                                            3
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Regions assigned successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Driver not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/drivers/{id}/regions/{region_id}": {
+            "delete": {
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "Remove region from driver",
+                "description": "Remove a specific region from a driver. Only suppliers can remove regions from their own drivers.",
+                "operationId": "181969784086c34e74c0b337b03c6988",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "region_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Region removed successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Driver or region not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/manufacturers": {
+            "get": {
+                "tags": [
+                    "Manufacturers"
+                ],
+                "summary": "List manufacturers",
+                "description": "Get a paginated list of manufacturers. Available to all authenticated users for product creation.",
+                "operationId": "76bedc5fae6817bbcdf800585ebb9b54",
+                "parameters": [
+                    {
+                        "name": "is_active",
+                        "in": "query",
+                        "description": "Filter by active status",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search in name, country, or description",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Manufacturers retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Manufacturers"
+                ],
+                "summary": "Create manufacturer",
+                "description": "Create a new manufacturer. Only admins can create manufacturers.",
+                "operationId": "953ecf1586270f648e242071c70ea5f7",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "شركة الأدوية الوطنية"
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "country": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "website": {
+                                        "type": "string",
+                                        "format": "url",
+                                        "nullable": true
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "nullable": true
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "default": true
+                                    },
+                                    "sort_order": {
+                                        "type": "integer",
+                                        "default": 0
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Manufacturer created successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - Only admins can create manufacturers"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/manufacturers/{id}": {
+            "get": {
+                "tags": [
+                    "Manufacturers"
+                ],
+                "summary": "Get manufacturer",
+                "description": "Get details of a specific manufacturer",
+                "operationId": "26da12c2ef5cb72437a842e28da4521e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Manufacturer retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Manufacturer not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Manufacturers"
+                ],
+                "summary": "Update manufacturer",
+                "description": "Update manufacturer details. Only admins can update manufacturers.",
+                "operationId": "777154c6ff4ea72eb8f9a79ab8232735",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "country": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "website": {
+                                        "type": "string",
+                                        "format": "url",
+                                        "nullable": true
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "nullable": true
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "type": "boolean"
+                                    },
+                                    "sort_order": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Manufacturer updated successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Manufacturer not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Manufacturers"
+                ],
+                "summary": "Delete manufacturer",
+                "description": "Soft delete a manufacturer. Only admins can delete manufacturers.",
+                "operationId": "775def6191db4b85559b7f949c33c64e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Manufacturer deleted successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Manufacturer not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/offers": {
             "get": {
                 "tags": [
@@ -1437,6 +2583,24 @@
                         "description": "Filter by buyer company ID (for suppliers)",
                         "schema": {
                             "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "from_date",
+                        "in": "query",
+                        "description": "Filter orders created from this date (YYYY-MM-DD)",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to_date",
+                        "in": "query",
+                        "description": "Filter orders created up to this date (YYYY-MM-DD)",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
                         }
                     },
                     {
@@ -1943,11 +3107,11 @@
                         }
                     },
                     {
-                        "name": "category",
+                        "name": "category_id",
                         "in": "query",
-                        "description": "Filter by product category",
+                        "description": "Filter by product category ID",
                         "schema": {
-                            "type": "string"
+                            "type": "integer"
                         }
                     },
                     {
@@ -2023,9 +3187,16 @@
                                         "example": "Pain reliever and fever reducer",
                                         "nullable": true
                                     },
-                                    "category": {
-                                        "type": "string",
-                                        "example": "Analgesics",
+                                    "category_id": {
+                                        "description": "Category ID (must exist in categories table)",
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
+                                    },
+                                    "manufacturer_id": {
+                                        "description": "Manufacturer ID (must exist in manufacturers table)",
+                                        "type": "integer",
+                                        "example": 1,
                                         "nullable": true
                                     },
                                     "sku": {
@@ -2178,8 +3349,13 @@
                                                             "nullable": true
                                                         },
                                                         "category": {
-                                                            "type": "string",
-                                                            "example": "Analgesics",
+                                                            "description": "Category object with id and name",
+                                                            "type": "object",
+                                                            "nullable": true
+                                                        },
+                                                        "manufacturer": {
+                                                            "description": "Manufacturer object with id and name",
+                                                            "type": "object",
                                                             "nullable": true
                                                         },
                                                         "sku": {
@@ -2277,9 +3453,16 @@
                                         "example": "Pain reliever and fever reducer",
                                         "nullable": true
                                     },
-                                    "category": {
-                                        "type": "string",
-                                        "example": "Analgesics",
+                                    "category_id": {
+                                        "description": "Category ID (must exist in categories table)",
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
+                                    },
+                                    "manufacturer_id": {
+                                        "description": "Manufacturer ID (must exist in manufacturers table)",
+                                        "type": "integer",
+                                        "example": 1,
                                         "nullable": true
                                     },
                                     "sku": {
@@ -2574,7 +3757,41 @@
                                         "type": "string"
                                     },
                                     "address": {
+                                        "description": "Legacy address field",
                                         "type": "string"
+                                    },
+                                    "latitude": {
+                                        "description": "Latitude coordinate (-90 to 90)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 24.7136,
+                                        "nullable": true
+                                    },
+                                    "longitude": {
+                                        "description": "Longitude coordinate (-180 to 180)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 46.6753,
+                                        "nullable": true
+                                    },
+                                    "region_id": {
+                                        "description": "Region ID (from regions table)",
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
+                                    },
+                                    "address_line": {
+                                        "type": "string",
+                                        "example": "King Fahd Road, Building 123, Floor 5",
+                                        "nullable": true
+                                    },
+                                    "tax_id": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "registration_number": {
+                                        "type": "string",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -2594,6 +3811,299 @@
                     },
                     "422": {
                         "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/regions": {
+            "get": {
+                "tags": [
+                    "Regions"
+                ],
+                "summary": "List regions",
+                "description": "Get a paginated list of regions. Available to all authenticated users.",
+                "operationId": "b5d50566dcd39565f46f8df598ecf540",
+                "parameters": [
+                    {
+                        "name": "city_id",
+                        "in": "query",
+                        "description": "Filter by city ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "is_active",
+                        "in": "query",
+                        "description": "Filter by active status",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search in name or description",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "with_city",
+                        "in": "query",
+                        "description": "Include city in response",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Regions retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Regions"
+                ],
+                "summary": "Create region",
+                "description": "Create a new region. Only admins can create regions.",
+                "operationId": "a451799119dc7f7ecceea5bc9bac9a38",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "city_id"
+                                ],
+                                "properties": {
+                                    "city_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Mazzeh"
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "default": true
+                                    },
+                                    "sort_order": {
+                                        "type": "integer",
+                                        "default": 0
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Region created successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - Only admins can create regions"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/regions/{id}": {
+            "get": {
+                "tags": [
+                    "Regions"
+                ],
+                "summary": "Get region",
+                "description": "Get details of a specific region",
+                "operationId": "4e915f38265307fc02daabd13fbb4988",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "with_city",
+                        "in": "query",
+                        "description": "Include city in response",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Region retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Region not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Regions"
+                ],
+                "summary": "Update region",
+                "description": "Update region details. Only admins can update regions.",
+                "operationId": "0d707e21e6840d1bc80749c466f5a083",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "city_id": {
+                                        "type": "integer"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "type": "boolean"
+                                    },
+                                    "sort_order": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Region updated successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Region not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Regions"
+                ],
+                "summary": "Delete region",
+                "description": "Soft delete a region. Only admins can delete regions.",
+                "operationId": "c1ad77fb56176abf905c163aca72c13e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Region deleted successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Region not found"
                     }
                 },
                 "security": [
@@ -2834,12 +4344,24 @@
             "description": "Shopping cart management endpoints"
         },
         {
+            "name": "Categories",
+            "description": "Category management endpoints (Admin only)"
+        },
+        {
+            "name": "Cities",
+            "description": "City management endpoints (Admin only)"
+        },
+        {
             "name": "Companies",
             "description": "Company management endpoints"
         },
         {
             "name": "Drivers",
             "description": "Driver management endpoints"
+        },
+        {
+            "name": "Manufacturers",
+            "description": "Manufacturer management endpoints (Admin only)"
         },
         {
             "name": "Offers",
@@ -2856,6 +4378,10 @@
         {
             "name": "Profile",
             "description": "User profile management endpoints"
+        },
+        {
+            "name": "Regions",
+            "description": "Region management endpoints (Admin only)"
         },
         {
             "name": "Stock Management",

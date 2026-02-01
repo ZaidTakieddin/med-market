@@ -21,6 +21,14 @@ class CompanyResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'address' => $this->address,
+            'latitude' => $this->latitude ? (float) $this->latitude : null,
+            'longitude' => $this->longitude ? (float) $this->longitude : null,
+            'regionId' => $this->region_id,
+            'region' => $this->when(
+                $this->relationLoaded('region'),
+                fn() => new RegionResource($this->region)
+            ),
+            'addressLine' => $this->address_line,
             'taxId' => $this->tax_id,
             'registrationNumber' => $this->registration_number,
             'isActive' => $this->is_active,

@@ -45,7 +45,12 @@ class CartController extends BaseApiController
                             type: 'object',
                             properties: [
                                 new OA\Property(property: 'id', type: 'integer', example: 1),
-                                new OA\Property(property: 'items', type: 'array', description: 'All cart items (flat array)'),
+                                new OA\Property(
+                                    property: 'items',
+                                    type: 'array',
+                                    description: 'All cart items (flat array)',
+                                    items: new OA\Items(type: 'object')
+                                ),
                                 new OA\Property(
                                     property: 'itemsBySupplier',
                                     type: 'array',
@@ -54,7 +59,12 @@ class CartController extends BaseApiController
                                         type: 'object',
                                         properties: [
                                             new OA\Property(property: 'supplier', type: 'object', description: 'Supplier company object'),
-                                            new OA\Property(property: 'items', type: 'array', description: 'Cart items for this supplier'),
+                                            new OA\Property(
+                                                property: 'items',
+                                                type: 'array',
+                                                description: 'Cart items for this supplier',
+                                                items: new OA\Items(type: 'object')
+                                            ),
                                             new OA\Property(property: 'subtotal', type: 'number', format: 'float', description: 'Subtotal for this supplier\'s items'),
                                             new OA\Property(property: 'itemCount', type: 'integer', description: 'Number of items from this supplier'),
                                         ]
@@ -425,7 +435,7 @@ class CartController extends BaseApiController
                     );
 
                     $createdOrders[] = $order->load([
-                        'buyerCompany',
+                        'buyerCompany.region.city',
                         'supplierCompany.categories',
                         'supplierCompany.manufacturers',
                         'items.product.category',

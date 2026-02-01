@@ -84,7 +84,7 @@ class OrderController extends BaseApiController
         try {
             $user = auth()->user();
             $query = Order::with([
-                'buyerCompany',
+                'buyerCompany.region.city',
                 'supplierCompany.categories',
                 'supplierCompany.manufacturers',
                 'items',
@@ -245,7 +245,7 @@ class OrderController extends BaseApiController
 
         return $this->success(
             new OrderResource($order->load([
-                'buyerCompany',
+                'buyerCompany.region.city',
                 'supplierCompany.categories',
                 'supplierCompany.manufacturers',
                 'items.product.category',
@@ -300,7 +300,7 @@ class OrderController extends BaseApiController
         $this->authorize('view', $order);
 
         $order->load([
-            'buyerCompany',
+            'buyerCompany.region.city',
             'supplierCompany.categories',
             'supplierCompany.manufacturers',
             'creator',
@@ -382,13 +382,13 @@ class OrderController extends BaseApiController
 
             return $this->success(
                 new OrderResource($order->load([
-                'buyerCompany',
-                'supplierCompany.categories',
-                'supplierCompany.manufacturers',
-                'items.product.category',
-                'items.product.manufacturer',
-                'items.product.supplierCompany',
-            ])),
+                    'buyerCompany.region.city',
+                    'supplierCompany.categories',
+                    'supplierCompany.manufacturers',
+                    'items.product.category',
+                    'items.product.manufacturer',
+                    'items.product.supplierCompany',
+                ])),
                 'Order status updated successfully'
             );
         } catch (\InvalidArgumentException $e) {
@@ -465,13 +465,13 @@ class OrderController extends BaseApiController
 
             return $this->success(
                 new OrderResource($order->load([
-                'buyerCompany',
-                'supplierCompany.categories',
-                'supplierCompany.manufacturers',
-                'items.product.category',
-                'items.product.manufacturer',
-                'items.product.supplierCompany',
-            ])),
+                    'buyerCompany.region.city',
+                    'supplierCompany.categories',
+                    'supplierCompany.manufacturers',
+                    'items.product.category',
+                    'items.product.manufacturer',
+                    'items.product.supplierCompany',
+                ])),
                 'Order cancelled successfully'
             );
         } catch (\InvalidArgumentException $e) {
@@ -544,10 +544,23 @@ class OrderController extends BaseApiController
                 return $this->error('Driver must belong to your company', null, 403);
             }
 
+            // Check if driver serves the pharmacy's region (optional warning, not blocking)
+            $buyerCompany = $order->buyerCompany;
+            if ($buyerCompany && $buyerCompany->region_id) {
+                if (!$driver->servesRegion($buyerCompany->region_id)) {
+                    // Log warning but don't block assignment
+                    Log::warning('Driver assigned to order outside their region', [
+                        'driver_id' => $driver->id,
+                        'order_id' => $order->id,
+                        'pharmacy_region_id' => $buyerCompany->region_id,
+                    ]);
+                }
+            }
+
             $order->update(['driver_id' => $driver->id]);
 
             $order->load([
-                'buyerCompany',
+                'buyerCompany.region.city',
                 'supplierCompany.categories',
                 'supplierCompany.manufacturers',
                 'driver',

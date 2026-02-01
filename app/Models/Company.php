@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -18,6 +19,10 @@ class Company extends Model
         'email',
         'phone',
         'address',
+        'latitude',
+        'longitude',
+        'region_id',
+        'address_line',
         'tax_id',
         'registration_number',
         'is_active',
@@ -25,6 +30,8 @@ class Company extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'latitude' => 'decimal:8',
+        'longitude' => 'decimal:8',
     ];
 
     /**
@@ -107,6 +114,14 @@ class Company extends Model
     {
         return $this->belongsToMany(Manufacturer::class, 'supplier_manufacturers')
             ->withTimestamps();
+    }
+
+    /**
+     * Get the region this company is located in.
+     */
+    public function region(): BelongsTo
+    {
+        return $this->belongsTo(Region::class);
     }
 }
 

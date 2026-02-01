@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -147,5 +148,26 @@ class User extends Authenticatable
     public function isDriver(): bool
     {
         return $this->role === 'driver';
+    }
+
+    /**
+     * Get regions assigned to this driver.
+     */
+    public function driverRegions(): BelongsToMany
+    {
+        return $this->belongsToMany(Region::class, 'driver_regions', 'driver_id', 'region_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Check if driver serves a specific region.
+     */
+    public function servesRegion(int $regionId): bool
+    {
+        if (!$this->isDriver()) {
+            return false;
+        }
+
+        return $this->driverRegions()->where('region_id', $regionId)->exists();
     }
 }

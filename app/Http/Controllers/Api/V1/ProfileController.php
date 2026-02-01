@@ -152,7 +152,13 @@ class ProfileController extends BaseApiController
                     new OA\Property(property: 'name', type: 'string'),
                     new OA\Property(property: 'email', type: 'string', format: 'email'),
                     new OA\Property(property: 'phone', type: 'string'),
-                    new OA\Property(property: 'address', type: 'string'),
+                    new OA\Property(property: 'address', type: 'string', description: 'Legacy address field'),
+                    new OA\Property(property: 'latitude', type: 'number', format: 'float', nullable: true, example: 24.7136, description: 'Latitude coordinate (-90 to 90)'),
+                    new OA\Property(property: 'longitude', type: 'number', format: 'float', nullable: true, example: 46.6753, description: 'Longitude coordinate (-180 to 180)'),
+                    new OA\Property(property: 'region_id', type: 'integer', nullable: true, example: 1, description: 'Region ID (from regions table)'),
+                    new OA\Property(property: 'address_line', type: 'string', nullable: true, example: 'King Fahd Road, Building 123, Floor 5'),
+                    new OA\Property(property: 'tax_id', type: 'string', nullable: true),
+                    new OA\Property(property: 'registration_number', type: 'string', nullable: true),
                 ]
             )
         ),

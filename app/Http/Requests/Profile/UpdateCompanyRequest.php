@@ -18,6 +18,10 @@ class UpdateCompanyRequest extends BaseFormRequest
             'email' => ['sometimes', 'nullable', 'email', 'max:255'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
             'address' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'latitude' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
+            'region_id' => ['sometimes', 'nullable', 'integer', 'exists:regions,id'],
+            'address_line' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'tax_id' => ['sometimes', 'nullable', 'string', 'max:100'],
             'registration_number' => ['sometimes', 'nullable', 'string', 'max:100'],
         ];
