@@ -42,11 +42,18 @@ Currently handled in `DriverController`:
 - Update drivers
 - Delete drivers
 - Get driver's orders
+- Get driver's assigned regions (`GET /drivers/{id}/regions`)
+- Assign regions to driver (`POST /drivers/{id}/regions`)
+- Remove region from driver (`DELETE /drivers/{id}/regions/{region_id}`)
 
 ### Models
 
 - `App\Models\User` - Drivers are users with `driver` role
+  - `driverRegions()` - Belongs to many regions (via driver_regions pivot)
+  - `servesRegion(int $regionId)` - Check if driver serves a specific region
 - `App\Models\Order` - Orders have `driver_id` field
+- `App\Models\Region` - Regions that drivers can serve
+- `App\Models\Company` - Companies have region_id (pharmacies use this for driver assignment)
 
 ## Future Domain Services
 
@@ -186,11 +193,15 @@ Drivers belong to suppliers:
    - Driver must belong to supplier company
    - Only suppliers/admins can assign drivers
    - Driver can be assigned to multiple orders
+   - System checks if driver serves the pharmacy's region (warning logged if not, but assignment still allowed)
+   - Suppliers can assign regions to their drivers via dashboard
 
 2. **Driver Management**:
    - Suppliers can only manage their own drivers
    - Admins can manage all drivers
    - Drivers can view their assigned orders
+   - Suppliers can assign multiple regions to each driver
+   - Driver-region assignments can be updated anytime (e.g., weekly rotations)
 
 3. **Authorization**:
    - Suppliers manage their drivers
@@ -228,16 +239,37 @@ Drivers belong to suppliers:
 - Test route optimization (future)
 - Test location tracking (future)
 
+## Current Location System
+
+The system includes a hierarchical location management:
+
+- **Cities**: Admin-managed cities (e.g., Damascus, Aleppo)
+- **Regions**: Admin-managed regions belonging to cities (e.g., Mazzeh, Malki, Rawda in Damascus)
+- **Companies**: Use `region_id` to specify their location
+- **Drivers**: Can be assigned to multiple regions
+- **Orders**: Include pharmacy region information for better driver assignment
+
+### Driver-Region Assignment Flow
+
+1. Admin creates cities and regions
+2. Pharmacies select their region when registering/updating
+3. Suppliers assign regions to their drivers
+4. When pharmacy places order, supplier sees pharmacy's region
+5. Supplier can assign driver who serves that region
+
 ## Future Enhancements
 
 - Real-time GPS tracking
-- Delivery route optimization
+- Automatic driver assignment based on region and availability
+- Delivery route optimization using coordinates
+- Distance calculation between companies
 - Delivery time windows
 - Delivery proof (signatures, photos)
 - Delivery notifications (SMS, push)
 - Delivery analytics and reporting
 - Driver performance metrics
-- Delivery cost calculation
+- Delivery cost calculation based on distance
 - Multi-stop delivery routes
 - Delivery scheduling and time slots
+- Geospatial queries for finding nearest suppliers/drivers
 

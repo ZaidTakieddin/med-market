@@ -4,9 +4,15 @@ set -e
 # Wait for database to be ready (optional)
 # You can add database connection check here if needed
 
-# Run migrations
-# echo "Running migrations..."
-# php artisan migrate --force || echo "Migrations failed, continuing..."
+# Run migrations (if enabled via RUN_MIGRATIONS env var)
+# For production, it's safer to run migrations manually or via CI/CD
+# Set RUN_MIGRATIONS=true to enable automatic migrations on container start
+if [ "$RUN_MIGRATIONS" = "true" ]; then
+    echo "Running migrations..."
+    php artisan migrate --force || echo "Migrations failed, continuing..."
+else
+    echo "Migrations skipped (set RUN_MIGRATIONS=true to enable automatic migrations)"
+fi
 
 # Clear config cache first to ensure fresh proxy settings are loaded
 echo "Clearing config cache..."

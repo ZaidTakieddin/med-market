@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-02-01 (Categories & Manufacturers management, Auto-sync supplier categories/manufacturers, Product enhancements with foreign keys)
+> Last Updated: 2026-02-01 (Cities & Regions management, Driver-region assignments, Company address & coordinates, Date range filtering for orders)
 
 ## 📋 Table of Contents
 
@@ -30,10 +30,13 @@
 ### Database Schema
 
 -   [x] Users table with company and role support
--   [x] Companies table (suppliers & buyers)
+-   [x] Companies table (suppliers & buyers) with address, coordinates, region_id
 -   [x] Products table with stock tracking, category_id, manufacturer_id
 -   [x] Categories table (admin-managed)
 -   [x] Manufacturers table (admin-managed)
+-   [x] Cities table (admin-managed)
+-   [x] Regions table (admin-managed, belongs to city)
+-   [x] Driver regions pivot table (driver-region assignments)
 -   [x] Supplier categories pivot table (auto-synced)
 -   [x] Supplier manufacturers pivot table (auto-synced)
 -   [x] Orders table with status management
@@ -50,7 +53,10 @@
 -   [x] Product model with stock tracking, category, manufacturer relationships
 -   [x] Category model with products relationship
 -   [x] Manufacturer model with products relationship
--   [x] Company model with categories and manufacturers relationships (auto-synced)
+-   [x] City model with regions relationship
+-   [x] Region model with city, companies, and drivers relationships
+-   [x] Company model with categories, manufacturers, and region relationships (auto-synced)
+-   [x] User model with driverRegions relationship (for drivers)
 -   [x] Order model with state management
 -   [x] OrderItem model
 -   [x] StockMovement model
@@ -80,12 +86,14 @@
 
 ### Order Management API
 
--   [x] List orders (`GET /api/v1/orders`) - Filtered by company and status
+-   [x] List orders (`GET /api/v1/orders`) - Filtered by company, status, date range
 -   [x] Create order (`POST /api/v1/orders`) - Buyers only
 -   [x] Get order details (`GET /api/v1/orders/{id}`)
 -   [x] Update order status (`POST /api/v1/orders/{id}/status`)
 -   [x] Cancel order (`POST /api/v1/orders/{id}/cancel`)
+-   [x] Assign driver (`POST /api/v1/orders/{id}/assign-driver`) - With region-based suggestions
 -   [x] Form request validation (CreateOrderRequest, UpdateOrderStatusRequest)
+-   [x] Date range filtering (`?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD`)
 
 ### Product Management API
 
@@ -110,6 +118,8 @@
 -   [x] Filter suppliers by manufacturer_id (`?manufacturer_id=1`)
 -   [x] Search suppliers by category/manufacturer names
 -   [x] Companies include categories and manufacturers arrays (auto-synced from products)
+-   [x] Companies include address, coordinates (latitude, longitude), region_id, address_line
+-   [x] Companies include region object with city information
 
 ### Category Management API (Admin Only)
 
@@ -155,8 +165,11 @@
     -   [x] Get product endpoint shows all new fields in response schema (includes category and manufacturer objects)
 -   [x] Category endpoints documented (admin CRUD, public list/show)
 -   [x] Manufacturer endpoints documented (admin CRUD, public list/show)
--   [x] Company endpoints updated with category_id and manufacturer_id filtering documentation
--   [x] Order endpoints updated with multi-supplier order handling documentation
+-   [x] City endpoints documented (admin CRUD, public list/show)
+-   [x] Region endpoints documented (admin CRUD, public list/show)
+-   [x] Company endpoints updated with category_id, manufacturer_id, address, coordinates, region_id
+-   [x] Order endpoints updated with multi-supplier order handling and date range filtering
+-   [x] Driver endpoints updated with region management (assign regions, get regions, remove region)
     -   [x] List orders endpoint documents multi-supplier context and filtering
     -   [x] Create order endpoint clarifies single-supplier vs cart checkout
     -   [x] Get order endpoint explains single order per supplier
@@ -205,7 +218,9 @@
     -   [x] Bundle offers
     -   [x] Associates offers with products
 -   [x] OrderSeeder - Seeds sample orders with Arabic notes
--   [x] DatabaseSeeder - Orchestrates all seeders in correct order
+-   [x] CitySeeder - Seeds cities (Damascus, Aleppo, Homs, etc.) with Arabic names
+-   [x] RegionSeeder - Seeds regions for each city (Mazzeh, Malki, Rawda for Damascus, etc.)
+-   [x] DatabaseSeeder - Orchestrates all seeders in correct order (cities → regions → companies)
 -   [x] Separate database configuration for seeders (unpooled connection)
 -   [x] All seeders use Arabic data for names, addresses, and descriptions
 -   [x] All seeders are idempotent (can be run multiple times safely)
@@ -370,6 +385,50 @@ _Currently no tasks in progress_
     -   [x] Consistent error response structure across all endpoints
     -   [x] Proper HTTP status codes for different error types
     -   [x] Error titles based on status codes (Bad request, Unauthenticated, Forbidden, etc.)
+
+### Location Management System ✅ COMPLETED
+
+#### 11. Cities and Regions Management
+-   [x] Create cities table (admin-managed)
+-   [x] Create regions table (admin-managed, belongs to city)
+-   [x] City model with regions relationship
+-   [x] Region model with city, companies, and drivers relationships
+-   [x] CityController - Full CRUD (admin only)
+-   [x] RegionController - Full CRUD (admin only)
+-   [x] CityResource and RegionResource
+-   [x] Form requests (CreateCityRequest, UpdateCityRequest, CreateRegionRequest, UpdateRegionRequest)
+-   [x] CitySeeder and RegionSeeder with Arabic data
+-   [x] Swagger documentation for cities and regions endpoints
+
+#### 12. Company Address and Coordinates
+-   [x] Add latitude, longitude, region_id, address_line to companies table
+-   [x] Update Company model with region relationship
+-   [x] Update CompanyResource to include region information
+-   [x] Update form requests to use region_id instead of free text city/region
+-   [x] Migrations handle PostgreSQL transaction issues
+-   [x] Swagger documentation updated
+
+#### 13. Driver-Region Assignments
+-   [x] Create driver_regions pivot table
+-   [x] User model with driverRegions relationship
+-   [x] Region model with drivers relationship
+-   [x] DriverController endpoints for region management
+-   [x] Suppliers can assign regions to their drivers
+-   [x] Drivers can serve multiple regions
+-   [x] Order assignment checks if driver serves pharmacy's region
+-   [x] Swagger documentation for driver-region endpoints
+
+#### 14. Cart Items Grouped by Supplier
+-   [x] CartResource updated to include itemsBySupplier array
+-   [x] Items grouped by supplier_company_id
+-   [x] Each group includes supplier, items, subtotal, itemCount
+-   [x] Backward compatible (still includes flat items array)
+-   [x] Swagger documentation updated
+
+#### 15. Order Date Range Filtering
+-   [x] Add from_date and to_date query parameters to orders endpoint
+-   [x] Filter orders by created_at date range
+-   [x] Swagger documentation updated
 
 ### Low Priority
 
@@ -680,24 +739,174 @@ _Currently no tasks in progress_
     -   Suppliers cannot manually control their categories/manufacturers (ensures data reliability)
     -   Company filtering/search by category_id and manufacturer_id
     -   Created sync command for manual syncing: `php artisan suppliers:sync-categories-manufacturers`
+-   **Location Management System**: Implemented hierarchical cities and regions system
+    -   Created City and Region models with admin-managed CRUD endpoints
+    -   Companies use region_id (foreign key) instead of free text city/region
+    -   Companies include address, coordinates (latitude, longitude), and address_line
+    -   Driver-region assignments allow suppliers to assign regions to drivers
+    -   Order assignment considers pharmacy region for better driver matching
+    -   CitySeeder and RegionSeeder with Arabic data (Damascus with Mazzeh, Malki, Rawda, etc.)
+-   **Cart Enhancements**: Cart items now grouped by supplier in API response
+    -   CartResource includes itemsBySupplier array (matches checkout behavior)
+    -   Each supplier group includes supplier info, items, subtotal, and itemCount
+    -   Backward compatible (still includes flat items array)
+-   **Order Filtering**: Added date range filtering for orders
+    -   Filter orders by from_date and to_date query parameters
+    -   Useful for reporting and analytics
+    -   Companies include address, coordinates (latitude, longitude), and address_line
+    -   Driver-region assignments allow suppliers to assign regions to drivers
+    -   Order assignment considers pharmacy region for better driver matching
+    -   CitySeeder and RegionSeeder with Arabic data (Damascus with Mazzeh, Malki, Rawda, etc.)
+-   **Cart Enhancements**: Cart items now grouped by supplier in API response
+    -   CartResource includes itemsBySupplier array (matches checkout behavior)
+    -   Each supplier group includes supplier info, items, subtotal, and itemCount
+    -   Backward compatible (still includes flat items array)
+-   **Order Filtering**: Added date range filtering for orders
+    -   Filter orders by from_date and to_date query parameters
+    -   Useful for reporting and analytics
+
+---
+
+## 🚀 Future Recommendations & Enhancements
+
+### High Priority Recommendations
+
+1. **Geospatial Queries & Route Optimization**
+   - Implement distance calculations between companies using coordinates
+   - Add endpoint to find nearest suppliers to a pharmacy
+   - Implement route optimization algorithm for multi-order deliveries
+   - Add delivery time estimation based on distance and traffic
+   - Consider using PostGIS extension for advanced geospatial queries
+
+2. **Automatic Driver Assignment**
+   - Auto-assign drivers based on pharmacy region
+   - Load balancing across drivers (distribute orders evenly)
+   - Driver availability tracking (active/inactive, on-duty/off-duty)
+   - Driver capacity management (max orders per driver)
+   - Smart assignment considering driver's current location and route
+
+3. **Real-Time Delivery Tracking**
+   - GPS tracking integration for drivers
+   - Real-time location updates during delivery
+   - Delivery status updates with location stamps
+   - Estimated delivery time calculations
+   - Delivery proof (signatures, photos)
+
+4. **Advanced Search & Filtering**
+   - Full-text search for products, companies, orders
+   - Elasticsearch integration for better search performance
+   - Advanced filtering combinations (multiple categories, manufacturers, regions)
+   - Search suggestions and autocomplete
+   - Saved search filters for users
+
+5. **Analytics & Reporting**
+   - Dashboard for suppliers (sales, top products, regions served)
+   - Dashboard for buyers (purchase history, spending trends)
+   - Admin dashboard (system-wide statistics)
+   - Export reports (CSV, PDF, Excel)
+   - Order analytics (by region, by supplier, by time period)
+   - Driver performance metrics
+
+### Medium Priority Recommendations
+
+6. **Notification System**
+   - Email notifications for order status changes
+   - SMS notifications for critical updates
+   - Push notifications for mobile apps
+   - Notification preferences per user/company
+   - Notification history and read status
+
+7. **Payment Integration**
+   - Payment gateway integration (Stripe, PayPal, etc.)
+   - Multiple payment methods (credit card, bank transfer, cash on delivery)
+   - Payment terms management (net 30, net 60, etc.)
+   - Invoice generation and management
+   - Payment tracking and reconciliation
+
+8. **Inventory Management Enhancements**
+   - Low stock alerts with customizable thresholds
+   - Bulk stock operations
+   - Stock transfer between suppliers
+   - Expiry date tracking for products
+   - Batch/lot number tracking
+
+9. **Multi-Language Support**
+   - Arabic and English language support
+   - Dynamic language switching
+   - Translated product names and descriptions
+   - Localized date/time formats
+   - RTL (Right-to-Left) layout support
+
+10. **Mobile App API Enhancements**
+    - Optimized endpoints for mobile consumption
+    - Image upload for products and companies
+    - Offline mode support (sync when online)
+    - Push notification endpoints
+    - Mobile-specific authentication (biometric, PIN)
+
+### Low Priority Recommendations
+
+11. **Advanced Features**
+    - Product reviews and ratings
+    - Company ratings and reviews
+    - Wishlist functionality
+    - Product comparison
+    - Order templates (frequently ordered items)
+    - Subscription management for suppliers
+    - Loyalty program integration
+    - Referral system
+
+12. **Performance Optimizations**
+    - Redis caching for frequently accessed data
+    - Database query optimization
+    - API response caching
+    - CDN integration for static assets
+    - Image optimization and lazy loading
+    - Database indexing optimization
+
+13. **Security Enhancements**
+    - Two-factor authentication (2FA)
+    - API rate limiting per user/company
+    - IP whitelisting for admin endpoints
+    - Audit logging for sensitive operations
+    - Data encryption at rest
+    - Regular security audits
+
+14. **Testing & Quality Assurance**
+    - Unit tests for domain services
+    - Integration tests for API endpoints
+    - End-to-end tests for critical flows
+    - Performance testing
+    - Load testing for high-traffic scenarios
+    - Automated testing in CI/CD pipeline
+
+15. **Documentation Improvements**
+    - API versioning strategy (v2 planning)
+    - Postman collection for API testing
+    - Video tutorials for common operations
+    - Developer onboarding guide
+    - Architecture decision records (ADRs)
 
 ---
 
 ## 📊 Statistics
 
--   **Total Endpoints**: 50+ routes (including cart, offers, drivers, profile, categories, manufacturers endpoints)
--   **Completed Features**: 95+ (including all new requirements and documentation updates)
--   **Database Seeders**: 7 (CompanySeeder, CategorySeeder, ManufacturerSeeder, UserSeeder, ProductSeeder, OfferSeeder, OrderSeeder)
+-   **Total Endpoints**: 60+ routes (including cart, offers, drivers, profile, categories, manufacturers, cities, regions endpoints)
+-   **Completed Features**: 110+ (including all new requirements and documentation updates)
+-   **Database Seeders**: 9 (CitySeeder, RegionSeeder, CompanySeeder, CategorySeeder, ManufacturerSeeder, UserSeeder, ProductSeeder, OfferSeeder, OrderSeeder)
 -   **Pending Tasks**: 7 categories (4 high-priority items completed)
 -   **Documentation Files**: 9 (README.md, DEPLOYMENT.md, PROGRESS.md, QUEUE_WORKERS.md, 5 Domain READMEs)
 -   **Background Jobs**: 4 (SendOrderNotificationJob, GenerateInvoiceJob, LowStockAlertJob, ExportOrdersJob)
 -   **Deployment Files**: 3 (Procfile, render.yaml, railway.json)
 -   **Observers**: 3 (OrderObserver, StockMovementObserver, ProductObserver)
 -   **Console Commands**: 1 (SyncSupplierCategoriesAndManufacturers)
+-   **Location System**: Cities and Regions (hierarchical), Driver-region assignments
+-   **Geospatial Features**: Company coordinates (latitude, longitude) for delivery tracking
 -   **Middleware**: 1 (CleanupTransactions)
 -   **Database Connections**: 2 (pooled for API, unpooled for seeders)
 -   **Cache Driver**: File-based (Redis ready)
--   **Swagger Documentation**: Fully updated with all new fields, multi-supplier order handling, categories, and manufacturers
+-   **Swagger Documentation**: Fully updated with all new fields, multi-supplier order handling, categories, manufacturers, cities, regions, driver-region management, date range filtering
+-   **Location Management**: Cities (8), Regions (20+), Driver-region assignments, Company coordinates
 
 ---
 

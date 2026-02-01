@@ -63,6 +63,9 @@ Quick deployment guide for Med Market Laravel application.
     SESSION_DRIVER=database
     QUEUE_CONNECTION=database
     CACHE_STORE=file
+
+    # Optional: Enable automatic migrations on container start (not recommended for production)
+    # RUN_MIGRATIONS=true
     ```
 
     **Important**:
@@ -78,16 +81,47 @@ Quick deployment guide for Med Market Laravel application.
     Render will automatically:
 
     - Build Docker image
-    - Run migrations
     - Cache configuration
     - Generate Swagger docs
     - Start the application
 
+    **Note**: Migrations are NOT run automatically by default (safer for production). You have two options:
+
+    **Option A: Run migrations manually** (Recommended for production):
+    ```bash
+    # SSH into your Render service or use Render Shell
+    php artisan migrate --force
+    ```
+
+    **Option B: Enable automatic migrations** (For development/testing):
+    Add environment variable:
+    ```env
+    RUN_MIGRATIONS=true
+    ```
+    This will run migrations automatically on every container start (not recommended for production).
+
 ### Post-Deployment
 
--   Health check: `GET /up`
--   API docs: `GET /api/documentation`
--   API base: `GET /api/v1`
+1. **Run Database Seeders** (if needed):
+   ```bash
+   php artisan db:seed
+   ```
+   This will seed:
+   - Cities and regions
+   - Companies (suppliers and buyers)
+   - Categories and manufacturers
+   - Users, products, offers, orders
+
+2. **Sync Supplier Categories and Manufacturers** (if needed):
+   ```bash
+   php artisan suppliers:sync-categories-manufacturers
+   ```
+   This command syncs supplier categories and manufacturers from their products. Usually not needed as ProductObserver handles this automatically, but useful for initial data migration or fixing inconsistencies.
+
+3. **Verify Deployment**:
+   - Health check: `GET /up`
+   - API docs: `GET /api/documentation`
+   - API base: `GET /api/v1`
 
 ## 🔧 Dockerfile Details
 
@@ -95,11 +129,11 @@ The included `Dockerfile`:
 
 -   Uses PHP 8.4 with Apache
 -   Installs required PHP extensions (PostgreSQL, GD, etc.)
--   Runs migrations automatically on startup
 -   Caches configuration, routes, and views
 -   Generates Swagger documentation
 -   Configures Apache for Laravel
 -   Includes queue worker script for background job processing
+-   Migrations can be enabled via `RUN_MIGRATIONS=true` environment variable (disabled by default for production safety)
 
 ## 📦 Queue Workers
 
@@ -201,4 +235,10 @@ php artisan view:clear
 
 # Regenerate Swagger docs
 php artisan l5-swagger:generate
+
+# Sync supplier categories and manufacturers (if needed)
+php artisan suppliers:sync-categories-manufacturers
+
+# Sync specific supplier
+php artisan suppliers:sync-categories-manufacturers --supplier-id=1
 ```

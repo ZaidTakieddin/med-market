@@ -104,6 +104,7 @@ app/
 | GET    | `/orders/{id}`        | Get order details   | Yes           | All            |
 | POST   | `/orders/{id}/status` | Update order status | Yes           | Supplier/Buyer |
 | POST   | `/orders/{id}/cancel` | Cancel order        | Yes           | Supplier/Buyer |
+| POST   | `/orders/{id}/assign-driver` | Assign driver to order | Yes | Supplier |
 
 **Order Status Flow:**
 
@@ -111,6 +112,13 @@ app/
 -   `accepted` → `prepared` | `cancelled`
 -   `prepared` → `shipped` | `cancelled`
 -   `shipped` → `delivered` | `cancelled`
+
+**Filtering Options:**
+- `?status=pending` - Filter by status
+- `?supplier_company_id=1` - Filter by supplier (for buyers)
+- `?buyer_company_id=1` - Filter by buyer (for suppliers)
+- `?from_date=2026-01-01` - Filter orders created from date (YYYY-MM-DD)
+- `?to_date=2026-01-31` - Filter orders created up to date (YYYY-MM-DD)
 
 ### Products (`/api/v1/products`)
 
@@ -154,7 +162,42 @@ app/
 - `?manufacturer_id=1` - Filter suppliers by manufacturer (suppliers only)
 - `?search=term` - Search by company name, email, category names, or manufacturer names
 
-**Note**: Supplier companies include `categories` and `manufacturers` arrays (auto-synced from their products).
+**Note**: Supplier companies include `categories` and `manufacturers` arrays (auto-synced from their products). Companies also include `address`, `latitude`, `longitude`, `region_id`, `address_line`, and `region` object (with city information).
+
+### Cities (`/api/v1/cities`)
+
+| Method | Endpoint        | Description         | Auth Required | Role  |
+| ------ | --------------- | ------------------- | ------------- | ----- |
+| GET    | `/cities`       | List cities         | Yes           | All   |
+| GET    | `/cities/{id}`  | Get city details    | Yes           | All   |
+| POST   | `/cities`       | Create city         | Yes           | Admin |
+| PUT    | `/cities/{id}`  | Update city         | Yes           | Admin |
+| DELETE | `/cities/{id}`  | Delete city         | Yes           | Admin |
+
+**Filtering Options:**
+- `?is_active=true` - Filter by active status
+- `?search=term` - Search in name or description
+- `?with_regions=true` - Include regions in response
+
+**Note**: Cities are admin-managed. All authenticated users can list cities.
+
+### Regions (`/api/v1/regions`)
+
+| Method | Endpoint          | Description         | Auth Required | Role  |
+| ------ | ----------------- | ------------------- | ------------- | ----- |
+| GET    | `/regions`        | List regions        | Yes           | All   |
+| GET    | `/regions/{id}`   | Get region details  | Yes           | All   |
+| POST   | `/regions`        | Create region       | Yes           | Admin |
+| PUT    | `/regions/{id}`   | Update region       | Yes           | Admin |
+| DELETE | `/regions/{id}`   | Delete region       | Yes           | Admin |
+
+**Filtering Options:**
+- `?city_id=1` - Filter by city
+- `?is_active=true` - Filter by active status
+- `?search=term` - Search in name or description
+- `?with_city=true` - Include city in response
+
+**Note**: Regions are admin-managed and belong to cities. All authenticated users can list regions.
 
 ### Categories (`/api/v1/categories`)
 
@@ -179,6 +222,35 @@ app/
 | DELETE | `/manufacturers/{id}` | Delete manufacturer  | Yes           | Admin |
 
 **Note**: Manufacturers are admin-managed. All authenticated users can list manufacturers for product creation.
+
+### Drivers (`/api/v1/drivers`)
+
+| Method | Endpoint                    | Description                    | Auth Required | Role     |
+| ------ | --------------------------- | ------------------------------ | ------------- | -------- |
+| GET    | `/drivers`                  | List drivers                   | Yes           | Supplier |
+| POST   | `/drivers`                  | Create driver                  | Yes           | Supplier |
+| GET    | `/drivers/{id}`             | Get driver details             | Yes           | Supplier |
+| PUT    | `/drivers/{id}`             | Update driver                  | Yes           | Supplier |
+| DELETE | `/drivers/{id}`             | Delete driver                  | Yes           | Supplier |
+| GET    | `/drivers/{id}/orders`      | Get driver's orders            | Yes           | Supplier |
+| GET    | `/drivers/{id}/regions`     | Get driver's assigned regions  | Yes           | Supplier |
+| POST   | `/drivers/{id}/regions`     | Assign regions to driver       | Yes           | Supplier |
+| DELETE | `/drivers/{id}/regions/{region_id}` | Remove region from driver | Yes | Supplier |
+
+**Note**: Suppliers can manage their own drivers and assign regions to them. Drivers can serve multiple regions.
+
+### Cart (`/api/v1/cart`)
+
+| Method | Endpoint        | Description                    | Auth Required | Role |
+| ------ | --------------- | ------------------------------ | ------------- | ---- |
+| GET    | `/cart`         | Get cart (grouped by supplier)  | Yes           | Buyer |
+| POST   | `/cart/items`   | Add item to cart               | Yes           | Buyer |
+| PUT    | `/cart/items/{id}` | Update cart item            | Yes           | Buyer |
+| DELETE | `/cart/items/{id}` | Remove cart item            | Yes           | Buyer |
+| DELETE | `/cart`         | Clear cart                     | Yes           | Buyer |
+| POST   | `/cart/checkout` | Checkout (creates orders)    | Yes           | Buyer |
+
+**Note**: Cart response includes `itemsBySupplier` array (items grouped by supplier) matching checkout behavior. If cart contains items from multiple suppliers, checkout creates multiple orders (one per supplier).
 
 ### Authentication
 
@@ -229,6 +301,24 @@ Tokens are obtained via `/api/v1/auth/login` or `/api/v1/auth/register`.
 }
 ```
 
+## Location Management
+
+The system includes a hierarchical location management system:
+
+-   **Cities**: Admin-managed cities (e.g., Damascus, Aleppo, Homs)
+-   **Regions**: Admin-managed regions belonging to cities (e.g., Mazzeh, Malki, Rawda in Damascus)
+-   **Companies**: Use `region_id` to specify their location, include coordinates (latitude, longitude)
+-   **Drivers**: Can be assigned to multiple regions by suppliers
+-   **Orders**: Include pharmacy region information for better driver assignment
+
+### Endpoints
+
+-   `GET /api/v1/cities` - List cities (all users)
+-   `GET /api/v1/regions` - List regions (all users, filter by city_id)
+-   `GET /api/v1/drivers/{id}/regions` - Get driver's assigned regions
+-   `POST /api/v1/drivers/{id}/regions` - Assign regions to driver
+-   `DELETE /api/v1/drivers/{id}/regions/{region_id}` - Remove region from driver
+
 ## Database Seeding
 
 ### Connection Strategy
@@ -270,9 +360,18 @@ php artisan db:seed
 
 # Seed individual seeder
 php artisan db:seed --class=OrderSeeder
+
+# Sync supplier categories and manufacturers (if needed)
+# Usually not needed as ProductObserver handles this automatically
+php artisan suppliers:sync-categories-manufacturers
+
+# Sync specific supplier
+php artisan suppliers:sync-categories-manufacturers --supplier-id=1
 ```
 
 The seeders automatically use the unpooled connection when configured, ensuring reliable transaction handling.
+
+**Note**: The `suppliers:sync-categories-manufacturers` command is usually not needed as the ProductObserver automatically syncs supplier categories and manufacturers when products are created, updated, or deleted. However, it's useful for initial data migration or fixing inconsistencies.
 
 ## Architecture Principles
 

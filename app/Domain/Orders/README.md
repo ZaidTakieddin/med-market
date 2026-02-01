@@ -204,9 +204,10 @@ if (OrderState::canTransition(OrderState::PENDING, OrderState::ACCEPTED)) {
 -   `App\Models\Order` - Main order model
 -   `App\Models\OrderItem` - Order line items
 -   `App\Models\OrderStatusLog` - Audit trail of status changes
--   `App\Models\Company` - Buyer and supplier companies
+-   `App\Models\Company` - Buyer and supplier companies (includes region information)
 -   `App\Models\User` - Order creator and assigned driver
--   `App\Models\Product` - Products in order items
+-   `App\Models\Product` - Products in order items (includes category and manufacturer)
+-   `App\Models\Region` - Region information for companies (includes city)
 
 ## Integration Points
 
@@ -225,6 +226,15 @@ Cart checkout uses `OrderCreationService` to create orders:
 -   Cart items are grouped by supplier
 -   Multiple orders are created (one per supplier)
 -   All orders created in single atomic transaction
+
+### With Deliveries Domain
+
+Orders include location information for driver assignment:
+
+-   Orders include buyerCompany with region information (region and city)
+-   Driver assignment considers pharmacy region
+-   System warns (but doesn't block) if driver doesn't serve pharmacy's region
+-   Suppliers can see pharmacy location when assigning drivers
 
 ## Business Rules
 
@@ -258,6 +268,12 @@ Cart checkout uses `OrderCreationService` to create orders:
     - Logs include user, timestamps, and notes
     - Status-specific timestamps are updated automatically
 
+6. **Order Filtering**:
+    - Orders can be filtered by status, supplier_company_id, buyer_company_id
+    - Date range filtering: `from_date` and `to_date` (YYYY-MM-DD format)
+    - Filter by created_at timestamp
+    - Useful for reporting and analytics
+
 ## Error Handling
 
 -   Invalid state transitions throw `InvalidArgumentException`
@@ -274,6 +290,29 @@ Cart checkout uses `OrderCreationService` to create orders:
 -   Test unique order number generation
 -   Test concurrent order creation
 
+## API Endpoints
+
+### List Orders (`GET /api/v1/orders`)
+
+**Filtering Options:**
+- `?status=pending` - Filter by order status
+- `?supplier_company_id=1` - Filter by supplier (for buyers)
+- `?buyer_company_id=1` - Filter by buyer (for suppliers)
+- `?from_date=2026-01-01` - Filter orders created from date (YYYY-MM-DD)
+- `?to_date=2026-01-31` - Filter orders created up to date (YYYY-MM-DD)
+
+**Response Includes:**
+- Order details with buyerCompany (includes region and city)
+- Supplier company with categories and manufacturers
+- Order items with product details (category, manufacturer)
+- Driver information (if assigned)
+
+### Assign Driver (`POST /api/v1/orders/{id}/assign-driver`)
+
+- Suppliers can assign drivers to their orders
+- System checks if driver serves pharmacy's region (warning logged if not)
+- Driver must belong to supplier's company
+
 ## Future Enhancements
 
 -   Order cancellation reasons
@@ -282,3 +321,6 @@ Cart checkout uses `OrderCreationService` to create orders:
 -   Order history and versioning
 -   Order templates/favorites
 -   Bulk order operations
+-   Automatic driver assignment based on region
+-   Order analytics by region
+-   Delivery time estimation based on distance

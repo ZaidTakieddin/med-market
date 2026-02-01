@@ -18,7 +18,8 @@ Companies can be one of two types:
 
 Companies contain:
 - **Basic Information**: Name, type, address, contact details
-- **Relationships**: Users, products (suppliers), orders (buyers/suppliers)
+- **Location Information**: Address, coordinates (latitude, longitude), region_id, address_line
+- **Relationships**: Users, products (suppliers), orders (buyers/suppliers), region (with city)
 - **Supplier Metadata**: Categories and manufacturers (auto-synced from products)
 - **Metadata**: Additional company-specific data
 
@@ -81,6 +82,7 @@ if ($company->isBuyer()) {
 - `supplierOrders()` - Has many orders as supplier
 - `categories()` - Belongs to many categories (suppliers only, auto-synced from products)
 - `manufacturers()` - Belongs to many manufacturers (suppliers only, auto-synced from products)
+- `region()` - Belongs to region (with city information)
 
 ## Future Domain Services
 
