@@ -10,6 +10,7 @@ use App\Http\Requests\Orders\CreateOrderRequest;
 use App\Http\Requests\Orders\UpdateOrderStatusRequest;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -44,6 +45,8 @@ class OrderController extends BaseApiController
             ),
             new OA\Parameter(name: 'supplier_company_id', in: 'query', schema: new OA\Schema(type: 'integer'), description: 'Filter by supplier company ID (for buyers)'),
             new OA\Parameter(name: 'buyer_company_id', in: 'query', schema: new OA\Schema(type: 'integer'), description: 'Filter by buyer company ID (for suppliers)'),
+            new OA\Parameter(name: 'from_date', in: 'query', schema: new OA\Schema(type: 'string', format: 'date'), description: 'Filter orders created from this date (YYYY-MM-DD)'),
+            new OA\Parameter(name: 'to_date', in: 'query', schema: new OA\Schema(type: 'string', format: 'date'), description: 'Filter orders created up to this date (YYYY-MM-DD)'),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
             new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15)),
         ],
@@ -82,9 +85,12 @@ class OrderController extends BaseApiController
             $user = auth()->user();
             $query = Order::with([
                 'buyerCompany',
-                'supplierCompany',
+                'supplierCompany.categories',
+                'supplierCompany.manufacturers',
                 'items',
-                'items.product'
+                'items.product.category',
+                'items.product.manufacturer',
+                'items.product.supplierCompany',
             ]);
 
             // Filter by company
@@ -107,6 +113,17 @@ class OrderController extends BaseApiController
             // Filter by buyer (for suppliers)
             if ($request->has('buyer_company_id')) {
                 $query->where('buyer_company_id', $request->buyer_company_id);
+            }
+
+            // Filter by date range
+            if ($request->has('from_date')) {
+                $fromDate = Carbon::parse($request->from_date)->startOfDay();
+                $query->where('created_at', '>=', $fromDate);
+            }
+
+            if ($request->has('to_date')) {
+                $toDate = Carbon::parse($request->to_date)->endOfDay();
+                $query->where('created_at', '<=', $toDate);
             }
 
             $orders = $query->latest()->paginate($request->get('per_page', 15));
@@ -227,7 +244,14 @@ class OrderController extends BaseApiController
         );
 
         return $this->success(
-            new OrderResource($order->load(['buyerCompany', 'supplierCompany', 'items.product'])),
+            new OrderResource($order->load([
+                'buyerCompany',
+                'supplierCompany.categories',
+                'supplierCompany.manufacturers',
+                'items.product.category',
+                'items.product.manufacturer',
+                'items.product.supplierCompany',
+            ])),
             'Order created successfully',
             201
         );
@@ -275,7 +299,16 @@ class OrderController extends BaseApiController
     {
         $this->authorize('view', $order);
 
-        $order->load(['buyerCompany', 'supplierCompany', 'creator', 'items.product', 'statusLogs.user']);
+        $order->load([
+            'buyerCompany',
+            'supplierCompany.categories',
+            'supplierCompany.manufacturers',
+            'creator',
+            'items.product.category',
+            'items.product.manufacturer',
+            'items.product.supplierCompany',
+            'statusLogs.user'
+        ]);
 
         return $this->success(new OrderResource($order));
     }
@@ -348,7 +381,14 @@ class OrderController extends BaseApiController
             );
 
             return $this->success(
-                new OrderResource($order->load(['buyerCompany', 'supplierCompany', 'items.product'])),
+                new OrderResource($order->load([
+                'buyerCompany',
+                'supplierCompany.categories',
+                'supplierCompany.manufacturers',
+                'items.product.category',
+                'items.product.manufacturer',
+                'items.product.supplierCompany',
+            ])),
                 'Order status updated successfully'
             );
         } catch (\InvalidArgumentException $e) {
@@ -424,7 +464,14 @@ class OrderController extends BaseApiController
             );
 
             return $this->success(
-                new OrderResource($order->load(['buyerCompany', 'supplierCompany', 'items.product'])),
+                new OrderResource($order->load([
+                'buyerCompany',
+                'supplierCompany.categories',
+                'supplierCompany.manufacturers',
+                'items.product.category',
+                'items.product.manufacturer',
+                'items.product.supplierCompany',
+            ])),
                 'Order cancelled successfully'
             );
         } catch (\InvalidArgumentException $e) {
@@ -499,7 +546,15 @@ class OrderController extends BaseApiController
 
             $order->update(['driver_id' => $driver->id]);
 
-            $order->load(['buyerCompany', 'supplierCompany', 'driver', 'items.product']);
+            $order->load([
+                'buyerCompany',
+                'supplierCompany.categories',
+                'supplierCompany.manufacturers',
+                'driver',
+                'items.product.category',
+                'items.product.manufacturer',
+                'items.product.supplierCompany',
+            ]);
 
             return $this->success(
                 new OrderResource($order),

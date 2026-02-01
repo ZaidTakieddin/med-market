@@ -30,11 +30,45 @@ class CartController extends BaseApiController
     #[OA\Get(
         path: '/cart',
         summary: 'Get cart',
-        description: 'Get the current user\'s shopping cart with all items',
+        description: 'Get the current user\'s shopping cart with all items. Items are grouped by supplier to show how checkout will split orders. If cart contains items from multiple suppliers, itemsBySupplier will contain multiple groups.',
         tags: ['Cart'],
         security: [['sanctum' => []]],
         responses: [
-            new OA\Response(response: 200, description: 'Cart retrieved successfully'),
+            new OA\Response(
+                response: 200,
+                description: 'Cart retrieved successfully. Response includes items array (flat) and itemsBySupplier array (grouped by supplier)',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                        new OA\Property(
+                            property: 'data',
+                            type: 'object',
+                            properties: [
+                                new OA\Property(property: 'id', type: 'integer', example: 1),
+                                new OA\Property(property: 'items', type: 'array', description: 'All cart items (flat array)'),
+                                new OA\Property(
+                                    property: 'itemsBySupplier',
+                                    type: 'array',
+                                    description: 'Items grouped by supplier (matches checkout behavior)',
+                                    items: new OA\Items(
+                                        type: 'object',
+                                        properties: [
+                                            new OA\Property(property: 'supplier', type: 'object', description: 'Supplier company object'),
+                                            new OA\Property(property: 'items', type: 'array', description: 'Cart items for this supplier'),
+                                            new OA\Property(property: 'subtotal', type: 'number', format: 'float', description: 'Subtotal for this supplier\'s items'),
+                                            new OA\Property(property: 'itemCount', type: 'integer', description: 'Number of items from this supplier'),
+                                        ]
+                                    )
+                                ),
+                                new OA\Property(property: 'hasMultipleSuppliers', type: 'boolean', example: true),
+                                new OA\Property(property: 'suppliersCount', type: 'integer', example: 2),
+                                new OA\Property(property: 'subtotal', type: 'number', format: 'float'),
+                                new OA\Property(property: 'totalAmount', type: 'number', format: 'float'),
+                            ]
+                        ),
+                    ]
+                )
+            ),
             new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
     )]
@@ -48,7 +82,7 @@ class CartController extends BaseApiController
                 ['company_id' => $user->company_id]
             );
 
-            $cart->load(['items.product.supplierCompany', 'user', 'company']);
+            $cart->load(['items.product.supplierCompany', 'items.product.category', 'items.product.manufacturer', 'user', 'company']);
 
             return $this->success(
                 new CartResource($cart),
@@ -136,7 +170,7 @@ class CartController extends BaseApiController
             // Recalculate cart totals
             $cart->calculateTotals();
 
-            $cart->load(['items.product.supplierCompany', 'user', 'company']);
+            $cart->load(['items.product.supplierCompany', 'items.product.category', 'items.product.manufacturer', 'user', 'company']);
 
             return $this->success(
                 new CartResource($cart),
@@ -390,7 +424,14 @@ class CartController extends BaseApiController
                         taxRate: $request->tax_rate ?? 0
                     );
 
-                    $createdOrders[] = $order->load(['buyerCompany', 'supplierCompany', 'items.product']);
+                    $createdOrders[] = $order->load([
+                        'buyerCompany',
+                        'supplierCompany.categories',
+                        'supplierCompany.manufacturers',
+                        'items.product.category',
+                        'items.product.manufacturer',
+                        'items.product.supplierCompany',
+                    ]);
                 }
 
                 // Clear cart after successful checkout

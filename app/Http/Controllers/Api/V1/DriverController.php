@@ -300,7 +300,14 @@ class DriverController extends BaseApiController
             }
 
             $query = Order::where('driver_id', $id)
-                ->with(['buyerCompany', 'supplierCompany', 'items.product']);
+                ->with([
+                    'buyerCompany',
+                    'supplierCompany.categories',
+                    'supplierCompany.manufacturers',
+                    'items.product.category',
+                    'items.product.manufacturer',
+                    'items.product.supplierCompany',
+                ]);
 
             if ($request->has('status')) {
                 $query->where('status', $request->status);
