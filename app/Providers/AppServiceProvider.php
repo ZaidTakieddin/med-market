@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Observers\OrderObserver;
+use App\Observers\ProductObserver;
 use App\Observers\StockMovementObserver;
 use App\Policies\CompanyPolicy;
 use App\Policies\OrderPolicy;
@@ -46,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Register observers
         Order::observe(OrderObserver::class);
+        Product::observe(ProductObserver::class);
         StockMovement::observe(StockMovementObserver::class);
     }
 }

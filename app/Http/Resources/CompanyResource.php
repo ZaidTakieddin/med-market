@@ -24,6 +24,12 @@ class CompanyResource extends JsonResource
             'taxId' => $this->tax_id,
             'registrationNumber' => $this->registration_number,
             'isActive' => $this->is_active,
+            'categories' => $this->relationLoaded('categories') 
+                ? CategoryResource::collection($this->categories) 
+                : [],
+            'manufacturers' => $this->relationLoaded('manufacturers') 
+                ? ManufacturerResource::collection($this->manufacturers) 
+                : [],
             'createdAt' => $this->created_at->toISOString(),
             'updatedAt' => $this->updated_at->toISOString(),
         ];

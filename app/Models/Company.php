@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -88,6 +89,24 @@ class Company extends Model
     public function carts(): HasMany
     {
         return $this->hasMany(Cart::class);
+    }
+
+    /**
+     * Get categories that this supplier deals with (auto-synced from products).
+     */
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'supplier_categories')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get manufacturers that this supplier deals with (auto-synced from products).
+     */
+    public function manufacturers(): BelongsToMany
+    {
+        return $this->belongsToMany(Manufacturer::class, 'supplier_manufacturers')
+            ->withTimestamps();
     }
 }
 
