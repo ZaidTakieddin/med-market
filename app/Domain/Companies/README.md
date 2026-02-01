@@ -19,6 +19,7 @@ Companies can be one of two types:
 Companies contain:
 - **Basic Information**: Name, type, address, contact details
 - **Relationships**: Users, products (suppliers), orders (buyers/suppliers)
+- **Supplier Metadata**: Categories and manufacturers (auto-synced from products)
 - **Metadata**: Additional company-specific data
 
 ### Multi-Tenancy
@@ -35,8 +36,11 @@ The system uses company-based multi-tenancy:
 
 Company operations are handled in `CompanyController`:
 - List companies with filtering
+  - Filter by `category_id` (for suppliers)
+  - Filter by `manufacturer_id` (for suppliers)
+  - Search by company name, email, category names, or manufacturer names
 - Create companies (admin only)
-- Get company details
+- Get company details (includes categories and manufacturers for suppliers)
 - Update companies
 - Delete companies (soft delete)
 
@@ -75,6 +79,8 @@ if ($company->isBuyer()) {
 - `products()` - Has many products (suppliers only)
 - `buyerOrders()` - Has many orders as buyer
 - `supplierOrders()` - Has many orders as supplier
+- `categories()` - Belongs to many categories (suppliers only, auto-synced from products)
+- `manufacturers()` - Belongs to many manufacturers (suppliers only, auto-synced from products)
 
 ## Future Domain Services
 
@@ -115,6 +121,8 @@ This domain is prepared for future services:
 - `App\Models\Company` - Main company model
 - `App\Models\User` - Users belonging to companies
 - `App\Models\Product` - Products from supplier companies
+- `App\Models\Category` - Categories (for supplier relationships)
+- `App\Models\Manufacturer` - Manufacturers (for supplier relationships)
 - `App\Models\Order` - Orders linking buyer and supplier companies
 - `App\Models\Cart` - Carts belonging to buyer companies
 
@@ -133,6 +141,10 @@ Supplier companies have products:
 - Products belong to supplier companies
 - Company filtering for products
 - Supplier-specific product management
+- **Auto-Sync**: Supplier categories and manufacturers are automatically synced from their active products
+  - When a supplier creates/updates/deletes products, their categories/manufacturers are automatically updated
+  - Suppliers cannot manually add/remove categories/manufacturers (ensures data reliability)
+  - Only active products with category_id/manufacturer_id are considered for syncing
 
 ### With Orders Domain
 
@@ -197,6 +209,22 @@ Buyer companies have carts:
 - Test soft delete behavior
 - Test multi-tenancy isolation
 - Test company-scoped queries
+- Test supplier categories/manufacturers auto-sync
+- Test filtering suppliers by category_id/manufacturer_id
+- Test searching suppliers by category/manufacturer names
+
+## Auto-Sync System
+
+Supplier categories and manufacturers are automatically synced from their products:
+
+- **ProductObserver** monitors product changes and syncs supplier relationships
+- Only active products with `category_id` and `manufacturer_id` are considered
+- Suppliers cannot manually control their categories/manufacturers (ensures data reliability)
+- Sync happens automatically when:
+  - Products are created
+  - Products are updated (category_id, manufacturer_id, or supplier_company_id changes)
+  - Products are deleted or restored
+- Manual sync available via command: `php artisan suppliers:sync-categories-manufacturers`
 
 ## Future Enhancements
 
@@ -208,4 +236,5 @@ Buyer companies have carts:
 - Company communication features
 - Company document management
 - Company payment terms management
+- Supplier category/manufacturer analytics
 

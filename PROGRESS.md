@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-01-25 (Background jobs implemented: SendOrderNotificationJob, GenerateInvoiceJob, LowStockAlertJob, ExportOrdersJob)
+> Last Updated: 2026-02-01 (Categories & Manufacturers management, Auto-sync supplier categories/manufacturers, Product enhancements with foreign keys)
 
 ## 📋 Table of Contents
 
@@ -31,7 +31,11 @@
 
 -   [x] Users table with company and role support
 -   [x] Companies table (suppliers & buyers)
--   [x] Products table with stock tracking
+-   [x] Products table with stock tracking, category_id, manufacturer_id
+-   [x] Categories table (admin-managed)
+-   [x] Manufacturers table (admin-managed)
+-   [x] Supplier categories pivot table (auto-synced)
+-   [x] Supplier manufacturers pivot table (auto-synced)
 -   [x] Orders table with status management
 -   [x] Order items table
 -   [x] Stock movements table (audit trail)
@@ -43,7 +47,10 @@
 
 -   [x] User model with Sanctum integration
 -   [x] Company model with relationships
--   [x] Product model with stock tracking
+-   [x] Product model with stock tracking, category, manufacturer relationships
+-   [x] Category model with products relationship
+-   [x] Manufacturer model with products relationship
+-   [x] Company model with categories and manufacturers relationships (auto-synced)
 -   [x] Order model with state management
 -   [x] OrderItem model
 -   [x] StockMovement model
@@ -88,6 +95,8 @@
 -   [x] Update product (`PUT /api/v1/products/{id}`)
 -   [x] Delete product (`DELETE /api/v1/products/{id}`)
 -   [x] Form request validation (CreateProductRequest, UpdateProductRequest)
+-   [x] Products use category_id and manufacturer_id (foreign keys, admin-managed)
+-   [x] Product search includes category and manufacturer names
 
 ### Company Management API
 
@@ -97,6 +106,30 @@
 -   [x] Update company (`PUT /api/v1/companies/{id}`)
 -   [x] Delete company (`DELETE /api/v1/companies/{id}`)
 -   [x] Form request validation (CreateCompanyRequest, UpdateCompanyRequest)
+-   [x] Filter suppliers by category_id (`?category_id=1`)
+-   [x] Filter suppliers by manufacturer_id (`?manufacturer_id=1`)
+-   [x] Search suppliers by category/manufacturer names
+-   [x] Companies include categories and manufacturers arrays (auto-synced from products)
+
+### Category Management API (Admin Only)
+
+-   [x] List categories (`GET /api/v1/categories`) - Available to all authenticated users
+-   [x] Get category details (`GET /api/v1/categories/{id}`)
+-   [x] Create category (`POST /api/v1/categories`) - Admin only
+-   [x] Update category (`PUT /api/v1/categories/{id}`) - Admin only
+-   [x] Delete category (`DELETE /api/v1/categories/{id}`) - Admin only
+-   [x] Form request validation (CreateCategoryRequest, UpdateCategoryRequest)
+-   [x] Categories include slug, description, sort_order, is_active
+
+### Manufacturer Management API (Admin Only)
+
+-   [x] List manufacturers (`GET /api/v1/manufacturers`) - Available to all authenticated users
+-   [x] Get manufacturer details (`GET /api/v1/manufacturers/{id}`)
+-   [x] Create manufacturer (`POST /api/v1/manufacturers`) - Admin only
+-   [x] Update manufacturer (`PUT /api/v1/manufacturers/{id}`) - Admin only
+-   [x] Delete manufacturer (`DELETE /api/v1/manufacturers/{id}`) - Admin only
+-   [x] Form request validation (CreateManufacturerRequest, UpdateManufacturerRequest)
+-   [x] Manufacturers include slug, description, country, website, email, phone, sort_order, is_active
 
 ### Authorization & Security
 
@@ -115,11 +148,14 @@
 -   [x] All endpoints documented with request/response examples
 -   [x] Authentication scheme documented
 -   [x] Stock management endpoints documented
--   [x] Product endpoints updated with new fields (category, pharmacist_price, customer_price, discount, discount_type)
+-   [x] Product endpoints updated with new fields (category_id, manufacturer_id, pharmacist_price, customer_price, discount, discount_type)
     -   [x] Create product endpoint includes all new fields with descriptions
     -   [x] Update product endpoint includes all new fields
-    -   [x] List products endpoint documents category filtering
-    -   [x] Get product endpoint shows all new fields in response schema
+    -   [x] List products endpoint documents category_id and manufacturer_id filtering
+    -   [x] Get product endpoint shows all new fields in response schema (includes category and manufacturer objects)
+-   [x] Category endpoints documented (admin CRUD, public list/show)
+-   [x] Manufacturer endpoints documented (admin CRUD, public list/show)
+-   [x] Company endpoints updated with category_id and manufacturer_id filtering documentation
 -   [x] Order endpoints updated with multi-supplier order handling documentation
     -   [x] List orders endpoint documents multi-supplier context and filtering
     -   [x] Create order endpoint clarifies single-supplier vs cart checkout
@@ -135,9 +171,14 @@
 
 -   [x] OrderObserver - Automatic order status change logging
 -   [x] StockMovementObserver - Automatic inventory change logging
+-   [x] ProductObserver - Automatic supplier categories/manufacturers sync
+    -   [x] Syncs when products are created, updated, deleted, or restored
+    -   [x] Only syncs from active products with category_id/manufacturer_id
+    -   [x] Handles supplier changes (syncs both old and new suppliers)
 -   [x] Observers registered in AppServiceProvider
 -   [x] All state changes logged to OrderStatusLog table
 -   [x] All stock movements logged with context
+-   [x] Supplier categories/manufacturers auto-synced from products (suppliers cannot manually control)
 
 ### Database Seeders
 
@@ -145,8 +186,15 @@
 -   [x] UserSeeder - Seeds users with different roles (admin, supplier, buyer, driver) with Arabic names
     -   [x] Idempotent seeding (updateOrCreate based on email)
     -   [x] Multiple drivers per supplier (if multiple suppliers exist)
+-   [x] CategorySeeder - Seeds product categories (admin-managed)
+    -   [x] Seeds 9 categories (مسكنات, مضادات حيوية, etc.)
+    -   [x] Idempotent seeding (updateOrCreate based on name)
+-   [x] ManufacturerSeeder - Seeds manufacturers (admin-managed)
+    -   [x] Seeds 5 manufacturers with Arabic names
+    -   [x] Idempotent seeding (updateOrCreate based on name)
 -   [x] ProductSeeder - Seeds products with stock, Arabic names and descriptions
-    -   [x] Updated with category field
+    -   [x] Updated to use category_id (foreign key) instead of string category
+    -   [x] Updated to use manufacturer_id (foreign key)
     -   [x] Updated with pharmacist_price and customer_price (dual pricing)
     -   [x] Updated with discount and discount_type fields
     -   [x] Idempotent seeding (updateOrCreate based on SKU)
@@ -203,6 +251,10 @@ _Currently no tasks in progress_
 -   [x] StockMovementObserver
     -   [x] Log inventory changes
     -   [x] Log low stock warnings
+    -   [x] Register in AppServiceProvider
+-   [x] ProductObserver
+    -   [x] Auto-sync supplier categories/manufacturers when products change
+    -   [x] Handles product creation, updates, deletions, restorations
     -   [x] Register in AppServiceProvider
 
 #### 2. Stock Management Endpoints ✅ COMPLETED
@@ -338,11 +390,18 @@ _Currently no tasks in progress_
     -   [x] Includes product relationship
     -   [x] Formats prices as floats
 -   [x] ProductResource - Transform product data
-    -   [x] Includes supplierCompany relationship
+    -   [x] Includes supplierCompany, category, manufacturer relationships
     -   [x] Handles dual pricing (pharmacist_price, customer_price)
     -   [x] Formats prices and stock quantities
+-   [x] CategoryResource - Transform category data
+    -   [x] Includes all category fields with camelCase properties
+    -   [x] Formats dates as ISO strings
+-   [x] ManufacturerResource - Transform manufacturer data
+    -   [x] Includes all manufacturer fields with camelCase properties
+    -   [x] Formats dates as ISO strings
 -   [x] CompanyResource - Transform company data
     -   [x] Includes all company fields
+    -   [x] Includes categories and manufacturers arrays (when loaded)
     -   [x] Formats dates as ISO strings
 -   [x] CartResource - Transform cart data
     -   [x] Includes user, company, items relationships
@@ -401,12 +460,24 @@ _Currently no tasks in progress_
 
 1. **Product Category System** ✅
 
-    - [x] Add `category` field to products table
-    - [x] Update Product model and migrations
-    - [x] Add category filtering to product list endpoint
+    - [x] Create `categories` table (admin-managed)
+    - [x] Add `category_id` foreign key to products table
+    - [x] Migrate existing category strings to category_id
+    - [x] Update Product model with category relationship
+    - [x] Create CategoryController (admin CRUD, public list/show)
+    - [x] Add category filtering to product list endpoint (`?category_id=1`)
     - [x] Update Swagger documentation
 
-2. **Dual Pricing System** ✅
+2. **Product Manufacturer System** ✅
+
+    - [x] Create `manufacturers` table (admin-managed)
+    - [x] Add `manufacturer_id` foreign key to products table
+    - [x] Update Product model with manufacturer relationship
+    - [x] Create ManufacturerController (admin CRUD, public list/show)
+    - [x] Add manufacturer filtering to product list endpoint (`?manufacturer_id=1`)
+    - [x] Update Swagger documentation
+
+3. **Dual Pricing System** ✅
 
     - [x] Add `pharmacist_price` field (selling price for pharmacist/buyer)
     - [x] Add `customer_price` field (selling price for end customer)
@@ -415,7 +486,7 @@ _Currently no tasks in progress_
     - [x] Update product endpoints to handle both prices
     - [x] Update Swagger documentation
 
-3. **Discount System** ✅
+4. **Discount System** ✅
     - [x] Add `discount` field (discount amount/percentage)
     - [x] Add `discount_type` field (enum: 'percentage', 'fixed')
     - [x] Update Product model and validation
@@ -497,6 +568,39 @@ _Currently no tasks in progress_
     - [x] Authorization (users can only update their own profile)
     - [x] Swagger documentation
 
+### Categories & Manufacturers Management ✅ COMPLETED
+
+9. **Admin-Managed Categories and Manufacturers** ✅
+    - [x] Create `categories` table with name, slug, description, sort_order, is_active
+    - [x] Create `manufacturers` table with name, slug, description, country, website, email, phone, sort_order, is_active
+    - [x] Update products table to use `category_id` and `manufacturer_id` foreign keys
+    - [x] Migration to convert existing category strings to category_id
+    - [x] Create Category and Manufacturer models with relationships
+    - [x] Create CategoryController with CRUD (admin-only for create/update/delete, public list/show)
+    - [x] Create ManufacturerController with CRUD (admin-only for create/update/delete, public list/show)
+    - [x] Update ProductController to use category_id and manufacturer_id
+    - [x] Update Product form requests to validate category_id and manufacturer_id (must exist)
+    - [x] Update ProductResource to include category and manufacturer objects
+    - [x] Create CategorySeeder and ManufacturerSeeder
+    - [x] Update ProductSeeder to use category_id and manufacturer_id
+    - [x] Swagger documentation for category and manufacturer endpoints
+    - [x] Products search includes category and manufacturer names
+
+10. **Auto-Sync Supplier Categories and Manufacturers** ✅
+    - [x] Create `supplier_categories` pivot table
+    - [x] Create `supplier_manufacturers` pivot table
+    - [x] Add categories() and manufacturers() relationships to Company model
+    - [x] Create ProductObserver to auto-sync when products change
+    - [x] Auto-sync on product create, update, delete, restore
+    - [x] Only syncs from active products with category_id/manufacturer_id
+    - [x] Handles supplier changes (syncs both old and new suppliers)
+    - [x] Suppliers cannot manually control categories/manufacturers (ensures data reliability)
+    - [x] Update CompanyController to filter by category_id and manufacturer_id
+    - [x] Update CompanyController to search by category/manufacturer names
+    - [x] Update CompanyResource to include categories and manufacturers arrays
+    - [x] Create sync command: `php artisan suppliers:sync-categories-manufacturers`
+    - [x] Swagger documentation updated for company filtering/search
+
 ---
 
 ## 📌 Notes & Decisions
@@ -549,6 +653,7 @@ _Currently no tasks in progress_
 ### Pending Decisions
 
 -   ~~**Multi-Supplier Cart Checkout**: Need to decide between backend automatic splitting vs frontend bulk order creation. Recommendation: Backend handles splitting for better data integrity and atomic operations.~~ ✅ **DECIDED & IMPLEMENTED**: Option A (Backend handles splitting) - Implemented in CartController checkout method
+-   ~~**Categories and Manufacturers Management**: Should suppliers control their categories/manufacturers or auto-sync from products?~~ ✅ **DECIDED & IMPLEMENTED**: Auto-sync from products (suppliers cannot manually control) - Ensures data reliability and consistency. Categories and manufacturers are admin-managed, and supplier relationships are automatically derived from their active products via ProductObserver.
 
 ### Technical Debt
 
@@ -568,23 +673,31 @@ _Currently no tasks in progress_
 -   **Swagger Documentation**: Updated all order endpoints to document multi-supplier order handling
 -   **Seeders**: Updated ProductSeeder with all new fields, created OfferSeeder, made all seeders idempotent
 -   **Seeders**: Enhanced UserSeeder with multiple drivers per supplier
+-   **Categories & Manufacturers**: Implemented admin-managed categories and manufacturers system
+    -   Created Category and Manufacturer models with CRUD endpoints
+    -   Products now use foreign keys (category_id, manufacturer_id) instead of strings
+    -   Auto-sync supplier categories/manufacturers from products via ProductObserver
+    -   Suppliers cannot manually control their categories/manufacturers (ensures data reliability)
+    -   Company filtering/search by category_id and manufacturer_id
+    -   Created sync command for manual syncing: `php artisan suppliers:sync-categories-manufacturers`
 
 ---
 
 ## 📊 Statistics
 
--   **Total Endpoints**: 40+ routes (including cart, offers, drivers, profile endpoints)
--   **Completed Features**: 85+ (including all new requirements and documentation updates)
--   **Database Seeders**: 5 (CompanySeeder, UserSeeder, ProductSeeder, OfferSeeder, OrderSeeder)
+-   **Total Endpoints**: 50+ routes (including cart, offers, drivers, profile, categories, manufacturers endpoints)
+-   **Completed Features**: 95+ (including all new requirements and documentation updates)
+-   **Database Seeders**: 7 (CompanySeeder, CategorySeeder, ManufacturerSeeder, UserSeeder, ProductSeeder, OfferSeeder, OrderSeeder)
 -   **Pending Tasks**: 7 categories (4 high-priority items completed)
 -   **Documentation Files**: 9 (README.md, DEPLOYMENT.md, PROGRESS.md, QUEUE_WORKERS.md, 5 Domain READMEs)
 -   **Background Jobs**: 4 (SendOrderNotificationJob, GenerateInvoiceJob, LowStockAlertJob, ExportOrdersJob)
 -   **Deployment Files**: 3 (Procfile, render.yaml, railway.json)
--   **Observers**: 2 (OrderObserver, StockMovementObserver)
+-   **Observers**: 3 (OrderObserver, StockMovementObserver, ProductObserver)
+-   **Console Commands**: 1 (SyncSupplierCategoriesAndManufacturers)
 -   **Middleware**: 1 (CleanupTransactions)
 -   **Database Connections**: 2 (pooled for API, unpooled for seeders)
 -   **Cache Driver**: File-based (Redis ready)
--   **Swagger Documentation**: Fully updated with all new fields and multi-supplier order handling
+-   **Swagger Documentation**: Fully updated with all new fields, multi-supplier order handling, categories, and manufacturers
 
 ---
 

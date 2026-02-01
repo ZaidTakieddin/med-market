@@ -11,10 +11,11 @@ The Products domain manages product information, pricing, inventory, and relatio
 ### Product Structure
 
 Products contain:
-- **Basic Information**: Name, description, SKU, barcode, category, unit
+- **Basic Information**: Name, description, SKU, barcode, unit
+- **Categorization**: Category (foreign key to categories table, admin-managed), Manufacturer (foreign key to manufacturers table, admin-managed)
 - **Pricing**: Pharmacist price, customer price, discount, discount type
 - **Inventory**: Stock quantity, minimum stock level
-- **Relationships**: Supplier company, order items, stock movements, offers
+- **Relationships**: Supplier company, category, manufacturer, order items, stock movements, offers
 
 ### Dual Pricing System
 
@@ -30,9 +31,17 @@ Products can have discounts:
 - **Discount Value**: Amount or percentage
 - **Effective Price**: Calculated automatically based on discount
 
-### Categories
+### Categories and Manufacturers
 
-Products are organized by categories (e.g., "مسكنات", "مضادات حيوية", "فيتامينات").
+Products are organized by categories and manufacturers, both managed by admins:
+- **Categories**: Admin-managed categories (e.g., "مسكنات", "مضادات حيوية", "فيتامينات")
+  - Products reference categories via `category_id` foreign key
+  - Categories cannot be created by suppliers (prevents conflicts)
+  - All authenticated users can list categories for product creation
+- **Manufacturers**: Admin-managed manufacturers (e.g., "شركة الأدوية الوطنية")
+  - Products reference manufacturers via `manufacturer_id` foreign key
+  - Manufacturers cannot be created by suppliers (prevents conflicts)
+  - All authenticated users can list manufacturers for product creation
 
 ## Product Model Features
 
@@ -64,6 +73,8 @@ if ($product->isLowStock()) {
 ### Relationships
 
 - `supplierCompany()` - Belongs to supplier company
+- `category()` - Belongs to category (admin-managed)
+- `manufacturer()` - Belongs to manufacturer (admin-managed)
 - `orderItems()` - Has many order items
 - `stockMovements()` - Has many stock movements
 - `offers()` - Belongs to many offers (with pivot data)
@@ -130,6 +141,8 @@ This domain is prepared for future services:
 ## Related Models
 
 - `App\Models\Product` - Main product model
+- `App\Models\Category` - Product categories (admin-managed)
+- `App\Models\Manufacturer` - Product manufacturers (admin-managed)
 - `App\Models\Company` - Supplier companies
 - `App\Models\OrderItem` - Order line items
 - `App\Models\StockMovement` - Stock movement history
@@ -172,6 +185,9 @@ Products are added to carts:
    - SKU must be unique
    - Supplier must exist
    - Either `price` or `pharmacist_price` is required
+   - `category_id` must reference an existing category (if provided)
+   - `manufacturer_id` must reference an existing manufacturer (if provided)
+   - Categories and manufacturers are admin-managed (suppliers select from predefined lists)
 
 2. **Pricing**:
    - Pharmacist price is primary pricing for B2B
@@ -210,7 +226,9 @@ Products are added to carts:
 - Test price calculation methods
 - Test discount application
 - Test stock management
-- Test category filtering
+- Test category filtering (by category_id)
+- Test manufacturer filtering (by manufacturer_id)
+- Test category/manufacturer validation (must exist)
 - Test search functionality
 - Test authorization rules
 - Test soft delete behavior

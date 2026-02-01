@@ -122,6 +122,14 @@ app/
 | PUT    | `/products/{id}` | Update product      | Yes           | Supplier |
 | DELETE | `/products/{id}` | Delete product      | Yes           | Supplier |
 
+**Filtering Options:**
+- `?supplier_company_id=1` - Filter by supplier
+- `?category_id=1` - Filter by category
+- `?is_active=true` - Filter by active status
+- `?search=term` - Search in name, SKU, description, category name, or manufacturer name
+
+**Note**: Products use `category_id` and `manufacturer_id` (foreign keys to admin-managed categories and manufacturers).
+
 ### Stock Management (`/api/v1/products/{id}/stock`)
 
 | Method | Endpoint     | Description                 | Auth Required | Role     |
@@ -139,6 +147,38 @@ app/
 | GET    | `/companies/{id}` | Get company details | Yes           | All   |
 | PUT    | `/companies/{id}` | Update company      | Yes           | Admin |
 | DELETE | `/companies/{id}` | Delete company      | Yes           | Admin |
+
+**Filtering Options:**
+- `?type=supplier` - Filter by company type
+- `?category_id=1` - Filter suppliers by category (suppliers only)
+- `?manufacturer_id=1` - Filter suppliers by manufacturer (suppliers only)
+- `?search=term` - Search by company name, email, category names, or manufacturer names
+
+**Note**: Supplier companies include `categories` and `manufacturers` arrays (auto-synced from their products).
+
+### Categories (`/api/v1/categories`)
+
+| Method | Endpoint            | Description         | Auth Required | Role  |
+| ------ | ------------------- | ------------------- | ------------- | ----- |
+| GET    | `/categories`       | List categories     | Yes           | All   |
+| GET    | `/categories/{id}`   | Get category details| Yes           | All   |
+| POST   | `/categories`       | Create category     | Yes           | Admin |
+| PUT    | `/categories/{id}`   | Update category     | Yes           | Admin |
+| DELETE | `/categories/{id}`   | Delete category     | Yes           | Admin |
+
+**Note**: Categories are admin-managed. All authenticated users can list categories for product creation.
+
+### Manufacturers (`/api/v1/manufacturers`)
+
+| Method | Endpoint              | Description         | Auth Required | Role  |
+| ------ | --------------------- | ------------------- | ------------- | ----- |
+| GET    | `/manufacturers`      | List manufacturers  | Yes           | All   |
+| GET    | `/manufacturers/{id}` | Get manufacturer details| Yes        | All   |
+| POST   | `/manufacturers`      | Create manufacturer  | Yes           | Admin |
+| PUT    | `/manufacturers/{id}` | Update manufacturer  | Yes           | Admin |
+| DELETE | `/manufacturers/{id}` | Delete manufacturer  | Yes           | Admin |
+
+**Note**: Manufacturers are admin-managed. All authenticated users can list manufacturers for product creation.
 
 ### Authentication
 
