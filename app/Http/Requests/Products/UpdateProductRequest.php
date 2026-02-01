@@ -20,7 +20,8 @@ class UpdateProductRequest extends BaseFormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
-            'category' => ['nullable', 'string', 'max:100'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'manufacturer_id' => ['nullable', 'integer', 'exists:manufacturers,id'],
             'sku' => ['sometimes', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($productId)],
             'barcode' => ['nullable', 'string', 'max:100'],
             'unit' => ['sometimes', 'string', 'max:50', Rule::in(['piece', 'box', 'bottle', 'pack', 'carton'])],

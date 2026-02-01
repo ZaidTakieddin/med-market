@@ -26,7 +26,7 @@ class ProductController extends BaseApiController
             security: [['sanctum' => []]],
             parameters: [
                 new OA\Parameter(name: 'supplier_company_id', in: 'query', schema: new OA\Schema(type: 'integer'), description: 'Filter by supplier company ID'),
-                new OA\Parameter(name: 'category', in: 'query', schema: new OA\Schema(type: 'string'), description: 'Filter by product category'),
+                new OA\Parameter(name: 'category_id', in: 'query', schema: new OA\Schema(type: 'integer'), description: 'Filter by product category ID'),
                 new OA\Parameter(name: 'is_active', in: 'query', schema: new OA\Schema(type: 'boolean'), description: 'Filter by active status'),
                 new OA\Parameter(name: 'search', in: 'query', schema: new OA\Schema(type: 'string'), description: 'Search in name, SKU, description, or category'),
                 new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
@@ -41,7 +41,7 @@ class ProductController extends BaseApiController
     {
         try {
             $user = auth()->user();
-            $query = Product::with('supplierCompany');
+            $query = Product::with(['supplierCompany', 'category', 'manufacturer']);
 
             // Suppliers see only their products
             if ($user->isSupplier()) {
@@ -57,8 +57,8 @@ class ProductController extends BaseApiController
             }
 
             // Filter by category
-            if ($request->has('category')) {
-                $query->where('category', $request->category);
+            if ($request->has('category_id')) {
+                $query->where('category_id', $request->category_id);
             }
 
             // Filter by active status
@@ -73,7 +73,12 @@ class ProductController extends BaseApiController
                     $q->where('name', 'ilike', "%{$search}%")
                         ->orWhere('sku', 'ilike', "%{$search}%")
                         ->orWhere('description', 'ilike', "%{$search}%")
-                        ->orWhere('category', 'ilike', "%{$search}%");
+                        ->orWhereHas('category', function ($categoryQuery) use ($search) {
+                            $categoryQuery->where('name', 'ilike', "%{$search}%");
+                        })
+                        ->orWhereHas('manufacturer', function ($manufacturerQuery) use ($search) {
+                            $manufacturerQuery->where('name', 'ilike', "%{$search}%");
+                        });
                 });
             }
 
@@ -118,7 +123,8 @@ class ProductController extends BaseApiController
                     properties: [
                         new OA\Property(property: 'name', type: 'string', example: 'Paracetamol 500mg'),
                         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Pain reliever and fever reducer'),
-                        new OA\Property(property: 'category', type: 'string', nullable: true, example: 'Analgesics'),
+                        new OA\Property(property: 'category_id', type: 'integer', nullable: true, description: 'Category ID (must exist in categories table)', example: 1),
+                        new OA\Property(property: 'manufacturer_id', type: 'integer', nullable: true, description: 'Manufacturer ID (must exist in manufacturers table)', example: 1),
                         new OA\Property(property: 'sku', type: 'string', example: 'PAR-500-001'),
                         new OA\Property(property: 'barcode', type: 'string', nullable: true, example: '1234567890123'),
                         new OA\Property(property: 'unit', type: 'string', default: 'piece', example: 'box', enum: ['piece', 'box', 'bottle', 'pack', 'carton']),
@@ -157,7 +163,8 @@ class ProductController extends BaseApiController
             'supplier_company_id' => $user->company_id,
             'name' => $request->name,
             'description' => $request->description,
-            'category' => $request->category,
+            'category_id' => $request->category_id,
+            'manufacturer_id' => $request->manufacturer_id,
             'sku' => $request->sku,
             'barcode' => $request->barcode,
             'unit' => $request->unit ?? 'piece',
@@ -173,7 +180,7 @@ class ProductController extends BaseApiController
         ]);
 
         return $this->success(
-            new ProductResource($product->load('supplierCompany')),
+            new ProductResource($product->load(['supplierCompany', 'category', 'manufacturer'])),
             'Product created successfully',
             201
         );
@@ -209,7 +216,8 @@ class ProductController extends BaseApiController
                                             new OA\Property(property: 'id', type: 'integer', example: 1),
                                             new OA\Property(property: 'name', type: 'string', example: 'Paracetamol 500mg'),
                                             new OA\Property(property: 'description', type: 'string', nullable: true),
-                                            new OA\Property(property: 'category', type: 'string', nullable: true, example: 'Analgesics'),
+                                            new OA\Property(property: 'category', type: 'object', nullable: true, description: 'Category object with id and name'),
+                                            new OA\Property(property: 'manufacturer', type: 'object', nullable: true, description: 'Manufacturer object with id and name'),
                                             new OA\Property(property: 'sku', type: 'string', example: 'PAR-500-001'),
                                             new OA\Property(property: 'pharmacist_price', type: 'number', format: 'float', example: 25.50),
                                             new OA\Property(property: 'customer_price', type: 'number', format: 'float', nullable: true, example: 30.00),
@@ -253,7 +261,8 @@ class ProductController extends BaseApiController
                     properties: [
                         new OA\Property(property: 'name', type: 'string', example: 'Paracetamol 500mg'),
                         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Pain reliever and fever reducer'),
-                        new OA\Property(property: 'category', type: 'string', nullable: true, example: 'Analgesics'),
+                        new OA\Property(property: 'category_id', type: 'integer', nullable: true, description: 'Category ID (must exist in categories table)', example: 1),
+                        new OA\Property(property: 'manufacturer_id', type: 'integer', nullable: true, description: 'Manufacturer ID (must exist in manufacturers table)', example: 1),
                         new OA\Property(property: 'sku', type: 'string', example: 'PAR-500-001'),
                         new OA\Property(property: 'barcode', type: 'string', nullable: true, example: '1234567890123'),
                         new OA\Property(property: 'unit', type: 'string', example: 'box', enum: ['piece', 'box', 'bottle', 'pack', 'carton']),
@@ -282,7 +291,7 @@ class ProductController extends BaseApiController
         $this->authorize('update', $product);
 
         $product->update($request->validated());
-        $product->load('supplierCompany');
+        $product->load(['supplierCompany', 'category', 'manufacturer']);
 
         return $this->success(
             new ProductResource($product),

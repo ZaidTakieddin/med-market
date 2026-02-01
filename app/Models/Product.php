@@ -17,7 +17,8 @@ class Product extends Model
         'supplier_company_id',
         'name',
         'description',
-        'category',
+        'category_id',
+        'manufacturer_id',
         'sku',
         'barcode',
         'unit',
@@ -49,6 +50,22 @@ class Product extends Model
     public function supplierCompany(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'supplier_company_id');
+    }
+
+    /**
+     * Get the category for this product.
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Get the manufacturer for this product.
+     */
+    public function manufacturer(): BelongsTo
+    {
+        return $this->belongsTo(Manufacturer::class);
     }
 
     /**
@@ -91,7 +108,7 @@ class Product extends Model
      */
     public function getEffectivePharmacistPrice(): float
     {
-        return $this->pharmacist_price ?? $this->price;
+        return (float) ($this->pharmacist_price ?? $this->price ?? 0);
     }
 
     /**
@@ -100,7 +117,7 @@ class Product extends Model
      */
     public function getEffectiveCustomerPrice(): float
     {
-        return $this->customer_price ?? $this->pharmacist_price ?? $this->price;
+        return (float) ($this->customer_price ?? $this->pharmacist_price ?? $this->price ?? 0);
     }
 
     /**

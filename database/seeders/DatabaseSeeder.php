@@ -23,11 +23,13 @@ class DatabaseSeeder extends Seeder
             }
 
             $this->call([
-                CompanySeeder::class,  // First: Create companies (suppliers and buyers)
-                UserSeeder::class,      // Second: Create users (depends on companies)
-                ProductSeeder::class,   // Third: Create products (depends on companies)
-                OfferSeeder::class,     // Fourth: Create offers (depends on companies and products)
-                OrderSeeder::class,     // Fifth: Create orders (depends on companies, users, products)
+                CompanySeeder::class,      // First: Create companies (suppliers and buyers)
+                CategorySeeder::class,     // Second: Create categories (admin managed)
+                ManufacturerSeeder::class, // Third: Create manufacturers (admin managed)
+                UserSeeder::class,          // Fourth: Create users (depends on companies)
+                ProductSeeder::class,       // Fifth: Create products (depends on companies, categories, manufacturers)
+                OfferSeeder::class,         // Sixth: Create offers (depends on companies and products)
+                OrderSeeder::class,         // Seventh: Create orders (depends on companies, users, products)
             ]);
 
             $this->command->info('تم إنشاء جميع البيانات بنجاح!');

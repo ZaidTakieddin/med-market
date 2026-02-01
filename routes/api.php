@@ -34,6 +34,12 @@ Route::prefix('v1')->group(function () {
         Route::post('orders/{order}/status', [App\Http\Controllers\Api\V1\OrderController::class, 'updateStatus']);
         Route::post('orders/{order}/cancel', [App\Http\Controllers\Api\V1\OrderController::class, 'cancel']);
 
+        // Categories (admin managed, but list available to all)
+        Route::apiResource('categories', App\Http\Controllers\Api\V1\CategoryController::class);
+
+        // Manufacturers (admin managed, but list available to all)
+        Route::apiResource('manufacturers', App\Http\Controllers\Api\V1\ManufacturerController::class);
+
         // Products
         Route::apiResource('products', App\Http\Controllers\Api\V1\ProductController::class);
 

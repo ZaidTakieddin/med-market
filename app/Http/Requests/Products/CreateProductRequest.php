@@ -18,7 +18,8 @@ class CreateProductRequest extends BaseFormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
-            'category' => ['nullable', 'string', 'max:100'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'manufacturer_id' => ['nullable', 'integer', 'exists:manufacturers,id'],
             'sku' => ['required', 'string', 'max:100', 'unique:products,sku'],
             'barcode' => ['nullable', 'string', 'max:100'],
             'unit' => ['nullable', 'string', 'max:50', Rule::in(['piece', 'box', 'bottle', 'pack', 'carton'])],

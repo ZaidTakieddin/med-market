@@ -2,7 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\Category;
 use App\Models\Company;
+use App\Models\Manufacturer;
 use App\Models\Product;
 use Illuminate\Database\Seeder;
 
@@ -24,13 +26,29 @@ class ProductSeeder extends Seeder
         $supplier2 = $suppliers->count() > 1 ? $suppliers->skip(1)->first() : $supplier1;
         $supplier3 = $suppliers->count() > 2 ? $suppliers->skip(2)->first() : $supplier1;
 
+        // Get categories and manufacturers
+        $categoryPainkillers = Category::where('name', 'مسكنات')->first();
+        $categoryAntibiotics = Category::where('name', 'مضادات حيوية')->first();
+        $categoryAntiInflammatory = Category::where('name', 'مضادات التهاب')->first();
+        $categoryStomach = Category::where('name', 'معدة')->first();
+        $categoryAllergy = Category::where('name', 'مضادات حساسية')->first();
+        $categoryCardiovascular = Category::where('name', 'قلب وأوعية')->first();
+        $categoryDiabetes = Category::where('name', 'سكري')->first();
+        $categoryVitamins = Category::where('name', 'فيتامينات')->first();
+        $categorySupplements = Category::where('name', 'مكملات غذائية')->first();
+
+        $manufacturerNational = Manufacturer::where('name', 'شركة الأدوية الوطنية')->first();
+        $manufacturerAdvanced = Manufacturer::where('name', 'شركة الأدوية المتقدمة')->first();
+        $manufacturerHealth = Manufacturer::where('name', 'شركة المكملات الصحية')->first();
+
         $products = [
             // Supplier 1 Products
             [
                 'supplier_company_id' => $supplier1->id,
                 'name' => 'باراسيتامول 500 مجم',
                 'description' => 'مسكن للآلام وخافض للحرارة، أقراص 500 مجم',
-                'category' => 'مسكنات',
+                'category_id' => $categoryPainkillers?->id,
+                'manufacturer_id' => $manufacturerNational?->id,
                 'sku' => 'PAR-500-001',
                 'barcode' => '6224001234567',
                 'unit' => 'box',
@@ -42,13 +60,13 @@ class ProductSeeder extends Seeder
                 'stock_quantity' => 500,
                 'min_stock_level' => 50,
                 'is_active' => true,
-                'metadata' => ['manufacturer' => 'شركة الأدوية الوطنية'],
             ],
             [
                 'supplier_company_id' => $supplier1->id,
                 'name' => 'أموكسيسيلين 500 مجم',
                 'description' => 'مضاد حيوي واسع الطيف، كبسولات 500 مجم',
-                'category' => 'مضادات حيوية',
+                'category_id' => $categoryAntibiotics?->id,
+                'manufacturer_id' => $manufacturerNational?->id,
                 'sku' => 'AMX-500-001',
                 'barcode' => '6224001234568',
                 'unit' => 'box',
@@ -60,13 +78,13 @@ class ProductSeeder extends Seeder
                 'stock_quantity' => 300,
                 'min_stock_level' => 30,
                 'is_active' => true,
-                'metadata' => ['manufacturer' => 'شركة الأدوية الوطنية'],
             ],
             [
                 'supplier_company_id' => $supplier1->id,
                 'name' => 'إيبوبروفين 400 مجم',
                 'description' => 'مضاد للالتهابات ومسكن للآلام، أقراص 400 مجم',
-                'category' => 'مضادات التهاب',
+                'category_id' => $categoryAntiInflammatory?->id,
+                'manufacturer_id' => $manufacturerNational?->id,
                 'sku' => 'IBU-400-001',
                 'barcode' => '6224001234569',
                 'unit' => 'box',
@@ -78,13 +96,13 @@ class ProductSeeder extends Seeder
                 'stock_quantity' => 400,
                 'min_stock_level' => 40,
                 'is_active' => true,
-                'metadata' => ['manufacturer' => 'شركة الأدوية الوطنية'],
             ],
             [
                 'supplier_company_id' => $supplier1->id,
                 'name' => 'أوميبرازول 20 مجم',
                 'description' => 'مثبط لمضخة البروتون، كبسولات 20 مجم',
-                'category' => 'معدة',
+                'category_id' => $categoryStomach?->id,
+                'manufacturer_id' => $manufacturerNational?->id,
                 'sku' => 'OME-20-001',
                 'barcode' => '6224001234570',
                 'unit' => 'box',
@@ -96,13 +114,13 @@ class ProductSeeder extends Seeder
                 'stock_quantity' => 250,
                 'min_stock_level' => 25,
                 'is_active' => true,
-                'metadata' => ['manufacturer' => 'شركة الأدوية الوطنية'],
             ],
             [
                 'supplier_company_id' => $supplier1->id,
                 'name' => 'لوراتادين 10 مجم',
                 'description' => 'مضاد للهيستامين، أقراص 10 مجم',
-                'category' => 'مضادات حساسية',
+                'category_id' => $categoryAllergy?->id,
+                'manufacturer_id' => $manufacturerNational?->id,
                 'sku' => 'LOR-10-001',
                 'barcode' => '6224001234571',
                 'unit' => 'box',
@@ -114,7 +132,6 @@ class ProductSeeder extends Seeder
                 'stock_quantity' => 350,
                 'min_stock_level' => 35,
                 'is_active' => true,
-                'metadata' => ['manufacturer' => 'شركة الأدوية الوطنية'],
             ],
 
             // Supplier 2 Products
@@ -122,7 +139,8 @@ class ProductSeeder extends Seeder
                 'supplier_company_id' => $supplier2->id,
                 'name' => 'أسبرين 100 مجم',
                 'description' => 'مضاد للصفيحات، أقراص 100 مجم',
-                'category' => 'قلب وأوعية',
+                'category_id' => $categoryCardiovascular?->id,
+                'manufacturer_id' => $manufacturerAdvanced?->id,
                 'sku' => 'ASP-100-001',
                 'barcode' => '6224001234572',
                 'unit' => 'box',
@@ -134,13 +152,13 @@ class ProductSeeder extends Seeder
                 'stock_quantity' => 600,
                 'min_stock_level' => 60,
                 'is_active' => true,
-                'metadata' => ['manufacturer' => 'شركة الأدوية المتقدمة'],
             ],
             [
                 'supplier_company_id' => $supplier2->id,
                 'name' => 'سيتريزين 10 مجم',
                 'description' => 'مضاد للهيستامين، أقراص 10 مجم',
-                'category' => 'مضادات حساسية',
+                'category_id' => $categoryAllergy?->id,
+                'manufacturer_id' => $manufacturerAdvanced?->id,
                 'sku' => 'CET-10-001',
                 'barcode' => '6224001234573',
                 'unit' => 'box',
@@ -152,13 +170,13 @@ class ProductSeeder extends Seeder
                 'stock_quantity' => 450,
                 'min_stock_level' => 45,
                 'is_active' => true,
-                'metadata' => ['manufacturer' => 'شركة الأدوية المتقدمة'],
             ],
             [
                 'supplier_company_id' => $supplier2->id,
                 'name' => 'ميتفورمين 500 مجم',
                 'description' => 'خافض لسكر الدم، أقراص 500 مجم',
-                'category' => 'سكري',
+                'category_id' => $categoryDiabetes?->id,
+                'manufacturer_id' => $manufacturerAdvanced?->id,
                 'sku' => 'MET-500-001',
                 'barcode' => '6224001234574',
                 'unit' => 'box',
@@ -170,13 +188,13 @@ class ProductSeeder extends Seeder
                 'stock_quantity' => 320,
                 'min_stock_level' => 32,
                 'is_active' => true,
-                'metadata' => ['manufacturer' => 'شركة الأدوية المتقدمة'],
             ],
             [
                 'supplier_company_id' => $supplier2->id,
                 'name' => 'أتينولول 50 مجم',
                 'description' => 'حاصرات بيتا، أقراص 50 مجم',
-                'category' => 'قلب وأوعية',
+                'category_id' => $categoryCardiovascular?->id,
+                'manufacturer_id' => $manufacturerAdvanced?->id,
                 'sku' => 'ATE-50-001',
                 'barcode' => '6224001234575',
                 'unit' => 'box',
@@ -188,7 +206,6 @@ class ProductSeeder extends Seeder
                 'stock_quantity' => 280,
                 'min_stock_level' => 28,
                 'is_active' => true,
-                'metadata' => ['manufacturer' => 'شركة الأدوية المتقدمة'],
             ],
 
             // Supplier 3 Products
@@ -196,7 +213,8 @@ class ProductSeeder extends Seeder
                 'supplier_company_id' => $supplier3->id,
                 'name' => 'فيتامين د3 1000 وحدة',
                 'description' => 'مكمل غذائي، كبسولات 1000 وحدة دولية',
-                'category' => 'فيتامينات',
+                'category_id' => $categoryVitamins?->id,
+                'manufacturer_id' => $manufacturerHealth?->id,
                 'sku' => 'VIT-D3-001',
                 'barcode' => '6224001234576',
                 'unit' => 'box',
@@ -208,13 +226,13 @@ class ProductSeeder extends Seeder
                 'stock_quantity' => 200,
                 'min_stock_level' => 20,
                 'is_active' => true,
-                'metadata' => ['manufacturer' => 'شركة المكملات الصحية'],
             ],
             [
                 'supplier_company_id' => $supplier3->id,
                 'name' => 'أوميغا 3',
                 'description' => 'مكمل غذائي من زيت السمك، كبسولات 1000 مجم',
-                'category' => 'مكملات غذائية',
+                'category_id' => $categorySupplements?->id,
+                'manufacturer_id' => $manufacturerHealth?->id,
                 'sku' => 'OMG-3-001',
                 'barcode' => '6224001234577',
                 'unit' => 'box',
@@ -226,13 +244,13 @@ class ProductSeeder extends Seeder
                 'stock_quantity' => 150,
                 'min_stock_level' => 15,
                 'is_active' => true,
-                'metadata' => ['manufacturer' => 'شركة المكملات الصحية'],
             ],
             [
                 'supplier_company_id' => $supplier3->id,
                 'name' => 'كولاجين + فيتامين سي',
                 'description' => 'مكمل غذائي للبشرة والمفاصل',
-                'category' => 'مكملات غذائية',
+                'category_id' => $categorySupplements?->id,
+                'manufacturer_id' => $manufacturerHealth?->id,
                 'sku' => 'COL-VITC-001',
                 'barcode' => '6224001234578',
                 'unit' => 'box',
@@ -244,7 +262,6 @@ class ProductSeeder extends Seeder
                 'stock_quantity' => 100,
                 'min_stock_level' => 10,
                 'is_active' => true,
-                'metadata' => ['manufacturer' => 'شركة المكملات الصحية'],
             ],
         ];
 
