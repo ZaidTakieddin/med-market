@@ -21,7 +21,7 @@ class ProductController extends BaseApiController
     #[OA\Get(
             path: '/products',
             summary: 'List products',
-            description: 'Get a paginated list of products. Suppliers see only their products, buyers see all active products. Products include category, dual pricing (pharmacist_price, customer_price), and discount information.',
+            description: 'Get a paginated list of products. Suppliers see only their products, buyers see all active products. Products include category, manufacturer, dual pricing (pharmacist_price, customer_price), discount information, and active offers (if any).',
             tags: ['Products'],
             security: [['sanctum' => []]],
             parameters: [
@@ -33,7 +33,7 @@ class ProductController extends BaseApiController
                 new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15)),
             ],
             responses: [
-                new OA\Response(response: 200, description: 'Products retrieved successfully. Each product includes category, pharmacist_price, customer_price, discount, and discount_type fields.'),
+                new OA\Response(response: 200, description: 'Products retrieved successfully. Each product includes category, manufacturer, pharmacist_price, customer_price, discount, discount_type, and offers (if product is included in any active offers) fields.'),
                 new OA\Response(response: 401, description: 'Unauthenticated'),
             ]
         )]
@@ -46,9 +46,21 @@ class ProductController extends BaseApiController
             // Suppliers see only their products
             if ($user->isSupplier()) {
                 $query->where('supplier_company_id', $user->company_id);
+                // Load all offers for suppliers
+                $query->with(['offers' => function ($q) {
+                    $q->where('is_active', true)
+                      ->where('start_date', '<=', now())
+                      ->where('end_date', '>=', now());
+                }]);
             } else {
                 // Buyers see all active products
                 $query->where('is_active', true);
+                // Load only active offers for buyers
+                $query->with(['offers' => function ($q) {
+                    $q->where('is_active', true)
+                      ->where('start_date', '<=', now())
+                      ->where('end_date', '>=', now());
+                }]);
             }
 
             // Filter by supplier
@@ -180,7 +192,7 @@ class ProductController extends BaseApiController
         ]);
 
         return $this->success(
-            new ProductResource($product->load(['supplierCompany', 'category', 'manufacturer'])),
+            new ProductResource($product->load(['supplierCompany', 'category', 'manufacturer', 'offers'])),
             'Product created successfully',
             201
         );
@@ -192,7 +204,7 @@ class ProductController extends BaseApiController
     #[OA\Get(
             path: '/products/{id}',
             summary: 'Get product',
-            description: 'Get details of a specific product including category, dual pricing (pharmacist_price, customer_price), discount, and discount_type',
+            description: 'Get details of a specific product including category, manufacturer, dual pricing (pharmacist_price, customer_price), discount, discount_type, and active offers (if any)',
             tags: ['Products'],
             security: [['sanctum' => []]],
             parameters: [
@@ -201,7 +213,7 @@ class ProductController extends BaseApiController
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: 'Product retrieved successfully. Includes category, pharmacist_price, customer_price, discount, and discount_type fields.',
+                    description: 'Product retrieved successfully. Includes category, manufacturer, pharmacist_price, customer_price, discount, discount_type, and offers (if product is included in any active offers) fields.',
                     content: new OA\JsonContent(
                         properties: [
                             new OA\Property(property: 'success', type: 'boolean', example: true),
@@ -225,6 +237,39 @@ class ProductController extends BaseApiController
                                             new OA\Property(property: 'discount_type', type: 'string', nullable: true, example: 'percentage', enum: ['percentage', 'fixed']),
                                             new OA\Property(property: 'stock_quantity', type: 'integer', example: 100),
                                             new OA\Property(property: 'is_active', type: 'boolean', example: true),
+                                            new OA\Property(
+                                                property: 'offers',
+                                                type: 'array',
+                                                description: 'Array of active offers this product is included in (if any)',
+                                                items: new OA\Items(
+                                                    type: 'object',
+                                                    properties: [
+                                                        new OA\Property(property: 'id', type: 'integer', example: 1),
+                                                        new OA\Property(property: 'name', type: 'string', example: 'Buy 2 Get 1 Free'),
+                                                        new OA\Property(property: 'description', type: 'string', nullable: true),
+                                                        new OA\Property(property: 'offerType', type: 'string', example: 'buy_x_get_y'),
+                                                        new OA\Property(property: 'discountValue', type: 'number', format: 'float', nullable: true),
+                                                        new OA\Property(property: 'discountType', type: 'string', nullable: true),
+                                                        new OA\Property(property: 'quantityRequired', type: 'integer', nullable: true),
+                                                        new OA\Property(property: 'quantityFree', type: 'integer', nullable: true),
+                                                        new OA\Property(property: 'startDate', type: 'string', format: 'date-time'),
+                                                        new OA\Property(property: 'endDate', type: 'string', format: 'date-time'),
+                                                        new OA\Property(property: 'isActive', type: 'boolean'),
+                                                        new OA\Property(property: 'isCurrentlyActive', type: 'boolean'),
+                                                        new OA\Property(
+                                                            property: 'pivot',
+                                                            type: 'object',
+                                                            description: 'Product-specific offer configuration',
+                                                            properties: [
+                                                                new OA\Property(property: 'quantityRequired', type: 'integer', nullable: true),
+                                                                new OA\Property(property: 'quantityFree', type: 'integer', nullable: true),
+                                                                new OA\Property(property: 'discountOverride', type: 'number', format: 'float', nullable: true),
+                                                                new OA\Property(property: 'discountTypeOverride', type: 'string', nullable: true),
+                                                            ]
+                                                        ),
+                                                    ]
+                                                )
+                                            ),
                                         ]
                                     )
                                 ]
@@ -238,7 +283,16 @@ class ProductController extends BaseApiController
         )]
     public function show(Product $product): JsonResponse
     {
-        $product->load('supplierCompany');
+        $product->load([
+            'supplierCompany',
+            'category',
+            'manufacturer',
+            'offers' => function ($q) {
+                $q->where('is_active', true)
+                  ->where('start_date', '<=', now())
+                  ->where('end_date', '>=', now());
+            }
+        ]);
 
         return $this->success(new ProductResource($product));
     }
@@ -291,7 +345,7 @@ class ProductController extends BaseApiController
         $this->authorize('update', $product);
 
         $product->update($request->validated());
-        $product->load(['supplierCompany', 'category', 'manufacturer']);
+        $product->load(['supplierCompany', 'category', 'manufacturer', 'offers']);
 
         return $this->success(
             new ProductResource($product),

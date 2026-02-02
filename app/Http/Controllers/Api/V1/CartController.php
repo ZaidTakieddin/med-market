@@ -212,7 +212,7 @@ class CartController extends BaseApiController
             content: new OA\JsonContent(
                 properties: [
                     new OA\Property(property: 'quantity', type: 'integer', example: 3),
-                    new OA\Property(property: 'notes', type: 'string', example: 'Updated notes'),
+                    new OA\Property(property: 'notes', type: 'string', nullable: true, example: 'Updated notes'),
                 ]
             )
         ),

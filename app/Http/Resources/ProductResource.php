@@ -14,6 +14,33 @@ class ProductResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $offers = [];
+        if ($this->relationLoaded('offers') && $this->offers->isNotEmpty()) {
+            $offers = $this->offers->map(function ($offer) {
+                return [
+                    'id' => $offer->id,
+                    'name' => $offer->name,
+                    'description' => $offer->description,
+                    'offerType' => $offer->offer_type,
+                    'discountValue' => $offer->discount_value ? (float) $offer->discount_value : null,
+                    'discountType' => $offer->discount_type,
+                    'quantityRequired' => $offer->quantity_required,
+                    'quantityFree' => $offer->quantity_free,
+                    'startDate' => $offer->start_date->toISOString(),
+                    'endDate' => $offer->end_date->toISOString(),
+                    'isActive' => $offer->is_active,
+                    'isCurrentlyActive' => $offer->isActive(),
+                    // Pivot data specific to this product-offer relationship
+                    'pivot' => [
+                        'quantityRequired' => $offer->pivot->quantity_required ?? null,
+                        'quantityFree' => $offer->pivot->quantity_free ?? null,
+                        'discountOverride' => $offer->pivot->discount_override ? (float) $offer->pivot->discount_override : null,
+                        'discountTypeOverride' => $offer->pivot->discount_type_override ?? null,
+                    ],
+                ];
+            })->toArray();
+        }
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -32,6 +59,7 @@ class ProductResource extends JsonResource
             'minStockLevel' => $this->min_stock_level,
             'isActive' => $this->is_active,
             'supplierCompany' => new CompanyResource($this->whenLoaded('supplierCompany')),
+            'offers' => $offers,
             'metadata' => $this->metadata,
             'createdAt' => $this->created_at->toISOString(),
             'updatedAt' => $this->updated_at->toISOString(),
