@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-02-01 (Cart offer application system, quantity_required requirement for all offer types, CartOfferService implementation)
+> Last Updated: 2026-02-01 (Invoice Management API, Manual Offer Selection in Cart, CartOfferService enhancements)
 
 ## 📋 Table of Contents
 
@@ -506,7 +506,7 @@ _Currently no tasks in progress_
 -   [ ] User management endpoints (admin) - See Missing Features #18
 -   [ ] Enhanced filtering/search - See Missing Features #9
 -   [ ] Dashboard/Statistics endpoints - See Missing Features #8
--   [ ] Invoice Management API - See Missing Features #1
+-   [x] ~~Invoice Management API~~ - ✅ COMPLETED (See Completed Features #11)
 -   [ ] Product Images & Media - See Missing Features #2
 -   [ ] Export Functionality API - See Missing Features #3
 -   [ ] Notification Infrastructure - See Missing Features #4
@@ -587,6 +587,12 @@ _Currently no tasks in progress_
         - [x] Offer re-evaluation when cart items are added/updated/removed
         - [x] Bundle offers check all required products in cart
         - [x] Cart items store `applied_offer_id` when offers are applied
+        - [x] **Manual Offer Selection** ✅
+            - [x] `GET /api/v1/cart/items/{id}/offers` - Get all available offers for cart item
+            - [x] `POST /api/v1/cart/items/{id}/apply-offer` - Manually apply specific offer
+            - [x] `POST /api/v1/cart/items/{id}/remove-offer` - Remove manual offer, revert to best offer
+            - [x] Users can override automatic best offer selection
+            - [x] Shows savings and pricing for each available offer
 
 ### Cart Management ✅ COMPLETED
 
@@ -599,6 +605,9 @@ _Currently no tasks in progress_
         - [x] `GET /api/v1/cart` - Get current user's cart
         - [x] `POST /api/v1/cart/items` - Add item to cart
         - [x] `PUT /api/v1/cart/items/{id}` - Update cart item quantity
+        - [x] `GET /api/v1/cart/items/{id}/offers` - Get available offers for cart item
+        - [x] `POST /api/v1/cart/items/{id}/apply-offer` - Apply specific offer to cart item
+        - [x] `POST /api/v1/cart/items/{id}/remove-offer` - Remove manual offer selection
         - [x] `DELETE /api/v1/cart/items/{id}` - Remove item from cart
         - [x] `DELETE /api/v1/cart` - Clear entire cart
         - [x] `POST /api/v1/cart/checkout` - Convert cart to order(s)
@@ -683,6 +692,31 @@ _Currently no tasks in progress_
     - [x] Update CompanyResource to include categories and manufacturers arrays
     - [x] Create sync command: `php artisan suppliers:sync-categories-manufacturers`
     - [x] Swagger documentation updated for company filtering/search
+
+### Invoice Management ✅ COMPLETED
+
+11. **Invoice Management System** ✅
+    - [x] Create `invoices` table with all required fields
+    - [x] Create Invoice model with relationships (order, buyerCompany, supplierCompany)
+    - [x] Invoice status tracking (generated, sent, paid, overdue, cancelled)
+    - [x] Payment status management (pending, paid, partial, overdue, refunded)
+    - [x] Update GenerateInvoiceJob to create Invoice records in database
+    - [x] Automatic invoice generation when orders are accepted
+    - [x] OrderSeeder creates invoices for accepted orders synchronously
+    - [x] Invoice management endpoints:
+        - [x] `GET /api/v1/invoices` - List invoices with filtering
+        - [x] `GET /api/v1/invoices/{id}` - Get invoice details
+        - [x] `GET /api/v1/orders/{order_id}/invoice` - Get invoice for specific order
+        - [x] `GET /api/v1/invoices/{id}/download` - Download invoice file
+        - [x] `POST /api/v1/invoices/{id}/send` - Mark invoice as sent (suppliers)
+        - [x] `POST /api/v1/invoices/{id}/pay` - Mark invoice as paid (with optional amount)
+    - [x] Role-based access control (buyers see their invoices, suppliers see theirs)
+    - [x] Invoice filtering (by order, status, payment_status, date range)
+    - [x] Invoice helper methods (isPaid, isOverdue, markAsSent, markAsPaid)
+    - [x] InvoiceResource for API responses
+    - [x] Order model includes invoice relationship
+    - [x] OrderResource optionally includes invoice
+    - [x] Swagger documentation
 
 ---
 
@@ -921,15 +955,19 @@ This section documents features and functionality that are currently missing fro
 
 These features are essential for core functionality and should be prioritized for implementation.
 
-#### 1. Invoice Management API
-**Status**: Invoice generation job exists (`GenerateInvoiceJob`) but no API endpoints
-- [ ] `GET /api/v1/invoices` - List invoices with filtering
-- [ ] `GET /api/v1/invoices/{id}` - Get invoice details
-- [ ] `GET /api/v1/invoices/{id}/download` - Download invoice file
-- [ ] `GET /api/v1/orders/{id}/invoice` - Get invoice for specific order
-- [ ] Invoice status tracking (generated, sent, paid, overdue)
-- [ ] Invoice payment status management
-- [ ] Invoice reference storage in database
+#### 1. Invoice Management API ✅ COMPLETED
+**Status**: Fully implemented with API endpoints and database tracking
+- [x] `GET /api/v1/invoices` - List invoices with filtering
+- [x] `GET /api/v1/invoices/{id}` - Get invoice details
+- [x] `GET /api/v1/invoices/{id}/download` - Download invoice file
+- [x] `GET /api/v1/orders/{id}/invoice` - Get invoice for specific order
+- [x] `POST /api/v1/invoices/{id}/send` - Mark invoice as sent
+- [x] `POST /api/v1/invoices/{id}/pay` - Mark invoice as paid
+- [x] Invoice status tracking (generated, sent, paid, overdue, cancelled)
+- [x] Invoice payment status management (pending, paid, partial, overdue, refunded)
+- [x] Invoice reference storage in database (`invoices` table)
+- [x] Automatic invoice generation when orders are accepted
+- [x] OrderSeeder creates invoices for accepted orders
 
 #### 2. Product Images & Media Management
 **Status**: No image support currently
@@ -1154,7 +1192,7 @@ These features improve security, performance, and code quality.
 
 ## 📊 Statistics
 
--   **Total Endpoints**: 60+ routes (including cart, offers, drivers, profile, categories, manufacturers, cities, regions endpoints)
+-   **Total Endpoints**: 70+ routes (including cart, offers, drivers, profile, categories, manufacturers, cities, regions, invoices endpoints)
 -   **Completed Features**: 110+ (including all new requirements and documentation updates)
 -   **Database Seeders**: 9 (CitySeeder, RegionSeeder, CompanySeeder, CategorySeeder, ManufacturerSeeder, UserSeeder, ProductSeeder, OfferSeeder, OrderSeeder)
 -   **Pending Tasks**: See "Missing Features & Requirements" section below
@@ -1167,13 +1205,14 @@ These features improve security, performance, and code quality.
 -   **Deployment Files**: 3 (Procfile, render.yaml, railway.json)
 -   **Observers**: 3 (OrderObserver, StockMovementObserver, ProductObserver)
 -   **Console Commands**: 1 (SyncSupplierCategoriesAndManufacturers)
--   **Domain Services**: 1 (CartOfferService - automatic offer detection and application in cart)
+-   **Domain Services**: 1 (CartOfferService - automatic and manual offer detection/application in cart)
+-   **Invoice Management**: Full API with status tracking, payment management, and file downloads
 -   **Location System**: Cities and Regions (hierarchical), Driver-region assignments
 -   **Geospatial Features**: Company coordinates (latitude, longitude) for delivery tracking
 -   **Middleware**: 1 (CleanupTransactions)
 -   **Database Connections**: 2 (pooled for API, unpooled for seeders)
 -   **Cache Driver**: File-based (Redis ready)
--   **Swagger Documentation**: Fully updated with all new fields, multi-supplier order handling, categories, manufacturers, cities, regions, driver-region management, date range filtering
+-   **Swagger Documentation**: Fully updated with all new fields, multi-supplier order handling, categories, manufacturers, cities, regions, driver-region management, date range filtering, invoice management, manual offer selection
 -   **Location Management**: Cities (8), Regions (20+), Driver-region assignments, Company coordinates
 
 ---

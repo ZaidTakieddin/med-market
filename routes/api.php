@@ -71,6 +71,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [App\Http\Controllers\Api\V1\CartController::class, 'index']);
             Route::post('/items', [App\Http\Controllers\Api\V1\CartController::class, 'addItem']);
             Route::put('/items/{id}', [App\Http\Controllers\Api\V1\CartController::class, 'updateItem']);
+            Route::get('/items/{id}/offers', [App\Http\Controllers\Api\V1\CartController::class, 'getAvailableOffers']);
+            Route::post('/items/{id}/apply-offer', [App\Http\Controllers\Api\V1\CartController::class, 'applyOffer']);
+            Route::post('/items/{id}/remove-offer', [App\Http\Controllers\Api\V1\CartController::class, 'removeOffer']);
             Route::delete('/items/{id}', [App\Http\Controllers\Api\V1\CartController::class, 'removeItem']);
             Route::delete('/', [App\Http\Controllers\Api\V1\CartController::class, 'clear']);
             Route::post('/checkout', [App\Http\Controllers\Api\V1\CartController::class, 'checkout']);

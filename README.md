@@ -105,6 +105,7 @@ app/
 | POST   | `/orders/{id}/status` | Update order status | Yes           | Supplier/Buyer |
 | POST   | `/orders/{id}/cancel` | Cancel order        | Yes           | Supplier/Buyer |
 | POST   | `/orders/{id}/assign-driver` | Assign driver to order | Yes | Supplier |
+| GET    | `/orders/{id}/invoice` | Get invoice for order | Yes | All |
 
 **Order Status Flow:**
 
@@ -249,10 +250,37 @@ app/
 | DELETE | `/cart/items/{id}` | Remove cart item            | Yes           | Buyer |
 | DELETE | `/cart`         | Clear cart                     | Yes           | Buyer |
 | POST   | `/cart/checkout` | Checkout (creates orders)    | Yes           | Buyer |
+| GET    | `/cart/items/{id}/offers` | Get available offers for cart item | Yes | Buyer |
+| POST   | `/cart/items/{id}/apply-offer` | Apply specific offer to cart item | Yes | Buyer |
+| POST   | `/cart/items/{id}/remove-offer` | Remove manual offer selection | Yes | Buyer |
 
 **Note**: 
 - Cart response includes `itemsBySupplier` array (items grouped by supplier) matching checkout behavior. If cart contains items from multiple suppliers, checkout creates multiple orders (one per supplier).
 - **Offers are automatically applied** when adding/updating cart items. The system detects active offers, checks if quantity requirements are met, and applies the best offer (lowest total price). Cart items include `appliedOfferId` when an offer is applied.
+- **Manual Offer Selection**: Users can view all available offers for a cart item and manually select a different offer (or remove the manual selection to revert to automatic best offer).
+
+### Invoices (`/api/v1/invoices`)
+
+| Method | Endpoint        | Description                    | Auth Required | Role           |
+| ------ | --------------- | ------------------------------ | ------------- | -------------- |
+| GET    | `/invoices`     | List invoices                 | Yes           | All            |
+| GET    | `/invoices/{id}` | Get invoice details          | Yes           | All            |
+| GET    | `/invoices/{id}/download` | Download invoice file | Yes | All |
+| POST   | `/invoices/{id}/send` | Mark invoice as sent | Yes | Supplier |
+| POST   | `/invoices/{id}/pay` | Mark invoice as paid | Yes | Buyer/Admin |
+
+**Filtering Options:**
+- `?order_id=1` - Filter by order ID
+- `?status=generated` - Filter by status (generated, sent, paid, overdue, cancelled)
+- `?payment_status=pending` - Filter by payment status (pending, paid, partial, overdue, refunded)
+- `?from_date=2026-01-01` - Filter invoices created from date (YYYY-MM-DD)
+- `?to_date=2026-01-31` - Filter invoices created up to date (YYYY-MM-DD)
+
+**Note**: 
+- Invoices are automatically generated when orders are accepted.
+- Buyers see invoices for their orders; suppliers see invoices for orders they fulfill.
+- Invoice statuses: `generated`, `sent`, `paid`, `overdue`, `cancelled`.
+- Payment statuses: `pending`, `paid`, `partial`, `overdue`, `refunded`.
 
 ### Authentication
 

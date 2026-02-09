@@ -398,7 +398,7 @@
                     "Cart"
                 ],
                 "summary": "Add item to cart",
-                "description": "Add a product to the shopping cart. The unit_price is automatically calculated using the product's pharmacist_price with any applicable discounts applied.",
+                "description": "Add a product to the shopping cart. The unit_price is automatically calculated using the product's pharmacist_price with any applicable discounts and offers applied. Offers are automatically detected and applied if the quantity meets the offer requirements.",
                 "operationId": "e036af844498fff8d600d1deeb9436e6",
                 "requestBody": {
                     "required": true,
@@ -433,7 +433,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Item added to cart successfully. Price uses product pharmacist_price with discounts applied."
+                        "description": "Item added to cart successfully. Price uses product pharmacist_price with discounts and offers applied. If an offer is applied, appliedOfferId will be set."
                     },
                     "401": {
                         "description": "Unauthenticated"
@@ -461,7 +461,7 @@
                     "Cart"
                 ],
                 "summary": "Update cart item",
-                "description": "Update quantity or notes of a cart item",
+                "description": "Update quantity or notes of a cart item. Offers are automatically re-evaluated when quantity changes.",
                 "operationId": "ea94cd0b1a73da425dfeaddbed019f2d",
                 "parameters": [
                     {
@@ -485,7 +485,8 @@
                                     },
                                     "notes": {
                                         "type": "string",
-                                        "example": "Updated notes"
+                                        "example": "Updated notes",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -1978,6 +1979,325 @@
                 ]
             }
         },
+        "/invoices": {
+            "get": {
+                "tags": [
+                    "Invoices"
+                ],
+                "summary": "List invoices",
+                "description": "Get a paginated list of invoices. Buyers see invoices for their orders, suppliers see invoices for orders they supplied.",
+                "operationId": "176f86601dff5362250710476b314be6",
+                "parameters": [
+                    {
+                        "name": "order_id",
+                        "in": "query",
+                        "description": "Filter by order ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter by invoice status",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "generated",
+                                "sent",
+                                "paid",
+                                "overdue",
+                                "cancelled"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "payment_status",
+                        "in": "query",
+                        "description": "Filter by payment status",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "pending",
+                                "paid",
+                                "partial",
+                                "overdue",
+                                "refunded"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "from_date",
+                        "in": "query",
+                        "description": "Filter invoices generated from this date",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to_date",
+                        "in": "query",
+                        "description": "Filter invoices generated until this date",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Invoices retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/invoices/{id}": {
+            "get": {
+                "tags": [
+                    "Invoices"
+                ],
+                "summary": "Get invoice",
+                "description": "Get details of a specific invoice",
+                "operationId": "9d266eac4a087db1ce1b1a88a27c5864",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Invoice retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - Invoice does not belong to your company"
+                    },
+                    "404": {
+                        "description": "Invoice not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/orders/{order_id}/invoice": {
+            "get": {
+                "tags": [
+                    "Invoices"
+                ],
+                "summary": "Get invoice for order",
+                "description": "Get the invoice associated with a specific order",
+                "operationId": "01573c4461ff367dc7d10b91400e24e5",
+                "parameters": [
+                    {
+                        "name": "order_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Invoice retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - Order does not belong to your company"
+                    },
+                    "404": {
+                        "description": "Order or invoice not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/invoices/{id}/download": {
+            "get": {
+                "tags": [
+                    "Invoices"
+                ],
+                "summary": "Download invoice",
+                "description": "Download the invoice file",
+                "operationId": "d802279b0fcb8ee653713d5f892eb8c9",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Invoice file downloaded successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Invoice not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/invoices/{id}/send": {
+            "post": {
+                "tags": [
+                    "Invoices"
+                ],
+                "summary": "Mark invoice as sent",
+                "description": "Mark an invoice as sent (suppliers only)",
+                "operationId": "c1a2fbf4ceb155d8682e66f0606122a8",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Invoice marked as sent successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - Only suppliers can mark invoices as sent"
+                    },
+                    "404": {
+                        "description": "Invoice not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/invoices/{id}/pay": {
+            "post": {
+                "tags": [
+                    "Invoices"
+                ],
+                "summary": "Mark invoice as paid",
+                "description": "Mark an invoice as paid (buyers and suppliers can mark as paid)",
+                "operationId": "9712acbed5013f40f55564ee18aff4ef",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "amount": {
+                                        "description": "Payment amount (defaults to full amount if not provided)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 1000
+                                    },
+                                    "notes": {
+                                        "description": "Payment notes",
+                                        "type": "string",
+                                        "example": "Payment via bank transfer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Invoice marked as paid successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Invoice not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/manufacturers": {
             "get": {
                 "tags": [
@@ -3095,7 +3415,7 @@
                     "Products"
                 ],
                 "summary": "List products",
-                "description": "Get a paginated list of products. Suppliers see only their products, buyers see all active products. Products include category, dual pricing (pharmacist_price, customer_price), and discount information.",
+                "description": "Get a paginated list of products. Suppliers see only their products, buyers see all active products. Products include category, manufacturer, dual pricing (pharmacist_price, customer_price), discount information, and active offers (if any).",
                 "operationId": "c821c7f9e41e08594ad4eae5a99e812e",
                 "parameters": [
                     {
@@ -3149,7 +3469,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Products retrieved successfully. Each product includes category, pharmacist_price, customer_price, discount, and discount_type fields."
+                        "description": "Products retrieved successfully. Each product includes category, manufacturer, pharmacist_price, customer_price, discount, discount_type, and offers (if product is included in any active offers) fields."
                     },
                     "401": {
                         "description": "Unauthenticated"
@@ -3309,7 +3629,7 @@
                     "Products"
                 ],
                 "summary": "Get product",
-                "description": "Get details of a specific product including category, dual pricing (pharmacist_price, customer_price), discount, and discount_type",
+                "description": "Get details of a specific product including category, manufacturer, dual pricing (pharmacist_price, customer_price), discount, discount_type, and active offers (if any)",
                 "operationId": "900da7e5cb549dc28cfd19d90d1f6710",
                 "parameters": [
                     {
@@ -3323,7 +3643,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Product retrieved successfully. Includes category, pharmacist_price, customer_price, discount, and discount_type fields.",
+                        "description": "Product retrieved successfully. Includes category, manufacturer, pharmacist_price, customer_price, discount, discount_type, and offers (if product is included in any active offers) fields.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3395,6 +3715,85 @@
                                                         "is_active": {
                                                             "type": "boolean",
                                                             "example": true
+                                                        },
+                                                        "offers": {
+                                                            "description": "Array of active offers this product is included in (if any)",
+                                                            "type": "array",
+                                                            "items": {
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer",
+                                                                        "example": 1
+                                                                    },
+                                                                    "name": {
+                                                                        "type": "string",
+                                                                        "example": "Buy 2 Get 1 Free"
+                                                                    },
+                                                                    "description": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "offerType": {
+                                                                        "type": "string",
+                                                                        "example": "buy_x_get_y"
+                                                                    },
+                                                                    "discountValue": {
+                                                                        "type": "number",
+                                                                        "format": "float",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "discountType": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "quantityRequired": {
+                                                                        "type": "integer",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "quantityFree": {
+                                                                        "type": "integer",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "startDate": {
+                                                                        "type": "string",
+                                                                        "format": "date-time"
+                                                                    },
+                                                                    "endDate": {
+                                                                        "type": "string",
+                                                                        "format": "date-time"
+                                                                    },
+                                                                    "isActive": {
+                                                                        "type": "boolean"
+                                                                    },
+                                                                    "isCurrentlyActive": {
+                                                                        "type": "boolean"
+                                                                    },
+                                                                    "pivot": {
+                                                                        "description": "Product-specific offer configuration",
+                                                                        "properties": {
+                                                                            "quantityRequired": {
+                                                                                "type": "integer",
+                                                                                "nullable": true
+                                                                            },
+                                                                            "quantityFree": {
+                                                                                "type": "integer",
+                                                                                "nullable": true
+                                                                            },
+                                                                            "discountOverride": {
+                                                                                "type": "number",
+                                                                                "format": "float",
+                                                                                "nullable": true
+                                                                            },
+                                                                            "discountTypeOverride": {
+                                                                                "type": "string",
+                                                                                "nullable": true
+                                                                            }
+                                                                        },
+                                                                        "type": "object"
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            }
                                                         }
                                                     },
                                                     "type": "object"
@@ -4358,6 +4757,10 @@
         {
             "name": "Drivers",
             "description": "Driver management endpoints"
+        },
+        {
+            "name": "Invoices",
+            "description": "Invoice management endpoints"
         },
         {
             "name": "Manufacturers",

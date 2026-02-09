@@ -337,6 +337,265 @@ class CartController extends BaseApiController
     }
 
     /**
+     * Get available offers for a cart item.
+     */
+    #[OA\Get(
+        path: '/cart/items/{id}/offers',
+        summary: 'Get available offers for cart item',
+        description: 'Get all available offers for a cart item based on current quantity. Returns all applicable offers with pricing details.',
+        tags: ['Cart'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Available offers retrieved successfully',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                        new OA\Property(
+                            property: 'data',
+                            type: 'object',
+                            properties: [
+                                new OA\Property(property: 'cartItemId', type: 'integer', example: 1),
+                                new OA\Property(property: 'productId', type: 'integer', example: 1),
+                                new OA\Property(property: 'quantity', type: 'integer', example: 5),
+                                new OA\Property(property: 'basePrice', type: 'number', format: 'float', example: 25.50),
+                                new OA\Property(property: 'baseTotal', type: 'number', format: 'float', example: 127.50),
+                                new OA\Property(property: 'currentOfferId', type: 'integer', nullable: true, example: 1),
+                                new OA\Property(
+                                    property: 'availableOffers',
+                                    type: 'array',
+                                    items: new OA\Items(
+                                        type: 'object',
+                                        properties: [
+                                            new OA\Property(property: 'offer', type: 'object', description: 'Offer object'),
+                                            new OA\Property(property: 'unitPrice', type: 'number', format: 'float'),
+                                            new OA\Property(property: 'totalPrice', type: 'number', format: 'float'),
+                                            new OA\Property(property: 'savings', type: 'number', format: 'float'),
+                                            new OA\Property(property: 'savingsPercentage', type: 'number', format: 'float'),
+                                        ]
+                                    )
+                                ),
+                            ]
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 404, description: 'Cart item not found'),
+        ]
+    )]
+    public function getAvailableOffers(int $id): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            $cartItem = CartItem::findOrFail($id);
+
+            // Verify cart belongs to user
+            if ($cartItem->cart->user_id !== $user->id) {
+                return $this->error('Unauthorized', null, 403);
+            }
+
+            $product = $cartItem->product;
+            $product->load('offers');
+            
+            // Get all cart items for bundle offer checking
+            $cartItems = $cartItem->cart->items()->with('product')->get();
+            
+            // Get all available offers
+            $availableOffers = $this->cartOfferService->getAvailableOffers($product, $cartItem->quantity, $cartItems);
+            
+            $basePrice = $product->getFinalPharmacistPrice();
+            $baseTotal = $cartItem->quantity * $basePrice;
+
+            // Format offers for response
+            $formattedOffers = array_map(function ($offerData) {
+                return [
+                    'offer' => new \App\Http\Resources\OfferResource($offerData['offer']),
+                    'unitPrice' => $offerData['unit_price'],
+                    'totalPrice' => $offerData['total_price'],
+                    'savings' => $offerData['savings'],
+                    'savingsPercentage' => $offerData['savings_percentage'],
+                ];
+            }, $availableOffers);
+
+            return $this->success([
+                'cartItemId' => $cartItem->id,
+                'productId' => $product->id,
+                'quantity' => $cartItem->quantity,
+                'basePrice' => (float) $basePrice,
+                'baseTotal' => (float) $baseTotal,
+                'currentOfferId' => $cartItem->applied_offer_id,
+                'availableOffers' => $formattedOffers,
+            ], 'Available offers retrieved successfully');
+        } catch (\Exception $e) {
+            Log::error('Get available offers error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->error('Failed to retrieve available offers: ' . $e->getMessage(), null, 500);
+        }
+    }
+
+    /**
+     * Apply a specific offer to a cart item.
+     */
+    #[OA\Post(
+        path: '/cart/items/{id}/apply-offer',
+        summary: 'Apply specific offer to cart item',
+        description: 'Manually apply a specific offer to a cart item. This overrides the automatically selected best offer.',
+        tags: ['Cart'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['offer_id'],
+                properties: [
+                    new OA\Property(property: 'offer_id', type: 'integer', example: 1, description: 'ID of the offer to apply'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Offer applied successfully'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 404, description: 'Cart item or offer not found'),
+            new OA\Response(response: 400, description: 'Offer cannot be applied (quantity requirement not met, etc.)'),
+        ]
+    )]
+    public function applyOffer(Request $request, int $id): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            $cartItem = CartItem::findOrFail($id);
+
+            // Verify cart belongs to user
+            if ($cartItem->cart->user_id !== $user->id) {
+                return $this->error('Unauthorized', null, 403);
+            }
+
+            $request->validate([
+                'offer_id' => ['required', 'integer', 'exists:offers,id'],
+            ]);
+
+            $product = $cartItem->product;
+            $offer = \App\Models\Offer::findOrFail($request->offer_id);
+            
+            // Verify offer is for this product
+            $productOffers = $product->offers()->where('offers.id', $offer->id)->first();
+            if (!$productOffers) {
+                return $this->error('This offer is not available for this product', null, 400);
+            }
+
+            // Get all cart items for bundle offer checking
+            $cartItems = $cartItem->cart->items()->with('product')->get();
+            
+            // Apply the specific offer
+            $offerResult = $this->cartOfferService->applyOffer($offer, $product, $cartItem->quantity, $cartItems);
+            
+            if (!$offerResult) {
+                return $this->error('Offer cannot be applied. Quantity requirement may not be met or offer is not valid for this cart.', null, 400);
+            }
+
+            $cartItem->unit_price = $offerResult['unit_price'];
+            $cartItem->total_price = $offerResult['total_price'];
+            $cartItem->applied_offer_id = $offer->id;
+            $cartItem->save();
+
+            // Recalculate cart totals
+            $cartItem->cart->calculateTotals();
+            $cartItem->load(['product.offers', 'appliedOffer']);
+
+            return $this->success(
+                \App\Http\Resources\CartItemResource::make($cartItem),
+                'Offer applied successfully'
+            );
+        } catch (\Exception $e) {
+            Log::error('Apply offer error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->error('Failed to apply offer: ' . $e->getMessage(), null, 500);
+        }
+    }
+
+    /**
+     * Remove applied offer from cart item (revert to best offer or base price).
+     */
+    #[OA\Post(
+        path: '/cart/items/{id}/remove-offer',
+        summary: 'Remove applied offer from cart item',
+        description: 'Remove the manually applied offer and revert to automatically selected best offer (or base price if no offers available).',
+        tags: ['Cart'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Offer removed successfully'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 404, description: 'Cart item not found'),
+        ]
+    )]
+    public function removeOffer(int $id): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            $cartItem = CartItem::findOrFail($id);
+
+            // Verify cart belongs to user
+            if ($cartItem->cart->user_id !== $user->id) {
+                return $this->error('Unauthorized', null, 403);
+            }
+
+            $product = $cartItem->product;
+            $product->load('offers');
+            
+            // Get all cart items for bundle offer checking
+            $cartItems = $cartItem->cart->items()->with('product')->get();
+            
+            // Find best offer automatically
+            $offerResult = $this->cartOfferService->findBestOffer($product, $cartItem->quantity, $cartItems);
+            
+            if ($offerResult) {
+                $cartItem->unit_price = $offerResult['unit_price'];
+                $cartItem->total_price = $offerResult['total_price'];
+                $cartItem->applied_offer_id = $offerResult['offer']->id;
+            } else {
+                // No offers available, revert to base price
+                $cartItem->unit_price = $product->getFinalPharmacistPrice();
+                $cartItem->calculateTotal();
+                $cartItem->applied_offer_id = null;
+            }
+            
+            $cartItem->save();
+
+            // Recalculate cart totals
+            $cartItem->cart->calculateTotals();
+            $cartItem->load(['product.offers', 'appliedOffer']);
+
+            return $this->success(
+                \App\Http\Resources\CartItemResource::make($cartItem),
+                'Offer removed successfully. Reverted to best available offer.'
+            );
+        } catch (\Exception $e) {
+            Log::error('Remove offer error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->error('Failed to remove offer: ' . $e->getMessage(), null, 500);
+        }
+    }
+
+    /**
      * Remove item from cart.
      */
     #[OA\Delete(

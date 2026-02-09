@@ -204,6 +204,7 @@ if (OrderState::canTransition(OrderState::PENDING, OrderState::ACCEPTED)) {
 -   `App\Models\Order` - Main order model
 -   `App\Models\OrderItem` - Order line items
 -   `App\Models\OrderStatusLog` - Audit trail of status changes
+-   `App\Models\Invoice` - Invoice records linked to orders
 -   `App\Models\Company` - Buyer and supplier companies (includes region information)
 -   `App\Models\User` - Order creator and assigned driver
 -   `App\Models\Product` - Products in order items (includes category and manufacturer)
@@ -235,6 +236,19 @@ Orders include location information for driver assignment:
 -   Driver assignment considers pharmacy region
 -   System warns (but doesn't block) if driver doesn't serve pharmacy's region
 -   Suppliers can see pharmacy location when assigning drivers
+
+### With Invoice Management
+
+Orders automatically generate invoices when accepted:
+
+-   Invoices are automatically generated when an order transitions to `accepted` status
+-   Invoice generation is handled by `GenerateInvoiceJob` (dispatched automatically)
+-   Each order has a `HasOne` relationship to an `Invoice` model
+-   Invoice records are stored in the `invoices` table with status tracking
+-   Invoice files are stored in `storage/app/invoices/` directory
+-   Invoice statuses: `generated`, `sent`, `paid`, `overdue`, `cancelled`
+-   Payment statuses: `pending`, `paid`, `partial`, `overdue`, `refunded`
+-   API endpoints available for invoice management (`/api/v1/invoices`, `/api/v1/orders/{id}/invoice`)
 
 ## Business Rules
 

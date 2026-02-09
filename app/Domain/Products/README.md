@@ -188,6 +188,8 @@ Products are added to carts:
 - `CartOfferService` detects active offers and applies best offer (lowest total price)
 - Cart items store `applied_offer_id` when offers are applied
 - Offers are re-evaluated when cart quantities change or items are removed
+- **Manual offer selection**: Users can view all available offers for a cart item and manually select a different offer (or remove manual selection to revert to automatic best offer)
+- API endpoints: `GET /api/v1/cart/items/{id}/offers`, `POST /api/v1/cart/items/{id}/apply-offer`, `POST /api/v1/cart/items/{id}/remove-offer`
 
 ## Business Rules
 
