@@ -132,11 +132,14 @@ This domain is prepared for future services:
 
 **Purpose**: Manage product-offer relationships and offer application.
 
+**Note**: Offer application logic is currently handled by `CartOfferService` in the Cart domain. This service could be expanded for product-level offer management.
+
 **Potential Features**:
 - Apply offers to products
 - Calculate offer-affected prices
 - Validate offer eligibility
 - Handle offer expiration
+- Product-level offer preview (before adding to cart)
 
 ## Related Models
 
@@ -168,9 +171,12 @@ Products interact with inventory:
 ### With Offers Domain
 
 Products participate in offers:
-- Products can have multiple offers
-- Offers affect product pricing
-- Offer eligibility is checked per product
+- Products can have multiple offers (many-to-many relationship via `offer_products` pivot table)
+- Products include active offers in API responses (`offers` array)
+- Offers affect product pricing in cart (automatically applied via `CartOfferService`)
+- Offer eligibility is checked per product based on quantity requirements
+- All offer types require `quantity_required` (minimum quantity to qualify)
+- Product-specific offer overrides available via pivot table (`discount_override`, `quantity_required`, etc.)
 
 ### With Cart Management
 
@@ -178,6 +184,10 @@ Products are added to carts:
 - Cart items reference products
 - Product prices (pharmacist_price) are used for cart totals
 - Product availability is checked
+- **Offers are automatically applied** when products are added to cart
+- `CartOfferService` detects active offers and applies best offer (lowest total price)
+- Cart items store `applied_offer_id` when offers are applied
+- Offers are re-evaluated when cart quantities change or items are removed
 
 ## Business Rules
 

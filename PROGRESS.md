@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-02-01 (Cities & Regions management, Driver-region assignments, Company address & coordinates, Date range filtering for orders)
+> Last Updated: 2026-02-01 (Cart offer application system, quantity_required requirement for all offer types, CartOfferService implementation)
 
 ## 📋 Table of Contents
 
@@ -566,8 +566,17 @@ _Currently no tasks in progress_
         - Fixed amount discount
         - Bundle offers
     - [x] Offer validation (dates, active status)
+    - [x] **All offer types require `quantity_required` field** (minimum quantity to qualify)
     - [x] Authorization (suppliers can only manage their offers)
     - [x] Swagger documentation
+    - [x] **Cart Offer Application** ✅
+        - [x] Created `CartOfferService` for automatic offer detection and application
+        - [x] Offers automatically applied when adding items to cart
+        - [x] Best offer selection (lowest total price)
+        - [x] Support for product-specific offer overrides via pivot table
+        - [x] Offer re-evaluation when cart items are added/updated/removed
+        - [x] Bundle offers check all required products in cart
+        - [x] Cart items store `applied_offer_id` when offers are applied
 
 ### Cart Management ✅ COMPLETED
 
@@ -585,6 +594,11 @@ _Currently no tasks in progress_
         - [x] `POST /api/v1/cart/checkout` - Convert cart to order(s)
     - [x] Cart calculations (subtotal, tax, total)
     - [x] Apply product discounts to cart (uses getFinalPharmacistPrice)
+    - [x] **Automatic offer application** ✅
+        - [x] Offers automatically detected and applied when adding/updating cart items
+        - [x] Best offer selected based on lowest total price
+        - [x] Offers re-evaluated when quantities change or items are removed
+        - [x] Bundle offers require all products in cart with required quantities
     - [x] Handle multi-supplier carts (see decision below)
     - [x] Authorization (users can only manage their own cart)
     - [x] Swagger documentation
@@ -900,6 +914,7 @@ _Currently no tasks in progress_
 -   **Deployment Files**: 3 (Procfile, render.yaml, railway.json)
 -   **Observers**: 3 (OrderObserver, StockMovementObserver, ProductObserver)
 -   **Console Commands**: 1 (SyncSupplierCategoriesAndManufacturers)
+-   **Domain Services**: 1 (CartOfferService - automatic offer detection and application in cart)
 -   **Location System**: Cities and Regions (hierarchical), Driver-region assignments
 -   **Geospatial Features**: Company coordinates (latitude, longitude) for delivery tracking
 -   **Middleware**: 1 (CleanupTransactions)

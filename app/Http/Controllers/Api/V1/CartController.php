@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Cart\Services\CartOfferService;
 use App\Domain\Orders\OrderCreationService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Cart\AddCartItemRequest;
@@ -21,7 +22,8 @@ use OpenApi\Attributes as OA;
 class CartController extends BaseApiController
 {
     public function __construct(
-        private OrderCreationService $orderCreationService
+        private OrderCreationService $orderCreationService,
+        private CartOfferService $cartOfferService
     ) {}
 
     /**
@@ -92,7 +94,15 @@ class CartController extends BaseApiController
                 ['company_id' => $user->company_id]
             );
 
-            $cart->load(['items.product.supplierCompany', 'items.product.category', 'items.product.manufacturer', 'user', 'company']);
+            $cart->load([
+                'items.product.supplierCompany', 
+                'items.product.category', 
+                'items.product.manufacturer',
+                'items.product.offers',
+                'items.appliedOffer',
+                'user', 
+                'company'
+            ]);
 
             return $this->success(
                 new CartResource($cart),
@@ -113,7 +123,7 @@ class CartController extends BaseApiController
     #[OA\Post(
         path: '/cart/items',
         summary: 'Add item to cart',
-        description: 'Add a product to the shopping cart. The unit_price is automatically calculated using the product\'s pharmacist_price with any applicable discounts applied.',
+        description: 'Add a product to the shopping cart. The unit_price is automatically calculated using the product\'s pharmacist_price with any applicable discounts and offers applied. Offers are automatically detected and applied if the quantity meets the offer requirements.',
         tags: ['Cart'],
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(
@@ -128,7 +138,7 @@ class CartController extends BaseApiController
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: 'Item added to cart successfully. Price uses product pharmacist_price with discounts applied.'),
+            new OA\Response(response: 200, description: 'Item added to cart successfully. Price uses product pharmacist_price with discounts and offers applied. If an offer is applied, appliedOfferId will be set.'),
             new OA\Response(response: 401, description: 'Unauthenticated'),
             new OA\Response(response: 403, description: 'Forbidden - Only buyers can add items to cart'),
             new OA\Response(response: 404, description: 'Product not found'),
@@ -155,32 +165,77 @@ class CartController extends BaseApiController
                 ['company_id' => $user->company_id]
             );
 
+            // Load product offers for offer checking
+            $product->load('offers');
+            
+            // Get current cart items for bundle offer checking
+            $currentCartItems = $cart->items()->with('product')->get();
+            
             // Check if item already exists in cart
             $existingItem = $cart->items()->where('product_id', $product->id)->first();
 
             if ($existingItem) {
                 // Update quantity
-                $existingItem->quantity += $request->quantity;
-                $existingItem->unit_price = $product->getFinalPharmacistPrice();
-                $existingItem->calculateTotal();
+                $newQuantity = $existingItem->quantity + $request->quantity;
+                
+                // Check for offers with new quantity
+                $offerResult = $this->cartOfferService->findBestOffer($product, $newQuantity, $currentCartItems);
+                
+                if ($offerResult) {
+                    $existingItem->quantity = $newQuantity;
+                    $existingItem->unit_price = $offerResult['unit_price'];
+                    $existingItem->total_price = $offerResult['total_price'];
+                    $existingItem->applied_offer_id = $offerResult['offer']->id;
+                } else {
+                    $existingItem->quantity = $newQuantity;
+                    $existingItem->unit_price = $product->getFinalPharmacistPrice();
+                    $existingItem->calculateTotal();
+                    $existingItem->applied_offer_id = null;
+                }
+                
                 $existingItem->notes = $request->notes ?? $existingItem->notes;
                 $existingItem->save();
             } else {
-                // Create new cart item
-                $cartItem = CartItem::create([
-                    'cart_id' => $cart->id,
-                    'product_id' => $product->id,
-                    'quantity' => $request->quantity,
-                    'unit_price' => $product->getFinalPharmacistPrice(),
-                    'total_price' => $request->quantity * $product->getFinalPharmacistPrice(),
-                    'notes' => $request->notes,
-                ]);
+                // Check for offers
+                $offerResult = $this->cartOfferService->findBestOffer($product, $request->quantity, $currentCartItems);
+                
+                if ($offerResult) {
+                    // Create new cart item with offer applied
+                    $cartItem = CartItem::create([
+                        'cart_id' => $cart->id,
+                        'product_id' => $product->id,
+                        'quantity' => $request->quantity,
+                        'unit_price' => $offerResult['unit_price'],
+                        'total_price' => $offerResult['total_price'],
+                        'applied_offer_id' => $offerResult['offer']->id,
+                        'notes' => $request->notes,
+                    ]);
+                } else {
+                    // Create new cart item without offer
+                    $cartItem = CartItem::create([
+                        'cart_id' => $cart->id,
+                        'product_id' => $product->id,
+                        'quantity' => $request->quantity,
+                        'unit_price' => $product->getFinalPharmacistPrice(),
+                        'total_price' => $request->quantity * $product->getFinalPharmacistPrice(),
+                        'applied_offer_id' => null,
+                        'notes' => $request->notes,
+                    ]);
+                }
             }
 
             // Recalculate cart totals
             $cart->calculateTotals();
 
-            $cart->load(['items.product.supplierCompany', 'items.product.category', 'items.product.manufacturer', 'user', 'company']);
+            $cart->load([
+                'items.product.supplierCompany', 
+                'items.product.category', 
+                'items.product.manufacturer',
+                'items.product.offers',
+                'items.appliedOffer',
+                'user', 
+                'company'
+            ]);
 
             return $this->success(
                 new CartResource($cart),
@@ -201,7 +256,7 @@ class CartController extends BaseApiController
     #[OA\Put(
         path: '/cart/items/{id}',
         summary: 'Update cart item',
-        description: 'Update quantity or notes of a cart item',
+        description: 'Update quantity or notes of a cart item. Offers are automatically re-evaluated when quantity changes.',
         tags: ['Cart'],
         security: [['sanctum' => []]],
         parameters: [
@@ -235,8 +290,27 @@ class CartController extends BaseApiController
             }
 
             if ($request->has('quantity')) {
-                $cartItem->quantity = $request->quantity;
-                $cartItem->calculateTotal();
+                $newQuantity = $request->quantity;
+                $product = $cartItem->product;
+                $product->load('offers');
+                
+                // Get all cart items for bundle offer checking
+                $cartItems = $cartItem->cart->items()->with('product')->get();
+                
+                // Check for offers with new quantity
+                $offerResult = $this->cartOfferService->findBestOffer($product, $newQuantity, $cartItems);
+                
+                $cartItem->quantity = $newQuantity;
+                
+                if ($offerResult) {
+                    $cartItem->unit_price = $offerResult['unit_price'];
+                    $cartItem->total_price = $offerResult['total_price'];
+                    $cartItem->applied_offer_id = $offerResult['offer']->id;
+                } else {
+                    $cartItem->unit_price = $product->getFinalPharmacistPrice();
+                    $cartItem->calculateTotal();
+                    $cartItem->applied_offer_id = null;
+                }
             }
 
             if ($request->has('notes')) {
@@ -247,7 +321,7 @@ class CartController extends BaseApiController
 
             // Recalculate cart totals
             $cartItem->cart->calculateTotals();
-            $cartItem->load('product');
+            $cartItem->load(['product', 'appliedOffer']);
 
             return $this->success(
                 \App\Http\Resources\CartItemResource::make($cartItem),
@@ -293,7 +367,29 @@ class CartController extends BaseApiController
             }
 
             $cart = $cartItem->cart;
+            $product = $cartItem->product;
             $cartItem->delete();
+
+            // Re-evaluate offers for remaining items (important for bundle offers)
+            $remainingItems = $cart->items()->with('product.offers')->get();
+            foreach ($remainingItems as $item) {
+                $itemProduct = $item->product;
+                $itemProduct->load('offers');
+                
+                // Check for offers with current quantity
+                $offerResult = $this->cartOfferService->findBestOffer($itemProduct, $item->quantity, $remainingItems);
+                
+                if ($offerResult) {
+                    $item->unit_price = $offerResult['unit_price'];
+                    $item->total_price = $offerResult['total_price'];
+                    $item->applied_offer_id = $offerResult['offer']->id;
+                } else {
+                    $item->unit_price = $itemProduct->getFinalPharmacistPrice();
+                    $item->calculateTotal();
+                    $item->applied_offer_id = null;
+                }
+                $item->save();
+            }
 
             // Recalculate cart totals
             $cart->calculateTotals();

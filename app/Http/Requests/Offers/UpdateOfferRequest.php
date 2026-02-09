@@ -22,7 +22,7 @@ class UpdateOfferRequest extends BaseFormRequest
             'offer_type' => ['sometimes', 'string', Rule::in(OfferType::all())],
             'discount_value' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'discount_type' => ['sometimes', 'nullable', 'string', Rule::in(DiscountType::all())],
-            'quantity_required' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'quantity_required' => ['sometimes', 'required', 'integer', 'min:1'],
             'quantity_free' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'start_date' => ['sometimes', 'date'],
             'end_date' => ['sometimes', 'date', 'after:start_date'],

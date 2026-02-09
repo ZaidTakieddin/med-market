@@ -250,7 +250,9 @@ app/
 | DELETE | `/cart`         | Clear cart                     | Yes           | Buyer |
 | POST   | `/cart/checkout` | Checkout (creates orders)    | Yes           | Buyer |
 
-**Note**: Cart response includes `itemsBySupplier` array (items grouped by supplier) matching checkout behavior. If cart contains items from multiple suppliers, checkout creates multiple orders (one per supplier).
+**Note**: 
+- Cart response includes `itemsBySupplier` array (items grouped by supplier) matching checkout behavior. If cart contains items from multiple suppliers, checkout creates multiple orders (one per supplier).
+- **Offers are automatically applied** when adding/updating cart items. The system detects active offers, checks if quantity requirements are met, and applies the best offer (lowest total price). Cart items include `appliedOfferId` when an offer is applied.
 
 ### Authentication
 

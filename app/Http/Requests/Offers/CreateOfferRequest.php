@@ -22,7 +22,7 @@ class CreateOfferRequest extends BaseFormRequest
             'offer_type' => ['required', 'string', Rule::in(OfferType::all())],
             'discount_value' => ['nullable', 'numeric', 'min:0'],
             'discount_type' => ['nullable', 'string', Rule::in(DiscountType::all())],
-            'quantity_required' => ['nullable', 'integer', 'min:1'],
+            'quantity_required' => ['required', 'integer', 'min:1'],
             'quantity_free' => ['nullable', 'integer', 'min:0'],
             'start_date' => ['required', 'date', 'after_or_equal:today'],
             'end_date' => ['required', 'date', 'after:start_date'],
