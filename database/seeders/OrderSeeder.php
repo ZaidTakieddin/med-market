@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Constants\OrderStatus;
 use App\Domain\Orders\OrderCreationService;
 use App\Domain\Orders\OrderStateTransitionService;
+use App\Jobs\GenerateInvoiceJob;
 use App\Models\Company;
 use App\Models\Order;
 use App\Models\Product;
@@ -71,7 +72,7 @@ class OrderSeeder extends Seeder
                 'buyer_company_id' => $buyer1->id,
                 'supplier_company_id' => $supplier1->id,
                 'created_by' => $buyerUser1->id,
-                'status' => OrderStatus::PENDING, // Start as pending, will be updated
+                'status' => OrderStatus::ACCEPTED, // Will be accepted to generate invoice
                 'items' => [
                     [
                         'product_id' => $product1->id,
@@ -112,10 +113,21 @@ class OrderSeeder extends Seeder
                         userId: $orderData['created_by'],
                         notes: 'Order accepted via seeder'
                     );
+
+                    // Generate invoice synchronously for seeder (queue workers may not be running)
+                    // Refresh order to get latest data
+                    $order->refresh();
+                    $order->load(['buyerCompany', 'supplierCompany', 'creator', 'items.product', 'driver']);
+                    GenerateInvoiceJob::dispatchSync($order);
                 }
 
                 $orderNum = $index + 1;
-                $this->command->info("تم إنشاء الطلب #{$orderNum} بنجاح: {$order->order_number}");
+                $invoiceInfo = '';
+                if ($targetStatus === OrderStatus::ACCEPTED) {
+                    $invoice = \App\Models\Invoice::where('order_id', $order->id)->first();
+                    $invoiceInfo = $invoice ? " (فاتورة: {$invoice->invoice_number})" : '';
+                }
+                $this->command->info("تم إنشاء الطلب #{$orderNum} بنجاح: {$order->order_number}{$invoiceInfo}");
             } catch (\Exception $e) {
                 $orderNum = $index + 1;
                 $this->command->error("فشل إنشاء الطلب #{$orderNum}: " . $e->getMessage());

@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\Invoice;
 use App\Models\Order;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -50,16 +51,50 @@ class GenerateInvoiceJob implements ShouldQueue
             // Save invoice to storage
             $invoicePath = $this->saveInvoice($this->order, $invoiceContent);
 
+            // Generate invoice number
+            $invoiceNumber = 'INV-' . $this->order->order_number;
+
+            // Check if invoice already exists
+            $invoice = Invoice::where('order_id', $this->order->id)->first();
+
+            if ($invoice) {
+                // Update existing invoice
+                $invoice->update([
+                    'file_path' => $invoicePath,
+                    'subtotal' => $this->order->subtotal,
+                    'tax_amount' => $this->order->tax_amount,
+                    'total_amount' => $this->order->total_amount,
+                    'generated_at' => now(),
+                ]);
+            } else {
+                // Create new invoice record
+                $invoice = Invoice::create([
+                    'invoice_number' => $invoiceNumber,
+                    'order_id' => $this->order->id,
+                    'buyer_company_id' => $this->order->buyer_company_id,
+                    'supplier_company_id' => $this->order->supplier_company_id,
+                    'status' => 'generated',
+                    'payment_status' => 'pending',
+                    'subtotal' => $this->order->subtotal,
+                    'tax_amount' => $this->order->tax_amount,
+                    'total_amount' => $this->order->total_amount,
+                    'file_path' => $invoicePath,
+                    'file_format' => 'txt',
+                    'generated_at' => now(),
+                ]);
+            }
+
             // Log invoice generation
             Log::info('Invoice generated successfully', [
                 'order_id' => $this->order->id,
                 'order_number' => $this->order->order_number,
+                'invoice_id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
                 'invoice_path' => $invoicePath,
             ]);
 
             // In a real implementation, you might:
             // - Send invoice via email
-            // - Store invoice reference in database
             // - Generate PDF version
             // - Send to accounting system
 

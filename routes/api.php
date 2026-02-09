@@ -34,6 +34,13 @@ Route::prefix('v1')->group(function () {
         Route::post('orders/{order}/status', [App\Http\Controllers\Api\V1\OrderController::class, 'updateStatus']);
         Route::post('orders/{order}/cancel', [App\Http\Controllers\Api\V1\OrderController::class, 'cancel']);
 
+        // Invoices
+        Route::apiResource('invoices', App\Http\Controllers\Api\V1\InvoiceController::class)->only(['index', 'show']);
+        Route::get('orders/{order}/invoice', [App\Http\Controllers\Api\V1\InvoiceController::class, 'getByOrder']);
+        Route::get('invoices/{invoice}/download', [App\Http\Controllers\Api\V1\InvoiceController::class, 'download']);
+        Route::post('invoices/{invoice}/send', [App\Http\Controllers\Api\V1\InvoiceController::class, 'markAsSent']);
+        Route::post('invoices/{invoice}/pay', [App\Http\Controllers\Api\V1\InvoiceController::class, 'markAsPaid']);
+
         // Categories (admin managed, but list available to all)
         Route::apiResource('categories', App\Http\Controllers\Api\V1\CategoryController::class);
 
