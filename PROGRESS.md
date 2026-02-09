@@ -486,30 +486,40 @@ _Currently no tasks in progress_
     -   [x] Consistent pagination format across all list endpoints
     -   [x] Resources handle conditional loading with whenLoaded()
 
-#### 10. Testing
+#### 10. Testing ⚠️ CRITICAL MISSING
 
 -   [ ] Feature tests for authentication endpoints
 -   [ ] Feature tests for order endpoints
 -   [ ] Feature tests for product endpoints
 -   [ ] Feature tests for company endpoints
--   [ ] Unit tests for domain services
+-   [ ] Feature tests for cart endpoints
+-   [ ] Feature tests for offer endpoints
+-   [ ] Unit tests for domain services (`OrderCreationService`, `OrderStateTransitionService`, `StockMovementService`, `CartOfferService`)
+-   [ ] Unit tests for models (business logic methods)
 -   [ ] Policy tests
--   [ ] Set up PHPUnit configuration
+-   [ ] Integration tests for critical flows
+-   [ ] Test coverage reporting
+-   [ ] CI/CD pipeline with automated testing
 
-#### 11. Additional Features
+#### 11. Additional Features ⚠️ SEE "Missing Features & Requirements" SECTION BELOW
 
--   [ ] User management endpoints (admin)
-    -   [ ] List users
-    -   [ ] Create user
-    -   [ ] Update user
-    -   [ ] Delete user
--   [ ] Enhanced filtering/search
-    -   [ ] Advanced order filtering
-    -   [ ] Advanced product search
--   [ ] Dashboard/Statistics endpoints
-    -   [ ] Order statistics
-    -   [ ] Stock statistics
-    -   [ ] Sales reports
+-   [ ] User management endpoints (admin) - See Missing Features #18
+-   [ ] Enhanced filtering/search - See Missing Features #9
+-   [ ] Dashboard/Statistics endpoints - See Missing Features #8
+-   [ ] Invoice Management API - See Missing Features #1
+-   [ ] Product Images & Media - See Missing Features #2
+-   [ ] Export Functionality API - See Missing Features #3
+-   [ ] Notification Infrastructure - See Missing Features #4
+-   [ ] Driver Availability Management - See Missing Features #6
+-   [ ] Payment Integration - See Missing Features #7
+-   [ ] Real-Time Features - See Missing Features #10
+-   [ ] Order Templates - See Missing Features #11
+-   [ ] Wishlist Functionality - See Missing Features #12
+-   [ ] Reviews & Ratings - See Missing Features #13
+-   [ ] Multi-Language Support - See Missing Features #14
+-   [ ] Inventory Enhancements - See Missing Features #15
+-   [ ] Security Enhancements - See Missing Features #16
+-   [ ] Performance Optimizations - See Missing Features #17
 
 ---
 
@@ -903,12 +913,255 @@ _Currently no tasks in progress_
 
 ---
 
+## ❌ Missing Features & Requirements
+
+This section documents features and functionality that are currently missing from the system but would enhance the platform's capabilities and user experience.
+
+### 🔴 Critical Missing Features
+
+These features are essential for core functionality and should be prioritized for implementation.
+
+#### 1. Invoice Management API
+**Status**: Invoice generation job exists (`GenerateInvoiceJob`) but no API endpoints
+- [ ] `GET /api/v1/invoices` - List invoices with filtering
+- [ ] `GET /api/v1/invoices/{id}` - Get invoice details
+- [ ] `GET /api/v1/invoices/{id}/download` - Download invoice file
+- [ ] `GET /api/v1/orders/{id}/invoice` - Get invoice for specific order
+- [ ] Invoice status tracking (generated, sent, paid, overdue)
+- [ ] Invoice payment status management
+- [ ] Invoice reference storage in database
+
+#### 2. Product Images & Media Management
+**Status**: No image support currently
+- [ ] Image upload endpoints for products
+- [ ] Multiple images per product support
+- [ ] Image storage configuration (S3/local)
+- [ ] Image optimization and resizing
+- [ ] Company logo upload
+- [ ] Product image management (add/remove/reorder)
+- [ ] Image CDN integration
+- [ ] Migration to add `image_url` or `images` JSON field to products table
+
+#### 3. Export Functionality API
+**Status**: `ExportOrdersJob` exists but no API endpoints
+- [ ] `POST /api/v1/exports/orders` - Trigger order export
+- [ ] `GET /api/v1/exports` - List export history
+- [ ] `GET /api/v1/exports/{id}` - Get export status
+- [ ] `GET /api/v1/exports/{id}/download` - Download exported file
+- [ ] Export format options (CSV, JSON, Excel)
+- [ ] Export filtering (date range, status, company)
+- [ ] Background export processing with status updates
+
+#### 4. Notification System Infrastructure
+**Status**: Jobs exist but infrastructure incomplete
+- [ ] Email service configuration (SMTP/SendGrid/Mailgun)
+- [ ] SMS integration (Twilio, etc.)
+- [ ] Push notification service (Firebase, OneSignal)
+- [ ] Notification preferences per user/company
+- [ ] Notification history table and endpoints
+- [ ] Read/unread status tracking
+- [ ] In-app notification system
+- [ ] Notification templates management
+- [ ] Notification delivery status tracking
+
+#### 5. Testing Suite
+**Status**: PHPUnit configured, only example tests exist
+- [ ] Feature tests for authentication endpoints
+- [ ] Feature tests for order endpoints
+- [ ] Feature tests for product endpoints
+- [ ] Feature tests for company endpoints
+- [ ] Feature tests for cart endpoints
+- [ ] Feature tests for offer endpoints
+- [ ] Unit tests for domain services (`OrderCreationService`, `OrderStateTransitionService`, `StockMovementService`, `CartOfferService`)
+- [ ] Unit tests for models (business logic methods)
+- [ ] Policy tests (authorization rules)
+- [ ] Integration tests for critical flows (order creation, checkout, stock management)
+- [ ] Test coverage reporting
+- [ ] CI/CD pipeline with automated testing
+
+### 🟠 High Priority Missing Features
+
+These features significantly enhance user experience and operational efficiency.
+
+#### 6. Driver Availability Management
+**Status**: Basic driver management exists, but no availability tracking
+- [ ] Driver status management (available, busy, off-duty, unavailable)
+- [ ] Driver capacity limits (max orders per driver)
+- [ ] Automatic driver assignment based on availability and region
+- [ ] Load balancing across drivers
+- [ ] Driver location tracking (current location updates)
+- [ ] Driver schedule management (working hours, days off)
+- [ ] Driver performance metrics (delivery time, completion rate)
+- [ ] Endpoints: `PUT /api/v1/drivers/{id}/status`, `GET /api/v1/drivers/available`
+
+#### 7. Payment Integration
+**Status**: No payment system implemented
+- [ ] Payment gateway integration (Stripe, PayPal, local payment providers)
+- [ ] Multiple payment methods support
+- [ ] Payment terms management (net 30, net 60, cash on delivery)
+- [ ] Payment tracking and status
+- [ ] Payment reconciliation system
+- [ ] Payment history endpoints
+- [ ] Refund processing
+- [ ] Payment webhooks handling
+- [ ] Invoice-to-payment linking
+
+#### 8. Analytics & Dashboard Endpoints
+**Status**: No analytics endpoints exist
+- [ ] Supplier dashboard endpoints:
+  - [ ] Sales statistics (total sales, revenue, orders count)
+  - [ ] Top products by sales
+  - [ ] Regions served statistics
+  - [ ] Order trends (daily/weekly/monthly)
+  - [ ] Customer statistics
+- [ ] Buyer dashboard endpoints:
+  - [ ] Purchase history and trends
+  - [ ] Spending analytics
+  - [ ] Favorite suppliers/products
+  - [ ] Order frequency analysis
+- [ ] Admin dashboard endpoints:
+  - [ ] System-wide statistics
+  - [ ] User activity metrics
+  - [ ] Platform health metrics
+  - [ ] Revenue analytics
+- [ ] Driver performance metrics endpoints
+- [ ] Export analytics reports
+
+#### 9. Advanced Search & Filtering
+**Status**: Basic search exists, but limited
+- [ ] Full-text search implementation (PostgreSQL full-text search or Elasticsearch)
+- [ ] Elasticsearch integration for better performance
+- [ ] Search autocomplete/suggestions
+- [ ] Multi-field search (name, SKU, description, category, manufacturer)
+- [ ] Advanced filtering combinations (multiple categories, manufacturers, regions, price ranges)
+- [ ] Saved search filters per user
+- [ ] Search history
+- [ ] Search ranking and relevance scoring
+
+#### 10. Real-Time Features
+**Status**: No real-time capabilities
+- [ ] WebSocket support (Laravel Echo, Pusher, Socket.io)
+- [ ] Real-time order status updates
+- [ ] Real-time delivery tracking
+- [ ] Live notifications
+- [ ] Real-time inventory updates
+- [ ] Real-time chat/messaging (optional)
+- [ ] Presence system (online/offline users)
+
+### 🟡 Medium Priority Missing Features
+
+These features add value but are not critical for core operations.
+
+#### 11. Order Templates
+**Status**: No template system
+- [ ] Save frequently ordered items as templates
+- [ ] Template management endpoints (CRUD)
+- [ ] Quick reorder from templates
+- [ ] Template sharing between company users
+- [ ] Template categories/tags
+
+#### 12. Wishlist Functionality
+**Status**: No wishlist feature
+- [ ] Wishlist endpoints (`GET /api/v1/wishlist`, `POST /api/v1/wishlist/items`, etc.)
+- [ ] Add/remove products from wishlist
+- [ ] Move wishlist items to cart
+- [ ] Share wishlist with other users
+- [ ] Wishlist notifications (price drops, stock availability)
+
+#### 13. Reviews & Ratings System
+**Status**: No review system
+- [ ] Product reviews and ratings
+- [ ] Company/supplier ratings
+- [ ] Review moderation system
+- [ ] Review endpoints (CRUD)
+- [ ] Rating aggregation and display
+- [ ] Review helpfulness voting
+
+#### 14. Multi-Language Support (i18n)
+**Status**: No internationalization
+- [ ] Laravel localization setup
+- [ ] Arabic and English language files
+- [ ] Language switching endpoint
+- [ ] Translated product names and descriptions
+- [ ] Localized date/time formats
+- [ ] RTL (Right-to-Left) layout support for Arabic
+- [ ] Language preference per user
+
+#### 15. Inventory Management Enhancements
+**Status**: Basic inventory exists, but limited features
+- [ ] Expiry date tracking for products
+- [ ] Batch/lot number tracking
+- [ ] Stock transfer between suppliers
+- [ ] Bulk stock operations (import/export)
+- [ ] Stock adjustment reasons and notes
+- [ ] Inventory valuation
+- [ ] Stock forecasting
+
+### 🔵 Security & Quality Missing Features
+
+These features improve security, performance, and code quality.
+
+#### 16. Security Enhancements
+**Status**: Basic security exists, but can be enhanced
+- [ ] Two-factor authentication (2FA) implementation
+- [ ] Advanced rate limiting (per user/company/IP)
+- [ ] IP whitelisting for admin endpoints
+- [ ] Comprehensive audit logging system
+- [ ] Data encryption at rest
+- [ ] API key management for integrations
+- [ ] Security headers configuration
+- [ ] Regular security audit process
+- [ ] Vulnerability scanning integration
+
+#### 17. Performance Optimizations
+**Status**: Basic performance, but can be optimized
+- [ ] Redis caching implementation (currently file-based)
+- [ ] API response caching
+- [ ] Database query optimization and indexing review
+- [ ] CDN integration for static assets and images
+- [ ] Image optimization and lazy loading
+- [ ] Database connection pooling optimization
+- [ ] API response compression
+- [ ] Eager loading optimization audit
+
+#### 18. User Management (Admin)
+**Status**: Basic user management, but no admin endpoints
+- [ ] Admin endpoints to manage users:
+  - [ ] `GET /api/v1/admin/users` - List all users
+  - [ ] `POST /api/v1/admin/users` - Create user
+  - [ ] `PUT /api/v1/admin/users/{id}` - Update user
+  - [ ] `DELETE /api/v1/admin/users/{id}` - Delete/deactivate user
+- [ ] User role management
+- [ ] User activation/deactivation
+- [ ] Bulk user operations
+- [ ] User activity tracking
+- [ ] User import/export
+
+#### 19. Additional Missing Features
+- [ ] Product comparison functionality
+- [ ] Subscription management for suppliers
+- [ ] Loyalty program integration
+- [ ] Referral system
+- [ ] Product variants (sizes, colors, etc.)
+- [ ] Bulk product import/export
+- [ ] Product templates
+- [ ] Company verification system
+- [ ] Document management (contracts, licenses)
+- [ ] API webhooks for external integrations
+- [ ] GraphQL API (optional, for advanced queries)
+
+---
+
 ## 📊 Statistics
 
 -   **Total Endpoints**: 60+ routes (including cart, offers, drivers, profile, categories, manufacturers, cities, regions endpoints)
 -   **Completed Features**: 110+ (including all new requirements and documentation updates)
 -   **Database Seeders**: 9 (CitySeeder, RegionSeeder, CompanySeeder, CategorySeeder, ManufacturerSeeder, UserSeeder, ProductSeeder, OfferSeeder, OrderSeeder)
--   **Pending Tasks**: 7 categories (4 high-priority items completed)
+-   **Pending Tasks**: See "Missing Features & Requirements" section below
+-   **Critical Missing Features**: 5 (Invoice API, Product Images, Export API, Notification Infrastructure, Testing Suite)
+-   **High Priority Missing Features**: 5 (Driver Availability, Payment Integration, Analytics, Advanced Search, Real-Time)
+-   **Medium Priority Missing Features**: 5 (Order Templates, Wishlist, Reviews, Multi-Language, Inventory Enhancements)
+-   **Security & Quality Missing Features**: 4 (Security Enhancements, Performance Optimizations, User Management, Additional Features)
 -   **Documentation Files**: 9 (README.md, DEPLOYMENT.md, PROGRESS.md, QUEUE_WORKERS.md, 5 Domain READMEs)
 -   **Background Jobs**: 4 (SendOrderNotificationJob, GenerateInvoiceJob, LowStockAlertJob, ExportOrdersJob)
 -   **Deployment Files**: 3 (Procfile, render.yaml, railway.json)
