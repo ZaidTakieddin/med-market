@@ -552,6 +552,219 @@
                 ]
             }
         },
+        "/cart/items/{id}/offers": {
+            "get": {
+                "tags": [
+                    "Cart"
+                ],
+                "summary": "Get available offers for cart item",
+                "description": "Get all available offers for a cart item based on current quantity. Returns all applicable offers with pricing details.",
+                "operationId": "027548119f1b9704ebce886d6d8caa12",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Available offers retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "cartItemId": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "productId": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "quantity": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                },
+                                                "basePrice": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 25.5
+                                                },
+                                                "baseTotal": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 127.5
+                                                },
+                                                "currentOfferId": {
+                                                    "type": "integer",
+                                                    "example": 1,
+                                                    "nullable": true
+                                                },
+                                                "availableOffers": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "offer": {
+                                                                "description": "Offer object",
+                                                                "type": "object"
+                                                            },
+                                                            "unitPrice": {
+                                                                "type": "number",
+                                                                "format": "float"
+                                                            },
+                                                            "totalPrice": {
+                                                                "type": "number",
+                                                                "format": "float"
+                                                            },
+                                                            "savings": {
+                                                                "type": "number",
+                                                                "format": "float"
+                                                            },
+                                                            "savingsPercentage": {
+                                                                "type": "number",
+                                                                "format": "float"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Cart item not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/cart/items/{id}/apply-offer": {
+            "post": {
+                "tags": [
+                    "Cart"
+                ],
+                "summary": "Apply specific offer to cart item",
+                "description": "Manually apply a specific offer to a cart item. This overrides the automatically selected best offer.",
+                "operationId": "19021345dd5e8f535417bf4a7151d6e3",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "offer_id"
+                                ],
+                                "properties": {
+                                    "offer_id": {
+                                        "description": "ID of the offer to apply",
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Offer applied successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Cart item or offer not found"
+                    },
+                    "400": {
+                        "description": "Offer cannot be applied (quantity requirement not met, etc.)"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/cart/items/{id}/remove-offer": {
+            "post": {
+                "tags": [
+                    "Cart"
+                ],
+                "summary": "Remove applied offer from cart item",
+                "description": "Remove the manually applied offer and revert to automatically selected best offer (or base price if no offers available).",
+                "operationId": "0920bdca391370253402f30793945b99",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Offer removed successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Cart item not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/cart/checkout": {
             "post": {
                 "tags": [
@@ -630,6 +843,106 @@
                     },
                     "400": {
                         "description": "Cart is empty"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/cart/checkout-supplier": {
+            "post": {
+                "tags": [
+                    "Cart"
+                ],
+                "summary": "Checkout cart items for specific supplier",
+                "description": "Convert cart items from a specific supplier to an order. Only items from the specified supplier will be checked out. Other items remain in the cart. Cart totals are recalculated after checkout.",
+                "operationId": "fa18c883ce482238f4bd0522731bf38a",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "supplier_id"
+                                ],
+                                "properties": {
+                                    "supplier_id": {
+                                        "description": "ID of the supplier company",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Order notes",
+                                        "nullable": true
+                                    },
+                                    "tax_rate": {
+                                        "description": "Tax rate as percentage (e.g., 15 for 15%)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "default": 0,
+                                        "example": 15
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order created successfully for the specified supplier.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Order created successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "order": {
+                                                    "description": "Order object with buyerCompany, supplierCompany, and items.product relationships",
+                                                    "type": "object"
+                                                },
+                                                "items_checked_out": {
+                                                    "description": "Number of cart items checked out",
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
+                                                "items_remaining": {
+                                                    "description": "Number of items remaining in cart",
+                                                    "type": "integer",
+                                                    "example": 2
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - Only buyers can checkout"
+                    },
+                    "400": {
+                        "description": "Cart is empty or no items found for supplier"
+                    },
+                    "404": {
+                        "description": "Supplier not found"
                     }
                 },
                 "security": [

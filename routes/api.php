@@ -77,6 +77,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('/items/{id}', [App\Http\Controllers\Api\V1\CartController::class, 'removeItem']);
             Route::delete('/', [App\Http\Controllers\Api\V1\CartController::class, 'clear']);
             Route::post('/checkout', [App\Http\Controllers\Api\V1\CartController::class, 'checkout']);
+            Route::post('/checkout-supplier', [App\Http\Controllers\Api\V1\CartController::class, 'checkoutSupplier']);
         });
 
         // Offers

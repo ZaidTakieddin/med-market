@@ -830,5 +830,154 @@ class CartController extends BaseApiController
             return $this->error('Failed to checkout cart: ' . $e->getMessage(), null, 500);
         }
     }
+
+    /**
+     * Checkout cart items for a specific supplier.
+     */
+    #[OA\Post(
+        path: '/cart/checkout-supplier',
+        summary: 'Checkout cart items for specific supplier',
+        description: 'Convert cart items from a specific supplier to an order. Only items from the specified supplier will be checked out. Other items remain in the cart. Cart totals are recalculated after checkout.',
+        tags: ['Cart'],
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['supplier_id'],
+                properties: [
+                    new OA\Property(property: 'supplier_id', type: 'integer', example: 1, description: 'ID of the supplier company'),
+                    new OA\Property(property: 'notes', type: 'string', nullable: true, example: 'Order notes'),
+                    new OA\Property(property: 'tax_rate', type: 'number', format: 'float', default: 0, example: 15, description: 'Tax rate as percentage (e.g., 15 for 15%)'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Order created successfully for the specified supplier.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                        new OA\Property(property: 'message', type: 'string', example: 'Order created successfully'),
+                        new OA\Property(
+                            property: 'data',
+                            type: 'object',
+                            properties: [
+                                new OA\Property(property: 'order', type: 'object', description: 'Order object with buyerCompany, supplierCompany, and items.product relationships'),
+                                new OA\Property(property: 'items_checked_out', type: 'integer', example: 3, description: 'Number of cart items checked out'),
+                                new OA\Property(property: 'items_remaining', type: 'integer', example: 2, description: 'Number of items remaining in cart'),
+                            ]
+                        )
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden - Only buyers can checkout'),
+            new OA\Response(response: 400, description: 'Cart is empty or no items found for supplier'),
+            new OA\Response(response: 404, description: 'Supplier not found'),
+        ]
+    )]
+    public function checkoutSupplier(Request $request): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            
+            if (!$user->isBuyer()) {
+                return $this->error('Only buyers can checkout', null, 403);
+            }
+
+            $request->validate([
+                'supplier_id' => ['required', 'integer', 'exists:companies,id'],
+                'notes' => ['nullable', 'string', 'max:1000'],
+                'tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            ]);
+
+            // Verify supplier is actually a supplier company
+            $supplier = \App\Models\Company::findOrFail($request->supplier_id);
+            if (!$supplier->isSupplier()) {
+                return $this->error('The specified company is not a supplier', null, 400);
+            }
+
+            $cart = Cart::where('user_id', $user->id)->with('items.product')->first();
+
+            if (!$cart || $cart->items->isEmpty()) {
+                return $this->error('Cart is empty', null, 400);
+            }
+
+            // Filter items for the specified supplier
+            $supplierItems = $cart->items->filter(function ($item) use ($request) {
+                return $item->product->supplier_company_id == $request->supplier_id;
+            });
+
+            if ($supplierItems->isEmpty()) {
+                return $this->error('No items found for the specified supplier in your cart', null, 400);
+            }
+
+            DB::beginTransaction();
+            try {
+                // Prepare order items
+                $orderItems = [];
+                foreach ($supplierItems as $cartItem) {
+                    $orderItems[] = [
+                        'product_id' => $cartItem->product_id,
+                        'quantity' => $cartItem->quantity,
+                        'unit_price' => $cartItem->unit_price,
+                        'notes' => $cartItem->notes,
+                    ];
+                }
+
+                // Create order
+                $order = $this->orderCreationService->create(
+                    buyerCompanyId: $user->company_id,
+                    supplierCompanyId: $request->supplier_id,
+                    createdBy: $user->id,
+                    items: $orderItems,
+                    notes: $request->notes ?? null,
+                    taxRate: $request->tax_rate ?? 0
+                );
+
+                $order->load([
+                    'buyerCompany.region.city',
+                    'supplierCompany.categories',
+                    'supplierCompany.manufacturers',
+                    'items.product.category',
+                    'items.product.manufacturer',
+                    'items.product.supplierCompany',
+                ]);
+
+                // Remove only the checked out items from cart
+                $cart->items()->whereIn('id', $supplierItems->pluck('id'))->delete();
+
+                // Refresh cart to reload items relationship
+                $cart->refresh();
+                $cart->load('items');
+
+                // Recalculate cart totals
+                $cart->calculateTotals();
+
+                DB::commit();
+
+                $remainingItemsCount = $cart->items()->count();
+
+                return (new OrderResource($order))
+                    ->additional([
+                        'success' => true,
+                        'message' => 'Order created successfully',
+                        'items_checked_out' => $supplierItems->count(),
+                        'items_remaining' => $remainingItemsCount,
+                    ])
+                    ->response();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+        } catch (\Exception $e) {
+            Log::error('Cart supplier checkout error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->error('Failed to checkout supplier items: ' . $e->getMessage(), null, 500);
+        }
+    }
 }
 

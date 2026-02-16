@@ -250,12 +250,14 @@ app/
 | DELETE | `/cart/items/{id}` | Remove cart item            | Yes           | Buyer |
 | DELETE | `/cart`         | Clear cart                     | Yes           | Buyer |
 | POST   | `/cart/checkout` | Checkout (creates orders)    | Yes           | Buyer |
+| POST   | `/cart/checkout-supplier` | Checkout items for specific supplier | Yes | Buyer |
 | GET    | `/cart/items/{id}/offers` | Get available offers for cart item | Yes | Buyer |
 | POST   | `/cart/items/{id}/apply-offer` | Apply specific offer to cart item | Yes | Buyer |
 | POST   | `/cart/items/{id}/remove-offer` | Remove manual offer selection | Yes | Buyer |
 
 **Note**: 
 - Cart response includes `itemsBySupplier` array (items grouped by supplier) matching checkout behavior. If cart contains items from multiple suppliers, checkout creates multiple orders (one per supplier).
+- **Supplier-Specific Checkout**: Use `/cart/checkout-supplier` with `supplier_id` in request body to checkout only items from a specific supplier. Other items remain in the cart and totals are recalculated.
 - **Offers are automatically applied** when adding/updating cart items. The system detects active offers, checks if quantity requirements are met, and applies the best offer (lowest total price). Cart items include `appliedOfferId` when an offer is applied.
 - **Manual Offer Selection**: Users can view all available offers for a cart item and manually select a different offer (or remove the manual selection to revert to automatic best offer).
 

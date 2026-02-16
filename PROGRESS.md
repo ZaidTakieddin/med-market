@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-02-01 (Invoice Management API, Manual Offer Selection in Cart, CartOfferService enhancements)
+> Last Updated: 2026-02-01 (Supplier-Specific Checkout Endpoint, Invoice Management API, Manual Offer Selection in Cart)
 
 ## 📋 Table of Contents
 
@@ -611,8 +611,14 @@ _Currently no tasks in progress_
         - [x] `DELETE /api/v1/cart/items/{id}` - Remove item from cart
         - [x] `DELETE /api/v1/cart` - Clear entire cart
         - [x] `POST /api/v1/cart/checkout` - Convert cart to order(s)
+        - [x] `POST /api/v1/cart/checkout-supplier` - Checkout items for specific supplier (other items remain in cart)
     - [x] Cart calculations (subtotal, tax, total)
     - [x] Apply product discounts to cart (uses getFinalPharmacistPrice)
+    - [x] **Supplier-Specific Checkout** ✅
+        - [x] Checkout only items from a specific supplier
+        - [x] Other items remain in cart
+        - [x] Cart totals automatically recalculated after checkout
+        - [x] Returns order details and counts of checked out/remaining items
     - [x] **Automatic offer application** ✅
         - [x] Offers automatically detected and applied when adding/updating cart items
         - [x] Best offer selected based on lowest total price
