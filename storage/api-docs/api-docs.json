@@ -3871,6 +3871,14 @@
                         }
                     },
                     {
+                        "name": "manufacturer_id",
+                        "in": "query",
+                        "description": "Filter by manufacturer ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
                         "name": "is_active",
                         "in": "query",
                         "description": "Filter by active status",

@@ -138,6 +138,7 @@ app/
 **Filtering Options:**
 - `?supplier_company_id=1` - Filter by supplier
 - `?category_id=1` - Filter by category
+- `?manufacturer_id=1` - Filter by manufacturer
 - `?is_active=true` - Filter by active status
 - `?search=term` - Search in name, SKU, description, category name, or manufacturer name
 

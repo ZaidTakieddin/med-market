@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-02-01 (Supplier-Specific Checkout Endpoint, Invoice Management API, Manual Offer Selection in Cart)
+> Last Updated: 2026-02-16 (Product manufacturer_id filter, Company description in create migration)
 
 ## 📋 Table of Contents
 
@@ -98,6 +98,8 @@
 ### Product Management API
 
 -   [x] List products (`GET /api/v1/products`) - With search and filtering
+-   [x] Filter products by category_id (`?category_id=1`)
+-   [x] Filter products by manufacturer_id (`?manufacturer_id=1`)
 -   [x] Create product (`POST /api/v1/products`) - Suppliers only
 -   [x] Get product details (`GET /api/v1/products/{id}`)
 -   [x] Update product (`PUT /api/v1/products/{id}`)
@@ -161,7 +163,7 @@
 -   [x] Product endpoints updated with new fields (category_id, manufacturer_id, pharmacist_price, customer_price, discount, discount_type)
     -   [x] Create product endpoint includes all new fields with descriptions
     -   [x] Update product endpoint includes all new fields
-    -   [x] List products endpoint documents category_id and manufacturer_id filtering
+    -   [x] List products endpoint documents category_id, manufacturer_id filtering
     -   [x] Get product endpoint shows all new fields in response schema (includes category and manufacturer objects)
 -   [x] Category endpoints documented (admin CRUD, public list/show)
 -   [x] Manufacturer endpoints documented (admin CRUD, public list/show)

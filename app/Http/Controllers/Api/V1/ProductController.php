@@ -27,6 +27,7 @@ class ProductController extends BaseApiController
             parameters: [
                 new OA\Parameter(name: 'supplier_company_id', in: 'query', schema: new OA\Schema(type: 'integer'), description: 'Filter by supplier company ID'),
                 new OA\Parameter(name: 'category_id', in: 'query', schema: new OA\Schema(type: 'integer'), description: 'Filter by product category ID'),
+                new OA\Parameter(name: 'manufacturer_id', in: 'query', schema: new OA\Schema(type: 'integer'), description: 'Filter by manufacturer ID'),
                 new OA\Parameter(name: 'is_active', in: 'query', schema: new OA\Schema(type: 'boolean'), description: 'Filter by active status'),
                 new OA\Parameter(name: 'search', in: 'query', schema: new OA\Schema(type: 'string'), description: 'Search in name, SKU, description, or category'),
                 new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
@@ -72,6 +73,11 @@ class ProductController extends BaseApiController
             // Filter by category
             if ($request->has('category_id')) {
                 $query->where('category_id', $request->category_id);
+            }
+
+            // Filter by manufacturer
+            if ($request->has('manufacturer_id')) {
+                $query->where('manufacturer_id', $request->manufacturer_id);
             }
 
             // Filter by active status

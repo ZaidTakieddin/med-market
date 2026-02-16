@@ -84,7 +84,7 @@ if ($product->isLowStock()) {
 ### Controllers
 
 Product operations are handled in `ProductController`:
-- List products with filtering and search
+- List products with filtering (supplier_company_id, category_id, manufacturer_id, is_active) and search
 - Create products (suppliers only)
 - Get product details
 - Update products
