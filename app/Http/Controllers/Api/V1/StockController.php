@@ -33,7 +33,8 @@ class StockController extends BaseApiController
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
             new OA\Parameter(name: 'type', in: 'query', schema: new OA\Schema(type: 'string', enum: ['in', 'out', 'adjustment', 'return'])),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
-            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15)),
+            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15), description: 'Items per page. Use "all" for no pagination.'),
+            new OA\Parameter(name: 'paginate', in: 'query', schema: new OA\Schema(type: 'string', enum: ['true', 'false']), description: 'Use "false" to get all results without pagination'),
         ],
         responses: [
             new OA\Response(response: 200, description: 'Stock movements retrieved successfully'),
@@ -57,21 +58,18 @@ class StockController extends BaseApiController
             $query->where('type', $request->type);
         }
 
-            $movements = $query->latest()->paginate($request->get('per_page', 15));
+            [$movements, $pagination] = $this->paginateOrAll($query->latest(), $request);
 
-            return StockMovementResource::collection($movements->items())
-                ->additional([
-                    'success' => true,
-                    'message' => 'Stock movements retrieved successfully',
-                    'pagination' => [
-                        'current_page' => $movements->currentPage(),
-                        'per_page' => $movements->perPage(),
-                        'total' => $movements->total(),
-                        'last_page' => $movements->lastPage(),
-                        'from' => $movements->firstItem(),
-                        'to' => $movements->lastItem(),
-                    ],
-                ])
+            $additional = [
+                'success' => true,
+                'message' => 'Stock movements retrieved successfully',
+            ];
+            if ($pagination !== null) {
+                $additional['pagination'] = $pagination;
+            }
+
+            return StockMovementResource::collection($movements)
+                ->additional($additional)
                 ->response();
     }
 

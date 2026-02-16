@@ -84,6 +84,10 @@ app/
 -   **Authentication**: Bearer token (Sanctum)
 -   **Response Format**: Standardized JSON with `success`, `data`, and `error` fields
 
+**Pagination (all list endpoints):**
+- Default: Paginated with `per_page=15` (max 100)
+- To get all results without pagination: `?per_page=all` or `?paginate=false`
+
 ### Authentication Endpoints (`/api/v1/auth`)
 
 | Method | Endpoint    | Description            | Auth Required |
@@ -163,7 +167,7 @@ app/
 - `?manufacturer_id=1` - Filter suppliers by manufacturer (suppliers only)
 - `?search=term` - Search by company name, email, category names, or manufacturer names
 
-**Note**: Supplier companies include `categories` and `manufacturers` arrays (auto-synced from their products). Companies also include `address`, `latitude`, `longitude`, `region_id`, `address_line`, and `region` object (with city information).
+**Note**: Supplier companies include `categories` and `manufacturers` arrays (auto-synced from their products). Companies include `description`, `address`, `latitude`, `longitude`, `region_id`, `address_line`, and `region` object (with city information).
 
 ### Cities (`/api/v1/cities`)
 

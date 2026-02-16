@@ -17,6 +17,7 @@ class CompanySeeder extends Seeder
         $suppliers = [
             [
                 'name' => 'شركة الإمدادات الطبية',
+                'description' => 'مورّد رائد للمستلزمات الطبية والأدوية في المنطقة. نقدم تشكيلة واسعة من المنتجات الطبية عالية الجودة مع خدمة توصيل سريعة وموثوقة.',
                 'type' => CompanyType::SUPPLIER,
                 'email' => 'contact@medsupply.com',
                 'phone' => '+966-11-123-4567',
@@ -27,6 +28,7 @@ class CompanySeeder extends Seeder
             ],
             [
                 'name' => 'شركة توزيع الأدوية المحدودة',
+                'description' => 'متخصصون في توزيع الأدوية والمستحضرات الصيدلانية للمستشفيات والصيدليات. شراكات مع كبرى الشركات العالمية.',
                 'type' => CompanyType::SUPPLIER,
                 'email' => 'info@pharmadist.com',
                 'phone' => '+966-11-234-5678',
@@ -37,6 +39,7 @@ class CompanySeeder extends Seeder
             ],
             [
                 'name' => 'الإمدادات الطبية العالمية',
+                'description' => 'شريكك الموثوق للإمدادات الطبية العالمية. نوفر منتجات من أفضل المصانع العالمية مع ضمان الجودة وأفضل الأسعار.',
                 'type' => CompanyType::SUPPLIER,
                 'email' => 'sales@globalmed.com',
                 'phone' => '+966-11-345-6789',
@@ -51,6 +54,7 @@ class CompanySeeder extends Seeder
         $buyers = [
             [
                 'name' => 'صيدلية المدينة',
+                'description' => 'صيدلية مجتمعية تخدم سكان حي النرجس والمناطق المجاورة. نقدم أدوية ومستلزمات طبية بأسعار تنافسية وخدمة عملاء متميزة.',
                 'type' => CompanyType::BUYER,
                 'email' => 'orders@citypharmacy.com',
                 'phone' => '+966-11-456-7890',
@@ -61,6 +65,7 @@ class CompanySeeder extends Seeder
             ],
             [
                 'name' => 'صيدلية الرعاية الصحية',
+                'description' => 'صيدلية متكاملة متخصصة في الرعاية الصحية. نوفر تشكيلة واسعة من الأدوية والمكملات الغذائية مع استشارات صيدلانية مجانية.',
                 'type' => CompanyType::BUYER,
                 'email' => 'purchasing@healthcarepharm.com',
                 'phone' => '+966-11-567-8901',
@@ -71,6 +76,7 @@ class CompanySeeder extends Seeder
             ],
             [
                 'name' => 'صيدلية المجتمع',
+                'description' => 'صيدلية عائلية نخدم المجتمع منذ سنوات. نلتزم بتوفير منتجات أصلية وجودة عالية مع أسعار مناسبة لجميع الفئات.',
                 'type' => CompanyType::BUYER,
                 'email' => 'info@communitypharm.com',
                 'phone' => '+966-11-678-9012',

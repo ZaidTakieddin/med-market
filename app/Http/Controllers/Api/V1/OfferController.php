@@ -38,7 +38,8 @@ class OfferController extends BaseApiController
             ),
             new OA\Parameter(name: 'is_active', in: 'query', schema: new OA\Schema(type: 'boolean')),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
-            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15)),
+            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15), description: 'Items per page. Use "all" for no pagination.'),
+            new OA\Parameter(name: 'paginate', in: 'query', schema: new OA\Schema(type: 'string', enum: ['true', 'false']), description: 'Use "false" to get all results without pagination'),
         ],
         responses: [
             new OA\Response(response: 200, description: 'Offers retrieved successfully'),
@@ -76,21 +77,21 @@ class OfferController extends BaseApiController
                 $query->where('is_active', $request->boolean('is_active'));
             }
 
-            $offers = $query->with('products')->latest()->paginate($request->get('per_page', 15));
+            [$offers, $pagination] = $this->paginateOrAll(
+                $query->with('products')->latest(),
+                $request
+            );
 
-            return OfferResource::collection($offers->items())
-                ->additional([
-                    'success' => true,
-                    'message' => 'Offers retrieved successfully',
-                    'pagination' => [
-                        'current_page' => $offers->currentPage(),
-                        'per_page' => $offers->perPage(),
-                        'total' => $offers->total(),
-                        'last_page' => $offers->lastPage(),
-                        'from' => $offers->firstItem(),
-                        'to' => $offers->lastItem(),
-                    ],
-                ])
+            $additional = [
+                'success' => true,
+                'message' => 'Offers retrieved successfully',
+            ];
+            if ($pagination !== null) {
+                $additional['pagination'] = $pagination;
+            }
+
+            return OfferResource::collection($offers)
+                ->additional($additional)
                 ->response();
         } catch (\Exception $e) {
             Log::error('Offer list error', [

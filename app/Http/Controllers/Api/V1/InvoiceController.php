@@ -31,7 +31,8 @@ class InvoiceController extends BaseApiController
             new OA\Parameter(name: 'from_date', in: 'query', schema: new OA\Schema(type: 'string', format: 'date'), description: 'Filter invoices generated from this date'),
             new OA\Parameter(name: 'to_date', in: 'query', schema: new OA\Schema(type: 'string', format: 'date'), description: 'Filter invoices generated until this date'),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
-            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15)),
+            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15), description: 'Items per page. Use "all" for no pagination.'),
+            new OA\Parameter(name: 'paginate', in: 'query', schema: new OA\Schema(type: 'string', enum: ['true', 'false']), description: 'Use "false" to get all results without pagination'),
         ],
         responses: [
             new OA\Response(response: 200, description: 'Invoices retrieved successfully'),
@@ -76,21 +77,18 @@ class InvoiceController extends BaseApiController
                 $query->whereDate('generated_at', '<=', $request->to_date);
             }
 
-            $invoices = $query->latest('generated_at')->paginate($request->get('per_page', 15));
+            [$invoices, $pagination] = $this->paginateOrAll($query->latest('generated_at'), $request);
 
-            return InvoiceResource::collection($invoices->items())
-                ->additional([
-                    'success' => true,
-                    'message' => 'Invoices retrieved successfully',
-                    'pagination' => [
-                        'current_page' => $invoices->currentPage(),
-                        'per_page' => $invoices->perPage(),
-                        'total' => $invoices->total(),
-                        'last_page' => $invoices->lastPage(),
-                        'from' => $invoices->firstItem(),
-                        'to' => $invoices->lastItem(),
-                    ],
-                ])
+            $additional = [
+                'success' => true,
+                'message' => 'Invoices retrieved successfully',
+            ];
+            if ($pagination !== null) {
+                $additional['pagination'] = $pagination;
+            }
+
+            return InvoiceResource::collection($invoices)
+                ->additional($additional)
                 ->response();
         } catch (\Exception $e) {
             Log::error('Invoice list error', [

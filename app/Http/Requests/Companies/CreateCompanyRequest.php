@@ -17,6 +17,7 @@ class CreateCompanyRequest extends BaseFormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:2000'],
             'type' => ['required', 'string', Rule::in(CompanyType::all())],
             'email' => ['nullable', 'string', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],

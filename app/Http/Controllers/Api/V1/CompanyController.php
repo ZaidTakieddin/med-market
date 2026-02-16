@@ -31,7 +31,8 @@ class CompanyController extends BaseApiController
                 new OA\Parameter(name: 'manufacturer_id', in: 'query', schema: new OA\Schema(type: 'integer'), description: 'Filter suppliers by manufacturer ID'),
                 new OA\Parameter(name: 'search', in: 'query', schema: new OA\Schema(type: 'string'), description: 'Search in company name, email, or associated category/manufacturer names'),
                 new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
-                new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15)),
+                new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15), description: 'Items per page. Use "all" for no pagination.'),
+                new OA\Parameter(name: 'paginate', in: 'query', schema: new OA\Schema(type: 'string', enum: ['true', 'false']), description: 'Use "false" to get all results without pagination'),
             ],
             responses: [
                 new OA\Response(response: 200, description: 'Companies retrieved successfully'),
@@ -80,24 +81,21 @@ class CompanyController extends BaseApiController
                 });
             }
 
-            $companies = $query->latest()->paginate($request->get('per_page', 15));
+            [$companies, $pagination] = $this->paginateOrAll($query->latest(), $request);
 
             // Ensure relationships are loaded even after whereHas filters
-            $companies->getCollection()->load(['categories', 'manufacturers']);
+            $companies->load(['categories', 'manufacturers']);
 
-            return CompanyResource::collection($companies->items())
-                ->additional([
-                        'success' => true,
-                        'message' => 'Companies retrieved successfully',
-                        'pagination' => [
-                            'current_page' => $companies->currentPage(),
-                            'per_page' => $companies->perPage(),
-                            'total' => $companies->total(),
-                            'last_page' => $companies->lastPage(),
-                            'from' => $companies->firstItem(),
-                            'to' => $companies->lastItem(),
-                        ],
-                    ])
+            $additional = [
+                'success' => true,
+                'message' => 'Companies retrieved successfully',
+            ];
+            if ($pagination !== null) {
+                $additional['pagination'] = $pagination;
+            }
+
+            return CompanyResource::collection($companies)
+                ->additional($additional)
                 ->response();
         } catch (\Exception $e) {
             Log::error('Company list error', [
@@ -123,6 +121,7 @@ class CompanyController extends BaseApiController
                     required: ['name', 'type'],
                     properties: [
                         new OA\Property(property: 'name', type: 'string', example: 'ABC Pharmacy'),
+                        new OA\Property(property: 'description', type: 'string', nullable: true, maxLength: 2000, example: 'Leading pharmacy serving the community'),
                         new OA\Property(property: 'type', type: 'string', enum: ['supplier', 'buyer'], example: 'buyer'),
                         new OA\Property(property: 'email', type: 'string', format: 'email', nullable: true),
                         new OA\Property(property: 'phone', type: 'string', nullable: true),

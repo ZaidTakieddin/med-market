@@ -29,7 +29,8 @@ class CityController extends BaseApiController
                 new OA\Parameter(name: 'search', in: 'query', schema: new OA\Schema(type: 'string'), description: 'Search in name or description'),
                 new OA\Parameter(name: 'with_regions', in: 'query', schema: new OA\Schema(type: 'boolean'), description: 'Include regions in response'),
                 new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
-                new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15)),
+                new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15), description: 'Items per page. Use "all" for no pagination.'),
+                new OA\Parameter(name: 'paginate', in: 'query', schema: new OA\Schema(type: 'string', enum: ['true', 'false']), description: 'Use "false" to get all results without pagination'),
             ],
             responses: [
                 new OA\Response(response: 200, description: 'Cities retrieved successfully'),
@@ -59,21 +60,21 @@ class CityController extends BaseApiController
                 });
             }
 
-            $cities = $query->orderBy('sort_order')->orderBy('name')->paginate($request->get('per_page', 15));
+            [$cities, $pagination] = $this->paginateOrAll(
+                $query->orderBy('sort_order')->orderBy('name'),
+                $request
+            );
 
-            return CityResource::collection($cities->items())
-                ->additional([
-                        'success' => true,
-                        'message' => 'Cities retrieved successfully',
-                        'pagination' => [
-                            'current_page' => $cities->currentPage(),
-                            'per_page' => $cities->perPage(),
-                            'total' => $cities->total(),
-                            'last_page' => $cities->lastPage(),
-                            'from' => $cities->firstItem(),
-                            'to' => $cities->lastItem(),
-                        ],
-                    ])
+            $additional = [
+                'success' => true,
+                'message' => 'Cities retrieved successfully',
+            ];
+            if ($pagination !== null) {
+                $additional['pagination'] = $pagination;
+            }
+
+            return CityResource::collection($cities)
+                ->additional($additional)
                 ->response();
         } catch (\Exception $e) {
             Log::error('City list error', [

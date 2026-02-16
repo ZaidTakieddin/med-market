@@ -48,7 +48,8 @@ class OrderController extends BaseApiController
             new OA\Parameter(name: 'from_date', in: 'query', schema: new OA\Schema(type: 'string', format: 'date'), description: 'Filter orders created from this date (YYYY-MM-DD)'),
             new OA\Parameter(name: 'to_date', in: 'query', schema: new OA\Schema(type: 'string', format: 'date'), description: 'Filter orders created up to this date (YYYY-MM-DD)'),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
-            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15)),
+            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15), description: 'Items per page. Use "all" for no pagination.'),
+            new OA\Parameter(name: 'paginate', in: 'query', schema: new OA\Schema(type: 'string', enum: ['true', 'false']), description: 'Use "false" to get all results without pagination'),
         ],
         responses: [
             new OA\Response(
@@ -126,21 +127,18 @@ class OrderController extends BaseApiController
                 $query->where('created_at', '<=', $toDate);
             }
 
-            $orders = $query->latest()->paginate($request->get('per_page', 15));
+            [$orders, $pagination] = $this->paginateOrAll($query->latest(), $request);
 
-            return OrderResource::collection($orders->items())
-                ->additional([
-                    'success' => true,
-                    'message' => 'Orders retrieved successfully',
-                    'pagination' => [
-                        'current_page' => $orders->currentPage(),
-                        'per_page' => $orders->perPage(),
-                        'total' => $orders->total(),
-                        'last_page' => $orders->lastPage(),
-                        'from' => $orders->firstItem(),
-                        'to' => $orders->lastItem(),
-                    ],
-                ])
+            $additional = [
+                'success' => true,
+                'message' => 'Orders retrieved successfully',
+            ];
+            if ($pagination !== null) {
+                $additional['pagination'] = $pagination;
+            }
+
+            return OrderResource::collection($orders)
+                ->additional($additional)
                 ->response();
         } catch (\Exception $e) {
             Log::error('Order list error', [

@@ -30,7 +30,8 @@ class RegionController extends BaseApiController
                 new OA\Parameter(name: 'search', in: 'query', schema: new OA\Schema(type: 'string'), description: 'Search in name or description'),
                 new OA\Parameter(name: 'with_city', in: 'query', schema: new OA\Schema(type: 'boolean'), description: 'Include city in response'),
                 new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
-                new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15)),
+                new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15), description: 'Items per page. Use "all" for no pagination.'),
+                new OA\Parameter(name: 'paginate', in: 'query', schema: new OA\Schema(type: 'string', enum: ['true', 'false']), description: 'Use "false" to get all results without pagination'),
             ],
             responses: [
                 new OA\Response(response: 200, description: 'Regions retrieved successfully'),
@@ -65,21 +66,21 @@ class RegionController extends BaseApiController
                 });
             }
 
-            $regions = $query->orderBy('sort_order')->orderBy('name')->paginate($request->get('per_page', 15));
+            [$regions, $pagination] = $this->paginateOrAll(
+                $query->orderBy('sort_order')->orderBy('name'),
+                $request
+            );
 
-            return RegionResource::collection($regions->items())
-                ->additional([
-                        'success' => true,
-                        'message' => 'Regions retrieved successfully',
-                        'pagination' => [
-                            'current_page' => $regions->currentPage(),
-                            'per_page' => $regions->perPage(),
-                            'total' => $regions->total(),
-                            'last_page' => $regions->lastPage(),
-                            'from' => $regions->firstItem(),
-                            'to' => $regions->lastItem(),
-                        ],
-                    ])
+            $additional = [
+                'success' => true,
+                'message' => 'Regions retrieved successfully',
+            ];
+            if ($pagination !== null) {
+                $additional['pagination'] = $pagination;
+            }
+
+            return RegionResource::collection($regions)
+                ->additional($additional)
                 ->response();
         } catch (\Exception $e) {
             Log::error('Region list error', [

@@ -988,9 +988,22 @@
                     {
                         "name": "per_page",
                         "in": "query",
+                        "description": "Items per page. Use \"all\" for no pagination.",
                         "schema": {
                             "type": "integer",
                             "default": 15
+                        }
+                    },
+                    {
+                        "name": "paginate",
+                        "in": "query",
+                        "description": "Use \"false\" to get all results without pagination",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "true",
+                                "false"
+                            ]
                         }
                     }
                 ],
@@ -1257,9 +1270,22 @@
                     {
                         "name": "per_page",
                         "in": "query",
+                        "description": "Items per page. Use \"all\" for no pagination.",
                         "schema": {
                             "type": "integer",
                             "default": 15
+                        }
+                    },
+                    {
+                        "name": "paginate",
+                        "in": "query",
+                        "description": "Use \"false\" to get all results without pagination",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "true",
+                                "false"
+                            ]
                         }
                     }
                 ],
@@ -1552,9 +1578,22 @@
                     {
                         "name": "per_page",
                         "in": "query",
+                        "description": "Items per page. Use \"all\" for no pagination.",
                         "schema": {
                             "type": "integer",
                             "default": 15
+                        }
+                    },
+                    {
+                        "name": "paginate",
+                        "in": "query",
+                        "description": "Use \"false\" to get all results without pagination",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "true",
+                                "false"
+                            ]
                         }
                     }
                 ],
@@ -1592,6 +1631,12 @@
                                     "name": {
                                         "type": "string",
                                         "example": "ABC Pharmacy"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "maxLength": 2000,
+                                        "example": "Leading pharmacy serving the community",
+                                        "nullable": true
                                     },
                                     "type": {
                                         "type": "string",
@@ -1885,9 +1930,22 @@
                     {
                         "name": "per_page",
                         "in": "query",
+                        "description": "Items per page. Use \"all\" for no pagination.",
                         "schema": {
                             "type": "integer",
                             "default": 15
+                        }
+                    },
+                    {
+                        "name": "paginate",
+                        "in": "query",
+                        "description": "Use \"false\" to get all results without pagination",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "true",
+                                "false"
+                            ]
                         }
                     }
                 ],
@@ -2112,9 +2170,22 @@
                     {
                         "name": "per_page",
                         "in": "query",
+                        "description": "Items per page. Use \"all\" for no pagination.",
                         "schema": {
                             "type": "integer",
                             "default": 15
+                        }
+                    },
+                    {
+                        "name": "paginate",
+                        "in": "query",
+                        "description": "Use \"false\" to get all results without pagination",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "true",
+                                "false"
+                            ]
                         }
                     }
                 ],
@@ -2368,9 +2439,22 @@
                     {
                         "name": "per_page",
                         "in": "query",
+                        "description": "Items per page. Use \"all\" for no pagination.",
                         "schema": {
                             "type": "integer",
                             "default": 15
+                        }
+                    },
+                    {
+                        "name": "paginate",
+                        "in": "query",
+                        "description": "Use \"false\" to get all results without pagination",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "true",
+                                "false"
+                            ]
                         }
                     }
                 ],
@@ -2647,9 +2731,22 @@
                     {
                         "name": "per_page",
                         "in": "query",
+                        "description": "Items per page. Use \"all\" for no pagination.",
                         "schema": {
                             "type": "integer",
                             "default": 15
+                        }
+                    },
+                    {
+                        "name": "paginate",
+                        "in": "query",
+                        "description": "Use \"false\" to get all results without pagination",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "true",
+                                "false"
+                            ]
                         }
                     }
                 ],
@@ -2955,9 +3052,22 @@
                     {
                         "name": "per_page",
                         "in": "query",
+                        "description": "Items per page. Use \"all\" for no pagination.",
                         "schema": {
                             "type": "integer",
                             "default": 15
+                        }
+                    },
+                    {
+                        "name": "paginate",
+                        "in": "query",
+                        "description": "Use \"false\" to get all results without pagination",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "true",
+                                "false"
+                            ]
                         }
                     }
                 ],
@@ -3247,9 +3357,22 @@
                     {
                         "name": "per_page",
                         "in": "query",
+                        "description": "Items per page. Use \"all\" for no pagination.",
                         "schema": {
                             "type": "integer",
                             "default": 15
+                        }
+                    },
+                    {
+                        "name": "paginate",
+                        "in": "query",
+                        "description": "Use \"false\" to get all results without pagination",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "true",
+                                "false"
+                            ]
                         }
                     }
                 ],
@@ -3774,9 +3897,22 @@
                     {
                         "name": "per_page",
                         "in": "query",
+                        "description": "Items per page. Use \"all\" for no pagination.",
                         "schema": {
                             "type": "integer",
                             "default": 15
+                        }
+                    },
+                    {
+                        "name": "paginate",
+                        "in": "query",
+                        "description": "Use \"false\" to get all results without pagination",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "true",
+                                "false"
+                            ]
                         }
                     }
                 ],
@@ -4584,9 +4720,22 @@
                     {
                         "name": "per_page",
                         "in": "query",
+                        "description": "Items per page. Use \"all\" for no pagination.",
                         "schema": {
                             "type": "integer",
                             "default": 15
+                        }
+                    },
+                    {
+                        "name": "paginate",
+                        "in": "query",
+                        "description": "Use \"false\" to get all results without pagination",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "true",
+                                "false"
+                            ]
                         }
                     }
                 ],
@@ -4866,9 +5015,22 @@
                     {
                         "name": "per_page",
                         "in": "query",
+                        "description": "Items per page. Use \"all\" for no pagination.",
                         "schema": {
                             "type": "integer",
                             "default": 15
+                        }
+                    },
+                    {
+                        "name": "paginate",
+                        "in": "query",
+                        "description": "Use \"false\" to get all results without pagination",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "true",
+                                "false"
+                            ]
                         }
                     }
                 ],

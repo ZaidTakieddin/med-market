@@ -31,7 +31,8 @@ class DriverController extends BaseApiController
         security: [['sanctum' => []]],
         parameters: [
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
-            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15)),
+            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15), description: 'Items per page. Use "all" for no pagination.'),
+            new OA\Parameter(name: 'paginate', in: 'query', schema: new OA\Schema(type: 'string', enum: ['true', 'false']), description: 'Use "false" to get all results without pagination'),
         ],
         responses: [
             new OA\Response(response: 200, description: 'Drivers retrieved successfully'),
@@ -55,23 +56,21 @@ class DriverController extends BaseApiController
                 $query->where('company_id', $user->company_id);
             }
 
-            $drivers = $query->with('company')
-                ->latest()
-                ->paginate($request->get('per_page', 15));
+            [$drivers, $pagination] = $this->paginateOrAll(
+                $query->with('company')->latest(),
+                $request
+            );
 
-            return UserResource::collection($drivers->items())
-                ->additional([
-                    'success' => true,
-                    'message' => 'Drivers retrieved successfully',
-                    'pagination' => [
-                        'current_page' => $drivers->currentPage(),
-                        'per_page' => $drivers->perPage(),
-                        'total' => $drivers->total(),
-                        'last_page' => $drivers->lastPage(),
-                        'from' => $drivers->firstItem(),
-                        'to' => $drivers->lastItem(),
-                    ],
-                ])
+            $additional = [
+                'success' => true,
+                'message' => 'Drivers retrieved successfully',
+            ];
+            if ($pagination !== null) {
+                $additional['pagination'] = $pagination;
+            }
+
+            return UserResource::collection($drivers)
+                ->additional($additional)
                 ->response();
         } catch (\Exception $e) {
             Log::error('Driver list error', [
@@ -281,7 +280,8 @@ class DriverController extends BaseApiController
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
             new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
-            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15)),
+            new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15), description: 'Items per page. Use "all" for no pagination.'),
+            new OA\Parameter(name: 'paginate', in: 'query', schema: new OA\Schema(type: 'string', enum: ['true', 'false']), description: 'Use "false" to get all results without pagination'),
         ],
         responses: [
             new OA\Response(response: 200, description: 'Orders retrieved successfully'),
@@ -315,21 +315,18 @@ class DriverController extends BaseApiController
                 $query->where('status', $request->status);
             }
 
-            $orders = $query->latest()->paginate($request->get('per_page', 15));
+            [$orders, $pagination] = $this->paginateOrAll($query->latest(), $request);
 
-            return OrderResource::collection($orders->items())
-                ->additional([
-                    'success' => true,
-                    'message' => 'Driver orders retrieved successfully',
-                    'pagination' => [
-                        'current_page' => $orders->currentPage(),
-                        'per_page' => $orders->perPage(),
-                        'total' => $orders->total(),
-                        'last_page' => $orders->lastPage(),
-                        'from' => $orders->firstItem(),
-                        'to' => $orders->lastItem(),
-                    ],
-                ])
+            $additional = [
+                'success' => true,
+                'message' => 'Driver orders retrieved successfully',
+            ];
+            if ($pagination !== null) {
+                $additional['pagination'] = $pagination;
+            }
+
+            return OrderResource::collection($orders)
+                ->additional($additional)
                 ->response();
         } catch (\Exception $e) {
             Log::error('Get driver orders error', [
