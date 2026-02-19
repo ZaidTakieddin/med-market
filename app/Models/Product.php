@@ -139,20 +139,11 @@ class Product extends Model
     }
 
     /**
-     * Calculate the final price after discount for customers.
+     * Get the final price for end customers.
+     * Product discount applies to pharmacist price only; customer price is returned as-is.
      */
     public function getFinalCustomerPrice(): float
     {
-        $price = $this->getEffectiveCustomerPrice();
-        
-        if ($this->discount && $this->discount_type) {
-            if ($this->discount_type === 'percentage') {
-                return $price * (1 - ($this->discount / 100));
-            } else {
-                return max(0, $price - $this->discount);
-            }
-        }
-        
-        return $price;
+        return (float) $this->getEffectiveCustomerPrice();
     }
 }

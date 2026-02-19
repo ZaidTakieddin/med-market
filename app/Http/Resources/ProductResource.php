@@ -41,6 +41,12 @@ class ProductResource extends JsonResource
             })->toArray();
         }
 
+        // Discount applies to pharmacist price only; show discounted price when discount exists
+        $pharmacistPrice = $this->pharmacist_price ? (float) $this->pharmacist_price : null;
+        $pharmacistPriceAfterDiscount = ($this->discount && $this->discount_type && $pharmacistPrice !== null)
+            ? (float) $this->resource->getFinalPharmacistPrice()
+            : null;
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -50,11 +56,11 @@ class ProductResource extends JsonResource
             'sku' => $this->sku,
             'barcode' => $this->barcode,
             'unit' => $this->unit,
-            'price' => $this->price ? (float) $this->price : null, // Legacy field
-            'pharmacistPrice' => $this->pharmacist_price ? (float) $this->pharmacist_price : null,
+            'pharmacistPrice' => $pharmacistPrice,
             'customerPrice' => $this->customer_price ? (float) $this->customer_price : null,
             'discount' => $this->discount ? (float) $this->discount : null,
             'discountType' => $this->discount_type,
+            'pharmacistPriceAfterDiscount' => $pharmacistPriceAfterDiscount,
             'stockQuantity' => $this->stock_quantity,
             'minStockLevel' => $this->min_stock_level,
             'isActive' => $this->is_active,

@@ -135,7 +135,7 @@ class ProductController extends BaseApiController
             requestBody: new OA\RequestBody(
                 required: true,
                 content: new OA\JsonContent(
-                    required: ['name', 'sku'],
+                    required: ['name', 'sku', 'pharmacist_price'],
                     properties: [
                         new OA\Property(property: 'name', type: 'string', example: 'Paracetamol 500mg'),
                         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Pain reliever and fever reducer'),
@@ -144,10 +144,9 @@ class ProductController extends BaseApiController
                         new OA\Property(property: 'sku', type: 'string', example: 'PAR-500-001'),
                         new OA\Property(property: 'barcode', type: 'string', nullable: true, example: '1234567890123'),
                         new OA\Property(property: 'unit', type: 'string', default: 'piece', example: 'box', enum: ['piece', 'box', 'bottle', 'pack', 'carton']),
-                        new OA\Property(property: 'price', type: 'number', format: 'float', nullable: true, description: 'Legacy field - kept for backward compatibility. Use pharmacist_price instead.', example: 25.50),
-                        new OA\Property(property: 'pharmacist_price', type: 'number', format: 'float', description: 'Selling price for pharmacists/buyers. Required if price is not provided.', example: 25.50),
+                        new OA\Property(property: 'pharmacist_price', type: 'number', format: 'float', description: 'Selling price for pharmacists/buyers. Discount applies to this price.', example: 25.50),
                         new OA\Property(property: 'customer_price', type: 'number', format: 'float', nullable: true, description: 'Selling price for end customers', example: 30.00),
-                        new OA\Property(property: 'discount', type: 'number', format: 'float', nullable: true, description: 'Discount amount (percentage or fixed based on discount_type)', example: 10.00),
+                        new OA\Property(property: 'discount', type: 'number', format: 'float', nullable: true, description: 'Discount applied to pharmacist price (percentage or fixed based on discount_type)', example: 10.00),
                         new OA\Property(property: 'discount_type', type: 'string', nullable: true, enum: ['percentage', 'fixed'], description: 'Type of discount: percentage or fixed amount', example: 'percentage'),
                         new OA\Property(property: 'stock_quantity', type: 'integer', default: 0, example: 100),
                         new OA\Property(property: 'min_stock_level', type: 'integer', default: 0, example: 10),
@@ -171,10 +170,6 @@ class ProductController extends BaseApiController
             return $this->error('Only suppliers can create products', null, 403);
         }
 
-        // Handle pricing: use pharmacist_price if provided, otherwise fall back to price
-        $pharmacistPrice = $request->pharmacist_price ?? $request->price;
-        $price = $request->price ?? $pharmacistPrice; // Legacy field
-
         $product = Product::create([
             'supplier_company_id' => $user->company_id,
             'name' => $request->name,
@@ -184,8 +179,7 @@ class ProductController extends BaseApiController
             'sku' => $request->sku,
             'barcode' => $request->barcode,
             'unit' => $request->unit ?? 'piece',
-            'price' => $price,
-            'pharmacist_price' => $pharmacistPrice,
+            'pharmacist_price' => $request->pharmacist_price,
             'customer_price' => $request->customer_price,
             'discount' => $request->discount,
             'discount_type' => $request->discount_type,
@@ -235,9 +229,10 @@ class ProductController extends BaseApiController
                                             new OA\Property(property: 'category', type: 'object', nullable: true, description: 'Category object with id and name'),
                                             new OA\Property(property: 'manufacturer', type: 'object', nullable: true, description: 'Manufacturer object with id and name'),
                                             new OA\Property(property: 'sku', type: 'string', example: 'PAR-500-001'),
-                                            new OA\Property(property: 'pharmacist_price', type: 'number', format: 'float', example: 25.50),
-                                            new OA\Property(property: 'customer_price', type: 'number', format: 'float', nullable: true, example: 30.00),
+                                            new OA\Property(property: 'pharmacistPrice', type: 'number', format: 'float', example: 25.50),
+                                            new OA\Property(property: 'customerPrice', type: 'number', format: 'float', nullable: true, example: 30.00),
                                             new OA\Property(property: 'discount', type: 'number', format: 'float', nullable: true, example: 10.00),
+                                            new OA\Property(property: 'pharmacistPriceAfterDiscount', type: 'number', format: 'float', nullable: true, description: 'Pharmacist price after discount (only when discount exists)', example: 22.95),
                                             new OA\Property(property: 'discount_type', type: 'string', nullable: true, example: 'percentage', enum: ['percentage', 'fixed']),
                                             new OA\Property(property: 'stock_quantity', type: 'integer', example: 100),
                                             new OA\Property(property: 'is_active', type: 'boolean', example: true),
@@ -324,10 +319,9 @@ class ProductController extends BaseApiController
                         new OA\Property(property: 'sku', type: 'string', example: 'PAR-500-001'),
                         new OA\Property(property: 'barcode', type: 'string', nullable: true, example: '1234567890123'),
                         new OA\Property(property: 'unit', type: 'string', example: 'box', enum: ['piece', 'box', 'bottle', 'pack', 'carton']),
-                        new OA\Property(property: 'price', type: 'number', format: 'float', nullable: true, description: 'Legacy field - kept for backward compatibility'),
-                        new OA\Property(property: 'pharmacist_price', type: 'number', format: 'float', nullable: true, description: 'Selling price for pharmacists/buyers', example: 25.50),
+                        new OA\Property(property: 'pharmacist_price', type: 'number', format: 'float', nullable: true, description: 'Selling price for pharmacists/buyers (discount applies to this)', example: 25.50),
                         new OA\Property(property: 'customer_price', type: 'number', format: 'float', nullable: true, description: 'Selling price for end customers', example: 30.00),
-                        new OA\Property(property: 'discount', type: 'number', format: 'float', nullable: true, description: 'Discount amount (percentage or fixed based on discount_type)', example: 10.00),
+                        new OA\Property(property: 'discount', type: 'number', format: 'float', nullable: true, description: 'Discount applied to pharmacist price', example: 10.00),
                         new OA\Property(property: 'discount_type', type: 'string', nullable: true, enum: ['percentage', 'fixed'], description: 'Type of discount: percentage or fixed amount', example: 'percentage'),
                         new OA\Property(property: 'stock_quantity', type: 'integer', nullable: true, example: 100),
                         new OA\Property(property: 'min_stock_level', type: 'integer', nullable: true, example: 10),

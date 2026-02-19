@@ -25,7 +25,6 @@ class UpdateProductRequest extends BaseFormRequest
             'sku' => ['sometimes', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($productId)],
             'barcode' => ['nullable', 'string', 'max:100'],
             'unit' => ['sometimes', 'string', 'max:50', Rule::in(['piece', 'box', 'bottle', 'pack', 'carton'])],
-            'price' => ['sometimes', 'numeric', 'min:0'], // Legacy
             'pharmacist_price' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'customer_price' => ['nullable', 'numeric', 'min:0'],
             'discount' => ['nullable', 'numeric', 'min:0'],
