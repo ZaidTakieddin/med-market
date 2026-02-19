@@ -20,16 +20,16 @@ Products contain:
 ### Dual Pricing System
 
 Products support two pricing tiers:
-- **Pharmacist Price** (`pharmacist_price`) - Price for pharmacies/buyers
-- **Customer Price** (`customer_price`) - Price for end customers
-- **Legacy Price** (`price`) - Kept for backward compatibility
+- **Pharmacist Price** (`pharmacist_price`) - Price for pharmacies/buyers (required)
+- **Customer Price** (`customer_price`) - Price for end customers (optional)
 
 ### Discount System
 
-Products can have discounts:
+Products can have discounts applied to the pharmacist price only:
 - **Discount Type**: `percentage` or `fixed`
 - **Discount Value**: Amount or percentage
-- **Effective Price**: Calculated automatically based on discount
+- **pharmacistPriceAfterDiscount**: Returned in API when discount exists (calculated price after discount)
+- Customer price is returned as-is; product discount does not apply to it
 
 ### Categories and Manufacturers
 
@@ -48,16 +48,16 @@ Products are organized by categories and manufacturers, both managed by admins:
 ### Price Calculation Methods
 
 ```php
-// Get effective pharmacist price (with fallback to legacy price)
+// Get effective pharmacist price
 $price = $product->getEffectivePharmacistPrice();
 
 // Get effective customer price (with fallback chain)
 $price = $product->getEffectiveCustomerPrice();
 
-// Get final pharmacist price (after discount)
+// Get final pharmacist price (after product discount - discount targets pharmacist only)
 $finalPrice = $product->getFinalPharmacistPrice();
 
-// Get final customer price (after discount)
+// Get final customer price (product discount does not apply; returns effective price as-is)
 $finalPrice = $product->getFinalCustomerPrice();
 ```
 
@@ -77,7 +77,7 @@ if ($product->isLowStock()) {
 - `manufacturer()` - Belongs to manufacturer (admin-managed)
 - `orderItems()` - Has many order items
 - `stockMovements()` - Has many stock movements
-- `offers()` - Belongs to many offers (with pivot data)
+- `offers()` - Belongs to many offers (with pivot: quantity_required, quantity_free, discount_override)
 
 ## Current Implementation
 
@@ -175,8 +175,11 @@ Products participate in offers:
 - Products include active offers in API responses (`offers` array)
 - Offers affect product pricing in cart (automatically applied via `CartOfferService`)
 - Offer eligibility is checked per product based on quantity requirements
+- **Offer types** (offerType encodes discount type; no separate discountType): `buy_x_get_y`, `percentage_discount`, `fixed_discount`, `bundle_percentage`, `bundle_fixed`
 - All offer types require `quantity_required` (minimum quantity to qualify)
-- Product-specific offer overrides available via pivot table (`discount_override`, `quantity_required`, etc.)
+- Product-specific overrides via pivot: `discount_override`, `quantity_required`, `quantity_free`
+- **end_date** is optional—when omitted, offer has no time limit (active indefinitely after start_date)
+- **is_active** controls whether offer is enabled
 
 ### With Cart Management
 
@@ -196,15 +199,16 @@ Products are added to carts:
 1. **Product Creation**:
    - SKU must be unique
    - Supplier must exist
-   - Either `price` or `pharmacist_price` is required
+   - `pharmacist_price` is required
    - `category_id` must reference an existing category (if provided)
    - `manufacturer_id` must reference an existing manufacturer (if provided)
    - Categories and manufacturers are admin-managed (suppliers select from predefined lists)
 
 2. **Pricing**:
-   - Pharmacist price is primary pricing for B2B
+   - Pharmacist price is primary pricing for B2B (required)
    - Customer price is optional (for B2C scenarios)
-   - Discounts are applied to effective prices
+   - Product discount applies to pharmacist price only; customer price is returned as-is
+   - API returns `pharmacistPriceAfterDiscount` when discount exists
 
 3. **Stock Management**:
    - Stock cannot go negative

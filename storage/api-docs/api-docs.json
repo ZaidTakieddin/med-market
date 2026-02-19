@@ -3030,13 +3030,15 @@
                                 "buy_x_get_y",
                                 "percentage_discount",
                                 "fixed_discount",
-                                "bundle"
+                                "bundle_percentage",
+                                "bundle_fixed"
                             ]
                         }
                     },
                     {
                         "name": "is_active",
                         "in": "query",
+                        "description": "Filter by active status",
                         "schema": {
                             "type": "boolean"
                         }
@@ -3101,7 +3103,6 @@
                                     "name",
                                     "offer_type",
                                     "start_date",
-                                    "end_date",
                                     "product_ids"
                                 ],
                                 "properties": {
@@ -3144,8 +3145,15 @@
                                         "format": "date-time"
                                     },
                                     "end_date": {
+                                        "description": "Optional. When omitted, offer has no time limit (active indefinitely after start_date)",
                                         "type": "string",
-                                        "format": "date-time"
+                                        "format": "date-time",
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "description": "Whether the offer is active. Defaults to true.",
+                                        "type": "boolean",
+                                        "default": true
                                     },
                                     "product_ids": {
                                         "type": "array",
@@ -3229,6 +3237,67 @@
                         }
                     }
                 ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "description": "All fields are optional. Only include fields to update.",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Buy 2 Get 1 Free"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Special promotion"
+                                    },
+                                    "offer_type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "buy_x_get_y",
+                                            "percentage_discount",
+                                            "fixed_discount",
+                                            "bundle_percentage",
+                                            "bundle_fixed"
+                                        ]
+                                    },
+                                    "discount_value": {
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "quantity_required": {
+                                        "type": "integer"
+                                    },
+                                    "quantity_free": {
+                                        "type": "integer"
+                                    },
+                                    "start_date": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "end_date": {
+                                        "description": "Optional. When null, offer has no time limit (active indefinitely after start_date)",
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "description": "Whether the offer is active",
+                                        "type": "boolean"
+                                    },
+                                    "product_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Offer updated successfully"
@@ -3952,7 +4021,8 @@
                             "schema": {
                                 "required": [
                                     "name",
-                                    "sku"
+                                    "sku",
+                                    "pharmacist_price"
                                 ],
                                 "properties": {
                                     "name": {
@@ -3997,15 +4067,8 @@
                                         ],
                                         "example": "box"
                                     },
-                                    "price": {
-                                        "description": "Legacy field - kept for backward compatibility. Use pharmacist_price instead.",
-                                        "type": "number",
-                                        "format": "float",
-                                        "example": 25.5,
-                                        "nullable": true
-                                    },
                                     "pharmacist_price": {
-                                        "description": "Selling price for pharmacists/buyers. Required if price is not provided.",
+                                        "description": "Selling price for pharmacists/buyers. Discount applies to this price.",
                                         "type": "number",
                                         "format": "float",
                                         "example": 25.5
@@ -4018,7 +4081,7 @@
                                         "nullable": true
                                     },
                                     "discount": {
-                                        "description": "Discount amount (percentage or fixed based on discount_type)",
+                                        "description": "Discount applied to pharmacist price (percentage or fixed based on discount_type)",
                                         "type": "number",
                                         "format": "float",
                                         "example": 10,
@@ -4139,12 +4202,12 @@
                                                             "type": "string",
                                                             "example": "PAR-500-001"
                                                         },
-                                                        "pharmacist_price": {
+                                                        "pharmacistPrice": {
                                                             "type": "number",
                                                             "format": "float",
                                                             "example": 25.5
                                                         },
-                                                        "customer_price": {
+                                                        "customerPrice": {
                                                             "type": "number",
                                                             "format": "float",
                                                             "example": 30,
@@ -4154,6 +4217,13 @@
                                                             "type": "number",
                                                             "format": "float",
                                                             "example": 10,
+                                                            "nullable": true
+                                                        },
+                                                        "pharmacistPriceAfterDiscount": {
+                                                            "description": "Pharmacist price after discount (only when discount exists)",
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 22.95,
                                                             "nullable": true
                                                         },
                                                         "discount_type": {
@@ -4199,10 +4269,6 @@
                                                                         "format": "float",
                                                                         "nullable": true
                                                                     },
-                                                                    "discountType": {
-                                                                        "type": "string",
-                                                                        "nullable": true
-                                                                    },
                                                                     "quantityRequired": {
                                                                         "type": "integer",
                                                                         "nullable": true
@@ -4239,10 +4305,6 @@
                                                                             "discountOverride": {
                                                                                 "type": "number",
                                                                                 "format": "float",
-                                                                                "nullable": true
-                                                                            },
-                                                                            "discountTypeOverride": {
-                                                                                "type": "string",
                                                                                 "nullable": true
                                                                             }
                                                                         },
@@ -4341,14 +4403,8 @@
                                         ],
                                         "example": "box"
                                     },
-                                    "price": {
-                                        "description": "Legacy field - kept for backward compatibility",
-                                        "type": "number",
-                                        "format": "float",
-                                        "nullable": true
-                                    },
                                     "pharmacist_price": {
-                                        "description": "Selling price for pharmacists/buyers",
+                                        "description": "Selling price for pharmacists/buyers (discount applies to this)",
                                         "type": "number",
                                         "format": "float",
                                         "example": 25.5,
@@ -4362,7 +4418,7 @@
                                         "nullable": true
                                     },
                                     "discount": {
-                                        "description": "Discount amount (percentage or fixed based on discount_type)",
+                                        "description": "Discount applied to pharmacist price",
                                         "type": "number",
                                         "format": "float",
                                         "example": 10,

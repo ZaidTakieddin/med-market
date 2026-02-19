@@ -142,7 +142,24 @@ app/
 - `?is_active=true` - Filter by active status
 - `?search=term` - Search in name, SKU, description, category name, or manufacturer name
 
-**Note**: Products use `category_id` and `manufacturer_id` (foreign keys to admin-managed categories and manufacturers).
+**Note**: Products use `category_id` and `manufacturer_id` (foreign keys to admin-managed categories and manufacturers). Products have two prices: `pharmacistPrice` (required) and `customerPrice` (optional). Product discount applies to pharmacist price only; `pharmacistPriceAfterDiscount` is returned when a discount exists.
+
+### Offers (`/api/v1/offers`)
+
+| Method | Endpoint         | Description         | Auth Required | Role     |
+| ------ | ---------------- | ------------------- | ------------- | -------- |
+| GET    | `/offers`        | List offers         | Yes           | All      |
+| POST   | `/offers`        | Create offer        | Yes           | Supplier |
+| GET    | `/offers/{id}`   | Get offer details   | Yes           | All      |
+| PUT    | `/offers/{id}`   | Update offer        | Yes           | Supplier |
+| DELETE | `/offers/{id}`   | Delete offer        | Yes           | Supplier |
+
+**Offer types** (offerType encodes discount; no separate discountType): `buy_x_get_y`, `percentage_discount`, `fixed_discount`, `bundle_percentage`, `bundle_fixed`. **end_date** is optional (omit for unlimited offers). **is_active** controls whether the offer is enabled.
+
+**Filtering Options:**
+- `?supplier_company_id=1` - Filter by supplier
+- `?offer_type=percentage_discount` - Filter by offer type
+- `?is_active=true` - Filter by active status
 
 ### Stock Management (`/api/v1/products/{id}/stock`)
 

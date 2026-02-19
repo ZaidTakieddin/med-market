@@ -217,7 +217,7 @@
     -   [x] Buy X Get Y offers
     -   [x] Percentage discount offers
     -   [x] Fixed discount offers
-    -   [x] Bundle offers
+    -   [x] Bundle offers (bundle_percentage, bundle_fixed)
     -   [x] Associates offers with products
 -   [x] OrderSeeder - Seeds sample orders with Arabic notes
 -   [x] CitySeeder - Seeds cities (Damascus, Aleppo, Homs, etc.) with Arabic names
@@ -300,7 +300,7 @@ _Currently no tasks in progress_
     -   [x] Updated with discount and discount_type fields
     -   [x] Idempotent seeding (updateOrCreate based on SKU)
 -   [x] OfferSeeder - Seed offers/promotions with Arabic names
-    -   [x] Creates various offer types (Buy X Get Y, percentage discount, fixed discount, bundle)
+    -   [x] Creates various offer types (buy_x_get_y, percentage_discount, fixed_discount, bundle_percentage, bundle_fixed)
     -   [x] Associates offers with products
     -   [x] Sets active date ranges
 -   [x] OrderSeeder - Seed sample orders with Arabic notes
@@ -559,9 +559,12 @@ _Currently no tasks in progress_
 
 4. **Discount System** ✅
     - [x] Add `discount` field (discount amount/percentage)
-    - [x] Add `discount_type` field (enum: 'percentage', 'fixed')
+    - [x] Add `discount_type` field (enum: 'percentage', 'fixed') - applies to pharmacist price only
     - [x] Update Product model and validation
     - [x] Calculate effective price based on discount (getFinalPharmacistPrice, getFinalCustomerPrice methods)
+    - [x] Product discount targets pharmacist price only; customer price returned as-is
+    - [x] pharmacistPriceAfterDiscount in API when discount exists
+    - [x] Removed legacy `price` field; pharmacist_price required
     - [x] Update product endpoints
     - [x] Update Swagger documentation
 
@@ -572,11 +575,14 @@ _Currently no tasks in progress_
     - [x] Create `offer_products` pivot table
     - [x] Create Offer model with relationships
     - [x] Create OfferController with CRUD endpoints
-    - [x] Support offer types:
-        - Buy X Get Y Free
-        - Percentage discount
-        - Fixed amount discount
-        - Bundle offers
+    - [x] Support offer types (offerType encodes discount; no separate discountType):
+        - buy_x_get_y
+        - percentage_discount
+        - fixed_discount
+        - bundle_percentage
+        - bundle_fixed
+    - [x] end_date optional (omit for unlimited offers)
+    - [x] is_active field for offer enable/disable
     - [x] Offer validation (dates, active status)
     - [x] **All offer types require `quantity_required` field** (minimum quantity to qualify)
     - [x] Authorization (suppliers can only manage their offers)
