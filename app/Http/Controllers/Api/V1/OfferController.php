@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Constants\DiscountType;
 use App\Constants\OfferType;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Offers\CreateOfferRequest;
@@ -33,7 +32,7 @@ class OfferController extends BaseApiController
                 in: 'query',
                 schema: new OA\Schema(
                     type: 'string',
-                    enum: ['buy_x_get_y', 'percentage_discount', 'fixed_discount', 'bundle']
+                    enum: ['buy_x_get_y', 'percentage_discount', 'fixed_discount', 'bundle_percentage', 'bundle_fixed']
                 )
             ),
             new OA\Parameter(name: 'is_active', in: 'query', schema: new OA\Schema(type: 'boolean'), description: 'Filter by active status'),
@@ -154,7 +153,6 @@ class OfferController extends BaseApiController
                 'description' => $request->description,
                 'offer_type' => $request->offer_type,
                 'discount_value' => $request->discount_value,
-                'discount_type' => $request->discount_type,
                 'quantity_required' => $request->quantity_required,
                 'quantity_free' => $request->quantity_free,
                 'start_date' => $request->start_date,
@@ -235,9 +233,8 @@ class OfferController extends BaseApiController
                 properties: [
                     new OA\Property(property: 'name', type: 'string', example: 'Buy 2 Get 1 Free'),
                     new OA\Property(property: 'description', type: 'string', example: 'Special promotion'),
-                    new OA\Property(property: 'offer_type', type: 'string', enum: ['buy_x_get_y', 'percentage_discount', 'fixed_discount', 'bundle']),
+                    new OA\Property(property: 'offer_type', type: 'string', enum: ['buy_x_get_y', 'percentage_discount', 'fixed_discount', 'bundle_percentage', 'bundle_fixed']),
                     new OA\Property(property: 'discount_value', type: 'number', format: 'float'),
-                    new OA\Property(property: 'discount_type', type: 'string', enum: ['percentage', 'fixed']),
                     new OA\Property(property: 'quantity_required', type: 'integer'),
                     new OA\Property(property: 'quantity_free', type: 'integer'),
                     new OA\Property(property: 'start_date', type: 'string', format: 'date-time'),

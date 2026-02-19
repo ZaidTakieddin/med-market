@@ -254,7 +254,6 @@ class ProductController extends BaseApiController
                                                         new OA\Property(property: 'description', type: 'string', nullable: true),
                                                         new OA\Property(property: 'offerType', type: 'string', example: 'buy_x_get_y'),
                                                         new OA\Property(property: 'discountValue', type: 'number', format: 'float', nullable: true),
-                                                        new OA\Property(property: 'discountType', type: 'string', nullable: true),
                                                         new OA\Property(property: 'quantityRequired', type: 'integer', nullable: true),
                                                         new OA\Property(property: 'quantityFree', type: 'integer', nullable: true),
                                                         new OA\Property(property: 'startDate', type: 'string', format: 'date-time'),
@@ -269,7 +268,6 @@ class ProductController extends BaseApiController
                                                                 new OA\Property(property: 'quantityRequired', type: 'integer', nullable: true),
                                                                 new OA\Property(property: 'quantityFree', type: 'integer', nullable: true),
                                                                 new OA\Property(property: 'discountOverride', type: 'number', format: 'float', nullable: true),
-                                                                new OA\Property(property: 'discountTypeOverride', type: 'string', nullable: true),
                                                             ]
                                                         ),
                                                     ]

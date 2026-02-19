@@ -21,9 +21,8 @@ return new class extends Migration
             $table->foreignId('supplier_company_id')->constrained('companies')->onDelete('cascade');
             $table->string('name');
             $table->text('description')->nullable();
-            $table->string('offer_type'); // 'buy_x_get_y', 'percentage_discount', 'fixed_discount', 'bundle'
-            $table->decimal('discount_value', 10, 2)->nullable(); // For percentage/fixed discounts
-            $table->string('discount_type')->nullable(); // 'percentage' or 'fixed'
+            $table->string('offer_type'); // buy_x_get_y, percentage_discount, fixed_discount, bundle_percentage, bundle_fixed
+            $table->decimal('discount_value', 10, 2)->nullable(); // For percentage/fixed/bundle discounts
             $table->integer('quantity_required')->nullable(); // For buy X get Y
             $table->integer('quantity_free')->nullable(); // For buy X get Y
             $table->timestamp('start_date');

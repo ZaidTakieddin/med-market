@@ -23,7 +23,6 @@ return new class extends Migration
             $table->integer('quantity_required')->nullable(); // For buy X get Y on specific product
             $table->integer('quantity_free')->nullable(); // For buy X get Y
             $table->decimal('discount_override', 10, 2)->nullable(); // Override offer discount for this product
-            $table->string('discount_type_override')->nullable(); // Override discount type
             $table->timestamps();
 
             $table->unique(['offer_id', 'product_id']);

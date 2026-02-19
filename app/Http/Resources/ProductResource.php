@@ -23,19 +23,16 @@ class ProductResource extends JsonResource
                     'description' => $offer->description,
                     'offerType' => $offer->offer_type,
                     'discountValue' => $offer->discount_value ? (float) $offer->discount_value : null,
-                    'discountType' => $offer->discount_type,
                     'quantityRequired' => $offer->quantity_required,
                     'quantityFree' => $offer->quantity_free,
                     'startDate' => $offer->start_date->toISOString(),
                     'endDate' => $offer->end_date?->toISOString(),
                     'isActive' => $offer->is_active,
                     'isCurrentlyActive' => $offer->isActive(),
-                    // Pivot data specific to this product-offer relationship
                     'pivot' => [
                         'quantityRequired' => $offer->pivot->quantity_required ?? null,
                         'quantityFree' => $offer->pivot->quantity_free ?? null,
                         'discountOverride' => $offer->pivot->discount_override ? (float) $offer->pivot->discount_override : null,
-                        'discountTypeOverride' => $offer->pivot->discount_type_override ?? null,
                     ],
                 ];
             })->toArray();

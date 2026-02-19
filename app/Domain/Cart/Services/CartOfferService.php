@@ -2,7 +2,6 @@
 
 namespace App\Domain\Cart\Services;
 
-use App\Constants\DiscountType;
 use App\Constants\OfferType;
 use App\Models\CartItem;
 use App\Models\Offer;
@@ -28,7 +27,7 @@ class CartOfferService
             ->where(function ($q) {
                 $q->whereNull('end_date')->orWhere('end_date', '>=', now());
             })
-            ->withPivot(['quantity_required', 'quantity_free', 'discount_override', 'discount_type_override'])
+            ->withPivot(['quantity_required', 'quantity_free', 'discount_override'])
             ->get();
 
         if ($offers->isEmpty()) {
@@ -86,7 +85,7 @@ class CartOfferService
             ->where(function ($q) {
                 $q->whereNull('end_date')->orWhere('end_date', '>=', now());
             })
-            ->withPivot(['quantity_required', 'quantity_free', 'discount_override', 'discount_type_override'])
+            ->withPivot(['quantity_required', 'quantity_free', 'discount_override'])
             ->get();
 
         if ($offers->isEmpty()) {
@@ -154,7 +153,8 @@ class CartOfferService
             case OfferType::FIXED_DISCOUNT:
                 return $this->calculateFixedDiscount($offer, $basePrice, $quantity, $quantityRequired);
             
-            case OfferType::BUNDLE:
+            case OfferType::BUNDLE_PERCENTAGE:
+            case OfferType::BUNDLE_FIXED:
                 return $this->calculateBundle($offer, $product, $quantity, $cartItems, $quantityRequired);
             
             default:
@@ -184,29 +184,19 @@ class CartOfferService
     }
 
     /**
-     * Calculate price for Percentage Discount offer.
+     * Calculate price for Percentage Discount offer (discount_value is always percentage).
      */
     protected function calculatePercentageDiscount(Offer $offer, float $basePrice, int $quantity, int $quantityRequired): ?array
     {
-        // Use pivot discount_override if available, otherwise use offer discount_value
         $discountValue = $offer->pivot->discount_override ?? $offer->discount_value;
-        $discountType = $offer->pivot->discount_type_override ?? $offer->discount_type;
         
-        if (!$discountValue || !$discountType) {
+        if (!$discountValue) {
             return null;
         }
 
-        // Calculate how many items qualify for discount
         $qualifiedQuantity = floor($quantity / $quantityRequired) * $quantityRequired;
         $regularQuantity = $quantity - $qualifiedQuantity;
-        
-        $discountedPrice = $basePrice;
-        if ($discountType === DiscountType::PERCENTAGE) {
-            $discountedPrice = $basePrice * (1 - ($discountValue / 100));
-        } elseif ($discountType === DiscountType::FIXED) {
-            $discountedPrice = max(0, $basePrice - $discountValue);
-        }
-        
+        $discountedPrice = $basePrice * (1 - ($discountValue / 100));
         $totalPrice = ($qualifiedQuantity * $discountedPrice) + ($regularQuantity * $basePrice);
         $unitPrice = $quantity > 0 ? $totalPrice / $quantity : $basePrice;
         
@@ -281,21 +271,17 @@ class CartOfferService
             return null;
         }
 
-        // Apply bundle discount
+        // Apply bundle discount (discount type inferred from offer_type)
         $basePrice = $product->getFinalPharmacistPrice();
         $discountValue = $offer->pivot->discount_override ?? $offer->discount_value;
-        $discountType = $offer->pivot->discount_type_override ?? $offer->discount_type;
         
-        if (!$discountValue || !$discountType) {
+        if (!$discountValue) {
             return null;
         }
 
-        $discountedPrice = $basePrice;
-        if ($discountType === DiscountType::PERCENTAGE) {
-            $discountedPrice = $basePrice * (1 - ($discountValue / 100));
-        } elseif ($discountType === DiscountType::FIXED) {
-            $discountedPrice = max(0, $basePrice - $discountValue);
-        }
+        $discountedPrice = OfferType::isPercentage($offer->offer_type)
+            ? $basePrice * (1 - ($discountValue / 100))
+            : max(0, $basePrice - $discountValue);
         
         $totalPrice = $quantity * $discountedPrice;
         $unitPrice = $discountedPrice;
@@ -325,7 +311,7 @@ class CartOfferService
             ->where(function ($q) {
                 $q->whereNull('end_date')->orWhere('end_date', '>=', now());
             })
-            ->withPivot(['quantity_required', 'quantity_free', 'discount_override', 'discount_type_override'])
+            ->withPivot(['quantity_required', 'quantity_free', 'discount_override'])
             ->first();
 
         if (!$productOffer) {

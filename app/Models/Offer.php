@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Constants\DiscountType;
 use App\Constants\OfferType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -20,7 +19,6 @@ class Offer extends Model
         'description',
         'offer_type',
         'discount_value',
-        'discount_type',
         'quantity_required',
         'quantity_free',
         'start_date',
@@ -51,7 +49,7 @@ class Offer extends Model
     public function products(): BelongsToMany
     {
         return $this->belongsToMany(Product::class, 'offer_products')
-            ->withPivot(['quantity_required', 'quantity_free', 'discount_override', 'discount_type_override'])
+            ->withPivot(['quantity_required', 'quantity_free', 'discount_override'])
             ->withTimestamps();
     }
 
@@ -81,14 +79,4 @@ class Offer extends Model
         return OfferType::isValid($this->offer_type);
     }
 
-    /**
-     * Check if discount type is valid (if applicable).
-     */
-    public function isValidDiscountType(): bool
-    {
-        if (!$this->discount_type) {
-            return true; // Not required for all offer types
-        }
-        return DiscountType::isValid($this->discount_type);
-    }
 }

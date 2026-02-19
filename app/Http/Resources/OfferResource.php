@@ -20,7 +20,6 @@ class OfferResource extends JsonResource
             'description' => $this->description,
             'offerType' => $this->offer_type,
             'discountValue' => $this->discount_value ? (float) $this->discount_value : null,
-            'discountType' => $this->discount_type,
             'quantityRequired' => $this->quantity_required,
             'quantityFree' => $this->quantity_free,
             'startDate' => $this->start_date->toISOString(),

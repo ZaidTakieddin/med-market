@@ -16,7 +16,6 @@ class OfferProduct extends Model
         'quantity_required',
         'quantity_free',
         'discount_override',
-        'discount_type_override',
     ];
 
     protected $casts = [

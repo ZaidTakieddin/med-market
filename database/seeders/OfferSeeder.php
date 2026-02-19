@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Constants\DiscountType;
 use App\Constants\OfferType;
 use App\Models\Company;
 use App\Models\Offer;
@@ -51,7 +50,6 @@ class OfferSeeder extends Seeder
                 'description' => 'عرض خاص على باراسيتامول: اشتري علبتين واحصل على علبة ثالثة مجاناً',
                 'offer_type' => OfferType::BUY_X_GET_Y,
                 'discount_value' => null,
-                'discount_type' => null,
                 'quantity_required' => 2,
                 'quantity_free' => 1,
                 'start_date' => now()->subDays(5),
@@ -67,7 +65,6 @@ class OfferSeeder extends Seeder
                 'description' => 'خصم 20% على جميع منتجات المضادات الحيوية عند شراء 3 قطع أو أكثر',
                 'offer_type' => OfferType::PERCENTAGE_DISCOUNT,
                 'discount_value' => 20.00,
-                'discount_type' => DiscountType::PERCENTAGE,
                 'quantity_required' => 3,
                 'quantity_free' => null,
                 'start_date' => now()->subDays(3),
@@ -94,7 +91,6 @@ class OfferSeeder extends Seeder
                 'description' => 'خصم ثابت 5 ريال على جميع أدوية القلب والأوعية الدموية عند شراء قطعتين أو أكثر',
                 'offer_type' => OfferType::FIXED_DISCOUNT,
                 'discount_value' => 5.00,
-                'discount_type' => DiscountType::FIXED,
                 'quantity_required' => 2,
                 'quantity_free' => null,
                 'start_date' => now()->subDays(7),
@@ -108,9 +104,8 @@ class OfferSeeder extends Seeder
                 'supplier_company_id' => $supplier2->id,
                 'name' => 'باقة أدوية السكري والقلب',
                 'description' => 'عرض خاص: شراء ميتفورمين وأتينولول معاً (قطعة واحدة من كل منهما على الأقل) بخصم 15%',
-                'offer_type' => OfferType::BUNDLE,
+                'offer_type' => OfferType::BUNDLE_PERCENTAGE,
                 'discount_value' => 15.00,
-                'discount_type' => DiscountType::PERCENTAGE,
                 'quantity_required' => 1,
                 'quantity_free' => null,
                 'start_date' => now()->subDays(2),
@@ -137,7 +132,6 @@ class OfferSeeder extends Seeder
                 'description' => 'عرض خاص: خصم 25% على جميع منتجات الفيتامينات والمكملات الغذائية عند شراء قطعتين أو أكثر',
                 'offer_type' => OfferType::PERCENTAGE_DISCOUNT,
                 'discount_value' => 25.00,
-                'discount_type' => DiscountType::PERCENTAGE,
                 'quantity_required' => 2,
                 'quantity_free' => null,
                 'start_date' => now()->subDays(10),
@@ -155,7 +149,6 @@ class OfferSeeder extends Seeder
                     'description' => 'عرض محدود: خصم 30 ريال على منتج كولاجين + فيتامين سي عند شراء قطعة واحدة أو أكثر',
                     'offer_type' => OfferType::FIXED_DISCOUNT,
                     'discount_value' => 30.00,
-                    'discount_type' => DiscountType::FIXED,
                     'quantity_required' => 1,
                     'quantity_free' => null,
                     'start_date' => now()->subDays(1),
