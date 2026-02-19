@@ -24,7 +24,7 @@ class OfferResource extends JsonResource
             'quantityRequired' => $this->quantity_required,
             'quantityFree' => $this->quantity_free,
             'startDate' => $this->start_date->toISOString(),
-            'endDate' => $this->end_date->toISOString(),
+            'endDate' => $this->end_date?->toISOString(),
             'isActive' => $this->is_active,
             'isCurrentlyActive' => $this->isActive(),
             'supplierCompany' => new CompanyResource($this->whenLoaded('supplierCompany')),

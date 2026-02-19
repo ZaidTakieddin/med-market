@@ -57,6 +57,7 @@ class Offer extends Model
 
     /**
      * Check if offer is currently active (within date range and is_active).
+     * When end_date is null, offer has no time limit (active indefinitely after start_date).
      */
     public function isActive(): bool
     {
@@ -65,7 +66,11 @@ class Offer extends Model
         }
 
         $now = now();
-        return $now->gte($this->start_date) && $now->lte($this->end_date);
+        if (!$now->gte($this->start_date)) {
+            return false;
+        }
+
+        return $this->end_date === null || $now->lte($this->end_date);
     }
 
     /**

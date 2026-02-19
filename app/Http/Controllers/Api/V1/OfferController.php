@@ -36,7 +36,7 @@ class OfferController extends BaseApiController
                     enum: ['buy_x_get_y', 'percentage_discount', 'fixed_discount', 'bundle']
                 )
             ),
-            new OA\Parameter(name: 'is_active', in: 'query', schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'is_active', in: 'query', schema: new OA\Schema(type: 'boolean'), description: 'Filter by active status'),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
             new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15), description: 'Items per page. Use "all" for no pagination.'),
             new OA\Parameter(name: 'paginate', in: 'query', schema: new OA\Schema(type: 'string', enum: ['true', 'false']), description: 'Use "false" to get all results without pagination'),
@@ -56,10 +56,13 @@ class OfferController extends BaseApiController
             if ($user->isSupplier()) {
                 $query->where('supplier_company_id', $user->company_id);
             } else {
-                // Buyers see only active offers
+                // Buyers see only active offers (end_date null = no time limit)
                 $query->where('is_active', true)
                       ->where('start_date', '<=', now())
-                      ->where('end_date', '>=', now());
+                      ->where(function ($q) {
+                          $q->whereNull('end_date')
+                            ->orWhere('end_date', '>=', now());
+                      });
             }
 
             // Filter by supplier
@@ -111,10 +114,10 @@ class OfferController extends BaseApiController
         description: 'Create a new product offer or promotion (suppliers only)',
         tags: ['Offers'],
         security: [['sanctum' => []]],
-        requestBody: new OA\RequestBody(
+            requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['name', 'offer_type', 'start_date', 'end_date', 'product_ids'],
+                required: ['name', 'offer_type', 'start_date', 'product_ids'],
                 properties: [
                     new OA\Property(property: 'name', type: 'string', example: 'Buy 2 Get 1 Free'),
                     new OA\Property(property: 'description', type: 'string', example: 'Special promotion'),
@@ -124,7 +127,8 @@ class OfferController extends BaseApiController
                     new OA\Property(property: 'quantity_required', type: 'integer'),
                     new OA\Property(property: 'quantity_free', type: 'integer'),
                     new OA\Property(property: 'start_date', type: 'string', format: 'date-time'),
-                    new OA\Property(property: 'end_date', type: 'string', format: 'date-time'),
+                    new OA\Property(property: 'end_date', type: 'string', format: 'date-time', nullable: true, description: 'Optional. When omitted, offer has no time limit (active indefinitely after start_date)'),
+                    new OA\Property(property: 'is_active', type: 'boolean', default: true, description: 'Whether the offer is active. Defaults to true.'),
                     new OA\Property(property: 'product_ids', type: 'array', items: new OA\Items(type: 'integer')),
                 ]
             )
@@ -224,6 +228,25 @@ class OfferController extends BaseApiController
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
         ],
+        requestBody: new OA\RequestBody(
+            required: false,
+            content: new OA\JsonContent(
+                description: 'All fields are optional. Only include fields to update.',
+                properties: [
+                    new OA\Property(property: 'name', type: 'string', example: 'Buy 2 Get 1 Free'),
+                    new OA\Property(property: 'description', type: 'string', example: 'Special promotion'),
+                    new OA\Property(property: 'offer_type', type: 'string', enum: ['buy_x_get_y', 'percentage_discount', 'fixed_discount', 'bundle']),
+                    new OA\Property(property: 'discount_value', type: 'number', format: 'float'),
+                    new OA\Property(property: 'discount_type', type: 'string', enum: ['percentage', 'fixed']),
+                    new OA\Property(property: 'quantity_required', type: 'integer'),
+                    new OA\Property(property: 'quantity_free', type: 'integer'),
+                    new OA\Property(property: 'start_date', type: 'string', format: 'date-time'),
+                    new OA\Property(property: 'end_date', type: 'string', format: 'date-time', nullable: true, description: 'Optional. When null, offer has no time limit (active indefinitely after start_date)'),
+                    new OA\Property(property: 'is_active', type: 'boolean', description: 'Whether the offer is active'),
+                    new OA\Property(property: 'product_ids', type: 'array', items: new OA\Items(type: 'integer')),
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: 'Offer updated successfully'),
             new OA\Response(response: 401, description: 'Unauthenticated'),

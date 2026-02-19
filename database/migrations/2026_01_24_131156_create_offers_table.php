@@ -27,7 +27,7 @@ return new class extends Migration
             $table->integer('quantity_required')->nullable(); // For buy X get Y
             $table->integer('quantity_free')->nullable(); // For buy X get Y
             $table->timestamp('start_date');
-            $table->timestamp('end_date');
+            $table->timestamp('end_date')->nullable();
             $table->boolean('is_active')->default(true);
             $table->softDeletes();
             $table->timestamps();

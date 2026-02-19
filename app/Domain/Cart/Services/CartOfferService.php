@@ -25,7 +25,9 @@ class CartOfferService
         $offers = $product->offers()
             ->where('is_active', true)
             ->where('start_date', '<=', now())
-            ->where('end_date', '>=', now())
+            ->where(function ($q) {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', now());
+            })
             ->withPivot(['quantity_required', 'quantity_free', 'discount_override', 'discount_type_override'])
             ->get();
 
@@ -81,7 +83,9 @@ class CartOfferService
         $offers = $product->offers()
             ->where('is_active', true)
             ->where('start_date', '<=', now())
-            ->where('end_date', '>=', now())
+            ->where(function ($q) {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', now());
+            })
             ->withPivot(['quantity_required', 'quantity_free', 'discount_override', 'discount_type_override'])
             ->get();
 
@@ -318,7 +322,9 @@ class CartOfferService
             ->where('offers.id', $offer->id)
             ->where('is_active', true)
             ->where('start_date', '<=', now())
-            ->where('end_date', '>=', now())
+            ->where(function ($q) {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', now());
+            })
             ->withPivot(['quantity_required', 'quantity_free', 'discount_override', 'discount_type_override'])
             ->first();
 

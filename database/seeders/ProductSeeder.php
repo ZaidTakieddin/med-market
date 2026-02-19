@@ -272,6 +272,28 @@ class ProductSeeder extends Seeder
             );
         }
 
+        // Sync categories and manufacturers to suppliers based on their products
+        foreach ($suppliers as $supplier) {
+            $categoryIds = Product::where('supplier_company_id', $supplier->id)
+                ->whereNotNull('category_id')
+                ->distinct()
+                ->pluck('category_id')
+                ->filter()
+                ->values()
+                ->toArray();
+
+            $manufacturerIds = Product::where('supplier_company_id', $supplier->id)
+                ->whereNotNull('manufacturer_id')
+                ->distinct()
+                ->pluck('manufacturer_id')
+                ->filter()
+                ->values()
+                ->toArray();
+
+            $supplier->categories()->sync($categoryIds);
+            $supplier->manufacturers()->sync($manufacturerIds);
+        }
+
         $this->command->info('تم تحديث/إنشاء ' . count($products) . ' منتج بنجاح.');
     }
 }

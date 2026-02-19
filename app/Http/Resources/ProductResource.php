@@ -27,7 +27,7 @@ class ProductResource extends JsonResource
                     'quantityRequired' => $offer->quantity_required,
                     'quantityFree' => $offer->quantity_free,
                     'startDate' => $offer->start_date->toISOString(),
-                    'endDate' => $offer->end_date->toISOString(),
+                    'endDate' => $offer->end_date?->toISOString(),
                     'isActive' => $offer->is_active,
                     'isCurrentlyActive' => $offer->isActive(),
                     // Pivot data specific to this product-offer relationship

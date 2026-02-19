@@ -52,7 +52,10 @@ class ProductController extends BaseApiController
                 $query->with(['offers' => function ($q) {
                     $q->where('is_active', true)
                       ->where('start_date', '<=', now())
-                      ->where('end_date', '>=', now());
+                      ->where(function ($subQ) {
+                          $subQ->whereNull('end_date')
+                               ->orWhere('end_date', '>=', now());
+                      });
                 }]);
             } else {
                 // Buyers see all active products
@@ -61,7 +64,10 @@ class ProductController extends BaseApiController
                 $query->with(['offers' => function ($q) {
                     $q->where('is_active', true)
                       ->where('start_date', '<=', now())
-                      ->where('end_date', '>=', now());
+                      ->where(function ($subQ) {
+                          $subQ->whereNull('end_date')
+                               ->orWhere('end_date', '>=', now());
+                      });
                 }]);
             }
 
