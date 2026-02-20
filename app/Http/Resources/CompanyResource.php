@@ -39,8 +39,8 @@ class CompanyResource extends JsonResource
             'manufacturers' => $this->relationLoaded('manufacturers') 
                 ? ManufacturerResource::collection($this->manufacturers) 
                 : [],
-            'createdAt' => $this->created_at->toISOString(),
-            'updatedAt' => $this->updated_at->toISOString(),
+            'createdAt' => $this->created_at?->toISOString(),
+            'updatedAt' => $this->updated_at?->toISOString(),
         ];
     }
 }

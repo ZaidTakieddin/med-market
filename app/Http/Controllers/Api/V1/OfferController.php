@@ -95,10 +95,12 @@ class OfferController extends BaseApiController
             return OfferResource::collection($offers)
                 ->additional($additional)
                 ->response();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Offer list error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ]);
             return $this->error('Failed to retrieve offers: ' . $e->getMessage(), null, 500);
         }
