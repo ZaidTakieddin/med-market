@@ -34,24 +34,49 @@ class OrderSeeder extends Seeder
         }
 
         $buyer1 = $buyers->first();
+        $buyer2 = $buyers->count() > 1 ? $buyers->skip(1)->first() : $buyer1;
+        $buyer3 = $buyers->count() > 2 ? $buyers->skip(2)->first() : $buyer1;
+        // Ensure orders attach to supplier companies with id 2 and 4
         $supplier1 = $suppliers->first();
+        $supplier2 = $suppliers->firstWhere('id', 2) ?? $suppliers->skip(1)->first() ?? $supplier1;
+        $supplier3 = $suppliers->skip(2)->first() ?? $supplier1;
+        $supplier4 = $suppliers->firstWhere('id', 4) ?? $suppliers->skip(3)->first() ?? $supplier1;
         $buyerUser1 = $buyerUsers->first();
+        $buyerUser2 = $buyerUsers->count() > 1 ? $buyerUsers->skip(1)->first() : $buyerUser1;
+        $buyerUser3 = $buyerUsers->count() > 2 ? $buyerUsers->skip(2)->first() : $buyerUser1;
 
-        // Get products from supplier1 and refresh to ensure they're loaded
-        $products = Product::where('supplier_company_id', $supplier1->id)
+        // Get products from each supplier (2 and 4 must have orders)
+        $productsSupplier1 = Product::where('supplier_company_id', $supplier1->id)
             ->where('is_active', true)
             ->limit(3)
             ->get()
             ->map(fn($product) => $product->fresh());
+        $productsSupplier2 = Product::where('supplier_company_id', $supplier2->id)
+            ->where('is_active', true)
+            ->limit(2)
+            ->get()
+            ->map(fn($product) => $product->fresh());
+        $productsSupplier3 = Product::where('supplier_company_id', $supplier3->id)
+            ->where('is_active', true)
+            ->limit(2)
+            ->get()
+            ->map(fn($product) => $product->fresh());
+        $productsSupplier4 = Product::where('supplier_company_id', $supplier4->id)
+            ->where('is_active', true)
+            ->limit(2)
+            ->get()
+            ->map(fn($product) => $product->fresh());
 
-        if ($products->isEmpty()) {
+        if ($productsSupplier1->isEmpty()) {
             $this->command->warn('لا توجد منتجات. يرجى تشغيل ProductSeeder أولاً.');
             return;
         }
 
-        // Create sample orders with different statuses
-        $product1 = $products->first();
-        $product2 = $products->skip(1)->first() ?? $product1;
+        $product1 = $productsSupplier1->first();
+        $product2 = $productsSupplier1->skip(1)->first() ?? $product1;
+        $product2a = $productsSupplier2->first() ?? $product1;
+        $product3a = $productsSupplier3->first() ?? $product1;
+        $product4a = $productsSupplier4->first() ?? $product1;
 
         $orders = [
             [
@@ -86,6 +111,48 @@ class OrderSeeder extends Seeder
                     ],
                 ],
                 'notes' => 'طلب منتظم',
+            ],
+            [
+                'buyer_company_id' => $buyer2->id,
+                'supplier_company_id' => $supplier2->id,
+                'created_by' => $buyerUser2->id,
+                'status' => OrderStatus::PENDING,
+                'items' => [
+                    [
+                        'product_id' => $product2a->id,
+                        'quantity' => 3,
+                        'unit_price' => (float) $product2a->price,
+                    ],
+                ],
+                'notes' => 'طلب من المورد الثاني',
+            ],
+            [
+                'buyer_company_id' => $buyer3->id,
+                'supplier_company_id' => $supplier3->id,
+                'created_by' => $buyerUser3->id,
+                'status' => OrderStatus::PENDING,
+                'items' => [
+                    [
+                        'product_id' => $product3a->id,
+                        'quantity' => 2,
+                        'unit_price' => (float) $product3a->price,
+                    ],
+                ],
+                'notes' => 'طلب من المورد الثالث',
+            ],
+            [
+                'buyer_company_id' => $buyer1->id,
+                'supplier_company_id' => $supplier4->id,
+                'created_by' => $buyerUser1->id,
+                'status' => OrderStatus::PENDING,
+                'items' => [
+                    [
+                        'product_id' => $product4a->id,
+                        'quantity' => 4,
+                        'unit_price' => (float) $product4a->price,
+                    ],
+                ],
+                'notes' => 'طلب من المورد الرابع (supplier id 4)',
             ],
         ];
 

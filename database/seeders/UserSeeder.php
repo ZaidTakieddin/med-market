@@ -30,27 +30,49 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // Create Supplier Users
+        // Create Supplier Users (Ahmed → company 4, Fatima → company 2)
         if ($suppliers->isNotEmpty()) {
-            $supplier1 = $suppliers->first();
             User::updateOrCreate(
                 ['email' => 'ahmed@medsupply.com'],
                 [
                     'name' => 'أحمد محمد العلي',
                     'password' => Hash::make('password123'),
-                    'company_id' => $supplier1->id,
+                    'company_id' => 4,
                     'role' => UserRole::SUPPLIER,
                 ]
             );
 
-            if ($suppliers->count() > 1) {
-                $supplier2 = $suppliers->skip(1)->first();
+            User::updateOrCreate(
+                ['email' => 'fatima@pharmadist.com'],
+                [
+                    'name' => 'فاطمة علي السالم',
+                    'password' => Hash::make('password123'),
+                    'company_id' => 1,
+                    'role' => UserRole::SUPPLIER,
+                ]
+            );
+
+            $supplier3 = $suppliers->skip(2)->first();
+            if ($supplier3) {
                 User::updateOrCreate(
-                    ['email' => 'fatima@pharmadist.com'],
+                    ['email' => 'omar@globalmed.com'],
                     [
-                        'name' => 'فاطمة علي السالم',
+                        'name' => 'عمر خالد الغامدي',
                         'password' => Hash::make('password123'),
-                        'company_id' => $supplier2->id,
+                        'company_id' => $supplier3->id,
+                        'role' => UserRole::SUPPLIER,
+                    ]
+                );
+            }
+
+            $supplier4 = $suppliers->skip(3)->first();
+            if ($supplier4) {
+                User::updateOrCreate(
+                    ['email' => 'nora@healthworld.com'],
+                    [
+                        'name' => 'نورة عبدالرحمن السعيد',
+                        'password' => Hash::make('password123'),
+                        'company_id' => $supplier4->id,
                         'role' => UserRole::SUPPLIER,
                     ]
                 );
@@ -98,6 +120,7 @@ class UserSeeder extends Seeder
         }
 
         // Create Driver Users (belonging to suppliers)
+        // Ensure drivers are attached to supplier companies with id 2 and 4
         if ($suppliers->isNotEmpty()) {
             $supplier1 = $suppliers->first();
             User::updateOrCreate(
@@ -111,9 +134,8 @@ class UserSeeder extends Seeder
                 ]
             );
 
-            // Add more drivers if multiple suppliers exist
-            if ($suppliers->count() > 1) {
-                $supplier2 = $suppliers->skip(1)->first();
+            $supplier2 = $suppliers->firstWhere('id', 2) ?? $suppliers->skip(1)->first();
+            if ($supplier2) {
                 User::updateOrCreate(
                     ['email' => 'driver2@pharmadist.com'],
                     [
@@ -126,8 +148,8 @@ class UserSeeder extends Seeder
                 );
             }
 
-            if ($suppliers->count() > 2) {
-                $supplier3 = $suppliers->skip(2)->first();
+            $supplier3 = $suppliers->skip(2)->first();
+            if ($supplier3) {
                 User::updateOrCreate(
                     ['email' => 'driver3@healthsupply.com'],
                     [
@@ -135,6 +157,20 @@ class UserSeeder extends Seeder
                         'phone' => '+966503456789',
                         'password' => Hash::make('password123'),
                         'company_id' => $supplier3->id,
+                        'role' => UserRole::DRIVER,
+                    ]
+                );
+            }
+
+            $supplier4 = $suppliers->firstWhere('id', 4) ?? $suppliers->skip(3)->first();
+            if ($supplier4) {
+                User::updateOrCreate(
+                    ['email' => 'driver4@healthworld.com'],
+                    [
+                        'name' => 'محمد سعيد الشمري',
+                        'phone' => '+966504567890',
+                        'password' => Hash::make('password123'),
+                        'company_id' => $supplier4->id,
                         'role' => UserRole::DRIVER,
                     ]
                 );

@@ -32,6 +32,7 @@ class DatabaseSeeder extends Seeder
                 ProductSeeder::class,       // Seventh: Create products (depends on companies, categories, manufacturers)
                 OfferSeeder::class,         // Eighth: Create offers (depends on companies and products)
                 OrderSeeder::class,         // Ninth: Create orders (depends on companies, users, products)
+                SyncSupplierCategoriesAndManufacturersSeeder::class, // Tenth: Sync supplier categories & manufacturers
             ]);
 
             $this->command->info('تم إنشاء جميع البيانات بنجاح!');

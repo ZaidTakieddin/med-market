@@ -25,6 +25,7 @@ class ProductSeeder extends Seeder
         $supplier1 = $suppliers->first();
         $supplier2 = $suppliers->count() > 1 ? $suppliers->skip(1)->first() : $supplier1;
         $supplier3 = $suppliers->count() > 2 ? $suppliers->skip(2)->first() : $supplier1;
+        $supplier4 = $suppliers->count() > 3 ? $suppliers->skip(3)->first() : $supplier1;
 
         // Get categories and manufacturers
         $categoryPainkillers = Category::where('name', 'مسكنات')->first();
@@ -261,6 +262,44 @@ class ProductSeeder extends Seeder
                 'discount_type' => 'fixed',
                 'stock_quantity' => 100,
                 'min_stock_level' => 10,
+                'is_active' => true,
+            ],
+
+            // Supplier 4 Products (ensure supplier company id 4 has products)
+            [
+                'supplier_company_id' => $supplier4->id,
+                'name' => 'فيتامين ب12 1000 مكروجرام',
+                'description' => 'مكمل فيتامين ب12، أقراص تحت اللسان',
+                'category_id' => $categoryVitamins?->id,
+                'manufacturer_id' => $manufacturerHealth?->id,
+                'sku' => 'VIT-B12-001',
+                'barcode' => '6224001234579',
+                'unit' => 'box',
+                'price' => 42.00, // Legacy
+                'pharmacist_price' => 42.00,
+                'customer_price' => 52.00,
+                'discount' => 10.00,
+                'discount_type' => 'percentage',
+                'stock_quantity' => 180,
+                'min_stock_level' => 18,
+                'is_active' => true,
+            ],
+            [
+                'supplier_company_id' => $supplier4->id,
+                'name' => 'ماغنيسيوم + زنك',
+                'description' => 'مكمل غذائي للماغنيسيوم والزنك',
+                'category_id' => $categorySupplements?->id,
+                'manufacturer_id' => $manufacturerHealth?->id,
+                'sku' => 'MAG-ZN-001',
+                'barcode' => '6224001234580',
+                'unit' => 'box',
+                'price' => 38.00, // Legacy
+                'pharmacist_price' => 38.00,
+                'customer_price' => 48.00,
+                'discount' => null,
+                'discount_type' => null,
+                'stock_quantity' => 220,
+                'min_stock_level' => 22,
                 'is_active' => true,
             ],
         ];

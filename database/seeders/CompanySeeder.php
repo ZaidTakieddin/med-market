@@ -48,6 +48,17 @@ class CompanySeeder extends Seeder
                 'registration_number' => 'REG-SUP-2024-003',
                 'is_active' => true,
             ],
+            [
+                'name' => 'شركة الصحة العالمية للتوزيع',
+                'description' => 'مورّد متخصص في الأدوية والمستحضرات الطبية. نقدم تشكيلة متنوعة من المنتجات بجودة عالية.',
+                'type' => CompanyType::SUPPLIER,
+                'email' => 'orders@healthworld.com',
+                'phone' => '+966-11-789-0123',
+                'address' => 'مكة المكرمة، حي العزيزية، شارع إبراهيم الخليل',
+                'tax_id' => 'TAX-SUP-004',
+                'registration_number' => 'REG-SUP-2024-004',
+                'is_active' => true,
+            ],
         ];
 
         // Create Buyers (Pharmacies)
@@ -88,11 +99,17 @@ class CompanySeeder extends Seeder
         ];
 
         foreach ($suppliers as $supplier) {
-            Company::create($supplier);
+            Company::updateOrCreate(
+                ['email' => $supplier['email']],
+                $supplier
+            );
         }
 
         foreach ($buyers as $buyer) {
-            Company::create($buyer);
+            Company::updateOrCreate(
+                ['email' => $buyer['email']],
+                $buyer
+            );
         }
 
         $this->command->info('تم إنشاء ' . count($suppliers) . ' مورد و ' . count($buyers) . ' صيدلية.');

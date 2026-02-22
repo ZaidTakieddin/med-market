@@ -72,7 +72,7 @@ class AuthController extends BaseApiController
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return $this->success([
-            'user' => new UserResource($user->load('company')),
+            'user' => new UserResource($user->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])])),
             'token' => $token,
         ], 'User registered successfully', 201);
     }
@@ -131,7 +131,7 @@ class AuthController extends BaseApiController
             $token = $user->createToken('auth-token')->plainTextToken;
 
             return $this->success([
-                'user' => new UserResource($user->load('company')),
+                'user' => new UserResource($user->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])])),
                 'token' => $token,
             ], 'Login successful');
         } catch (\Exception $e) {
@@ -209,7 +209,7 @@ class AuthController extends BaseApiController
         )]
     public function me(): JsonResponse
     {
-        $user = auth()->user()->load('company');
+        $user = auth()->user()->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])]);
 
         return $this->success(
             new UserResource($user)

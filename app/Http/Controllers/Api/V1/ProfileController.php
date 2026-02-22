@@ -33,7 +33,7 @@ class ProfileController extends BaseApiController
     public function show(): JsonResponse
     {
         try {
-            $user = auth()->user()->load('company');
+            $user = auth()->user()->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])]);
 
             return $this->success(new UserResource($user));
         } catch (\Exception $e) {
@@ -76,7 +76,7 @@ class ProfileController extends BaseApiController
             $user->update($request->validated());
 
             return $this->success([
-                'user' => $user->load('company'),
+                'user' => new UserResource($user->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])])),
             ], 'Profile updated successfully');
         } catch (\Exception $e) {
             Log::error('Update profile error', [
@@ -185,6 +185,7 @@ class ProfileController extends BaseApiController
             }
 
             $company->update($request->validated());
+            $company->load(['categories', 'manufacturers']);
 
             return $this->success(
                 new CompanyResource($company),
