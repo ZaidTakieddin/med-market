@@ -114,6 +114,14 @@ class OrderSeeder extends Seeder
                         notes: 'Order accepted via seeder'
                     );
 
+                    // Assign a driver from the supplier company to the order
+                    $driver = User::where('role', 'driver')
+                        ->where('company_id', $order->supplier_company_id)
+                        ->first();
+                    if ($driver) {
+                        $order->update(['driver_id' => $driver->id]);
+                    }
+
                     // Generate invoice synchronously for seeder (queue workers may not be running)
                     // Refresh order to get latest data
                     $order->refresh();

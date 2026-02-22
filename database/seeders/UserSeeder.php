@@ -104,6 +104,7 @@ class UserSeeder extends Seeder
                 ['email' => 'driver1@medsupply.com'],
                 [
                     'name' => 'عبدالرحمن صالح الدوسري',
+                    'phone' => '+966501234567',
                     'password' => Hash::make('password123'),
                     'company_id' => $supplier1->id,
                     'role' => UserRole::DRIVER,
@@ -117,6 +118,7 @@ class UserSeeder extends Seeder
                     ['email' => 'driver2@pharmadist.com'],
                     [
                         'name' => 'سعد محمد القحطاني',
+                        'phone' => '+966502345678',
                         'password' => Hash::make('password123'),
                         'company_id' => $supplier2->id,
                         'role' => UserRole::DRIVER,
@@ -130,6 +132,7 @@ class UserSeeder extends Seeder
                     ['email' => 'driver3@healthsupply.com'],
                     [
                         'name' => 'يوسف أحمد العتيبي',
+                        'phone' => '+966503456789',
                         'password' => Hash::make('password123'),
                         'company_id' => $supplier3->id,
                         'role' => UserRole::DRIVER,

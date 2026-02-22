@@ -97,6 +97,7 @@ class DriverController extends BaseApiController
                 properties: [
                     new OA\Property(property: 'name', type: 'string', example: 'Ahmed Ali'),
                     new OA\Property(property: 'email', type: 'string', format: 'email', example: 'ahmed@example.com'),
+                    new OA\Property(property: 'phone', type: 'string', example: '+966501234567', description: 'Optional phone number'),
                     new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password123'),
                 ]
             )
@@ -119,6 +120,7 @@ class DriverController extends BaseApiController
             $driver = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
+                'phone' => $request->phone,
                 'password' => Hash::make($request->password),
                 'company_id' => $user->company_id,
                 'role' => 'driver',

@@ -17,6 +17,7 @@ class CreateDriverRequest extends BaseFormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'phone' => ['nullable', 'string', 'max:20'],
             'password' => ['required', 'string', 'min:8'],
         ];
     }
@@ -30,6 +31,7 @@ class CreateDriverRequest extends BaseFormRequest
             'email.unique' => 'This email is already taken.',
             'password.required' => 'Password is required.',
             'password.min' => 'Password must be at least 8 characters.',
+            'phone.max' => 'Phone number must not exceed 20 characters.',
         ];
     }
 }

@@ -19,6 +19,7 @@ class UpdateDriverRequest extends BaseFormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users', 'email')->ignore($driverId)],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
             'password' => ['sometimes', 'string', 'min:8'],
         ];
     }
