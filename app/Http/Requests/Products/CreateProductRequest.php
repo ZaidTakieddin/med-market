@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Products;
 
+use App\Constants\CompanyType;
 use App\Constants\DiscountType;
 use App\Http\Requests\BaseFormRequest;
 use Illuminate\Validation\Rule;
@@ -15,7 +16,13 @@ class CreateProductRequest extends BaseFormRequest
 
     public function rules(): array
     {
+        $user = auth()->user();
+        $supplierCompanyIdRule = $user && $user->isAdmin()
+            ? ['required', 'integer', Rule::exists('companies', 'id')->where('type', CompanyType::SUPPLIER)]
+            : ['nullable', 'integer', 'exists:companies,id'];
+
         return [
+            'supplier_company_id' => $supplierCompanyIdRule,
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
@@ -40,6 +47,8 @@ class CreateProductRequest extends BaseFormRequest
             'name.required' => 'Product name is required.',
             'sku.required' => 'SKU is required.',
             'sku.unique' => 'This SKU already exists.',
+            'supplier_company_id.required' => 'Supplier company is required when creating products as admin.',
+            'supplier_company_id.exists' => 'The selected supplier company does not exist or is not a supplier.',
             'pharmacist_price.required' => 'Pharmacist price is required.',
             'pharmacist_price.min' => 'Pharmacist price cannot be negative.',
             'customer_price.min' => 'Customer price cannot be negative.',

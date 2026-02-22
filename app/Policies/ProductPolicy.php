@@ -28,8 +28,7 @@ class ProductPolicy
      */
     public function create(User $user): bool
     {
-        // Only suppliers can create products
-        return $user->isSupplier();
+        return $user->isSupplier() || $user->isAdmin();
     }
 
     /**

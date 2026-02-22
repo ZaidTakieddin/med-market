@@ -143,6 +143,7 @@ class ProductController extends BaseApiController
                 content: new OA\JsonContent(
                     required: ['name', 'sku', 'pharmacist_price'],
                     properties: [
+                        new OA\Property(property: 'supplier_company_id', type: 'integer', description: 'Required for admins. Supplier company ID. Ignored for suppliers (uses their company).', example: 1),
                         new OA\Property(property: 'name', type: 'string', example: 'Paracetamol 500mg'),
                         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Pain reliever and fever reducer'),
                         new OA\Property(property: 'category_id', type: 'integer', nullable: true, description: 'Category ID (must exist in categories table)', example: 1),
@@ -170,36 +171,47 @@ class ProductController extends BaseApiController
         )]
     public function store(CreateProductRequest $request): JsonResponse
     {
-        $user = auth()->user();
+        try {
+            $this->authorize('create', Product::class);
 
-        if (!$user->isSupplier()) {
-            return $this->error('Only suppliers can create products', null, 403);
+            $user = auth()->user();
+            $supplierCompanyId = $user->isSupplier()
+                ? $user->company_id
+                : $request->supplier_company_id;
+
+            $pharmacistPrice = $request->pharmacist_price;
+            $product = Product::create([
+                'supplier_company_id' => $supplierCompanyId,
+                'name' => $request->name,
+                'description' => $request->description,
+                'category_id' => $request->category_id,
+                'manufacturer_id' => $request->manufacturer_id,
+                'sku' => $request->sku,
+                'barcode' => $request->barcode,
+                'unit' => $request->unit ?? 'piece',
+                'price' => $pharmacistPrice, // Legacy column (NOT NULL in DB)
+                'pharmacist_price' => $pharmacistPrice,
+                'customer_price' => $request->customer_price,
+                'discount' => $request->discount,
+                'discount_type' => $request->discount_type,
+                'stock_quantity' => $request->stock_quantity ?? 0,
+                'min_stock_level' => $request->min_stock_level ?? 0,
+                'is_active' => $request->is_active ?? true,
+                'metadata' => $request->metadata,
+            ]);
+
+            return $this->success(
+                new ProductResource($product->load(['supplierCompany', 'category', 'manufacturer', 'offers'])),
+                'Product created successfully',
+                201
+            );
+        } catch (\Throwable $e) {
+            Log::error('Product create error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return $this->error('Failed to create product: ' . $e->getMessage(), null, 500);
         }
-
-        $product = Product::create([
-            'supplier_company_id' => $user->company_id,
-            'name' => $request->name,
-            'description' => $request->description,
-            'category_id' => $request->category_id,
-            'manufacturer_id' => $request->manufacturer_id,
-            'sku' => $request->sku,
-            'barcode' => $request->barcode,
-            'unit' => $request->unit ?? 'piece',
-            'pharmacist_price' => $request->pharmacist_price,
-            'customer_price' => $request->customer_price,
-            'discount' => $request->discount,
-            'discount_type' => $request->discount_type,
-            'stock_quantity' => $request->stock_quantity ?? 0,
-            'min_stock_level' => $request->min_stock_level ?? 0,
-            'is_active' => $request->is_active ?? true,
-            'metadata' => $request->metadata,
-        ]);
-
-        return $this->success(
-            new ProductResource($product->load(['supplierCompany', 'category', 'manufacturer', 'offers'])),
-            'Product created successfully',
-            201
-        );
     }
 
     /**
