@@ -1,0 +1,133 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Constants\CompanyType;
+use App\Constants\DiscountType;
+use App\Constants\OfferType;
+use App\Constants\OrderStatus;
+use App\Constants\StockMovementType;
+use App\Constants\UserRole;
+use App\Http\Controllers\Api\BaseApiController;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use OpenApi\Attributes as OA;
+
+#[OA\Tag(
+    name: 'Enums',
+    description: 'System enums and constants. Use for dropdowns, validation, and form options.'
+)]
+class EnumsController extends BaseApiController
+{
+    /**
+     * Get all enum types.
+     */
+    #[OA\Get(
+        path: '/enums',
+        summary: 'Get all enums',
+        description: 'Returns all enum types used in the system. Useful for frontend dropdowns, form options, and validation. Each key contains an array of valid values.',
+        tags: ['Enums'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(
+                name: 'type',
+                in: 'query',
+                required: false,
+                schema: new OA\Schema(
+                    type: 'string',
+                    enum: ['offerType', 'orderStatus', 'userRole', 'companyType', 'stockMovementType', 'discountType']
+                ),
+                description: 'Optional. Return only this enum type.'
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Enums retrieved successfully',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                        new OA\Property(
+                            property: 'data',
+                            type: 'object',
+                            properties: [
+                                new OA\Property(
+                                    property: 'offerType',
+                                    type: 'array',
+                                    items: new OA\Items(type: 'string'),
+                                    description: 'Offer types: buy_x_get_y, percentage_discount, fixed_discount, bundle_percentage, bundle_fixed'
+                                ),
+                                new OA\Property(
+                                    property: 'orderStatus',
+                                    type: 'array',
+                                    items: new OA\Items(type: 'string'),
+                                    description: 'Order statuses: pending, accepted, prepared, shipped, delivered, cancelled'
+                                ),
+                                new OA\Property(
+                                    property: 'userRole',
+                                    type: 'array',
+                                    items: new OA\Items(type: 'string'),
+                                    description: 'User roles: admin, supplier, buyer, driver'
+                                ),
+                                new OA\Property(
+                                    property: 'companyType',
+                                    type: 'array',
+                                    items: new OA\Items(type: 'string'),
+                                    description: 'Company types: supplier, buyer'
+                                ),
+                                new OA\Property(
+                                    property: 'stockMovementType',
+                                    type: 'array',
+                                    items: new OA\Items(type: 'string'),
+                                    description: 'Stock movement types: in, out, adjustment, return'
+                                ),
+                                new OA\Property(
+                                    property: 'discountType',
+                                    type: 'array',
+                                    items: new OA\Items(type: 'string'),
+                                    description: 'Discount types: percentage, fixed'
+                                ),
+                            ]
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+        ]
+    )]
+    public function index(Request $request): JsonResponse
+    {
+        $enums = [
+            'offerType' => OfferType::all(),
+            'orderStatus' => OrderStatus::all(),
+            'userRole' => UserRole::all(),
+            'companyType' => CompanyType::all(),
+            'stockMovementType' => StockMovementType::all(),
+            'discountType' => DiscountType::all(),
+        ];
+
+        $type = $request->query('type');
+        if ($type !== null && $type !== '') {
+            $typeMap = [
+                'offerType' => 'offerType',
+                'offer_type' => 'offerType',
+                'orderStatus' => 'orderStatus',
+                'order_status' => 'orderStatus',
+                'userRole' => 'userRole',
+                'user_role' => 'userRole',
+                'companyType' => 'companyType',
+                'company_type' => 'companyType',
+                'stockMovementType' => 'stockMovementType',
+                'stock_movement_type' => 'stockMovementType',
+                'discountType' => 'discountType',
+                'discount_type' => 'discountType',
+            ];
+            $key = $typeMap[$type] ?? $type;
+            if (isset($enums[$key])) {
+                $enums = [$key => $enums[$key]];
+            }
+        }
+
+        return $this->success($enums, 'Enums retrieved successfully');
+    }
+}

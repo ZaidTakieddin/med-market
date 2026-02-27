@@ -280,11 +280,11 @@
                     "Cart"
                 ],
                 "summary": "Get cart",
-                "description": "Get the current user's shopping cart with all items. Items are grouped by supplier to show how checkout will split orders. If cart contains items from multiple suppliers, itemsBySupplier will contain multiple groups.",
+                "description": "Get the current user's shopping cart with all items. Items are grouped by supplier to show how checkout will split orders. Each cart item includes baseUnitPrice/baseTotalPrice (before offer) and unitPrice/totalPrice (after offer when applied) for displaying price changes.",
                 "operationId": "6b8e02358626c72cbf572b555a21b9f6",
                 "responses": {
                     "200": {
-                        "description": "Cart retrieved successfully. Response includes items array (flat) and itemsBySupplier array (grouped by supplier)",
+                        "description": "Cart retrieved successfully. Items include baseUnitPrice, baseTotalPrice (before offer), unitPrice, totalPrice (after offer), appliedOfferId.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -300,10 +300,10 @@
                                                     "example": 1
                                                 },
                                                 "items": {
-                                                    "description": "All cart items (flat array)",
+                                                    "description": "All cart items (flat array). Each has baseUnitPrice, baseTotalPrice, unitPrice, totalPrice, appliedOfferId.",
                                                     "type": "array",
                                                     "items": {
-                                                        "type": "object"
+                                                        "$ref": "#/components/schemas/CartItem"
                                                     }
                                                 },
                                                 "itemsBySupplier": {
@@ -319,7 +319,7 @@
                                                                 "description": "Cart items for this supplier",
                                                                 "type": "array",
                                                                 "items": {
-                                                                    "type": "object"
+                                                                    "$ref": "#/components/schemas/CartItem"
                                                                 }
                                                             },
                                                             "subtotal": {
@@ -398,7 +398,7 @@
                     "Cart"
                 ],
                 "summary": "Add item to cart",
-                "description": "Add a product to the shopping cart. The unit_price is automatically calculated using the product's pharmacist_price with any applicable discounts and offers applied. Offers are automatically detected and applied if the quantity meets the offer requirements.",
+                "description": "Add a product to the shopping cart. The system auto-selects the best offer (lowest total) for this product. If product already in cart, quantity is added and offers re-evaluated. Bundle offers require all bundle products in cart. Response includes baseUnitPrice/baseTotalPrice (before offer) for displaying price changes.",
                 "operationId": "e036af844498fff8d600d1deeb9436e6",
                 "requestBody": {
                     "required": true,
@@ -433,7 +433,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Item added to cart successfully. Price uses product pharmacist_price with discounts and offers applied. If an offer is applied, appliedOfferId will be set."
+                        "description": "Item added. Returns full cart with baseUnitPrice, baseTotalPrice, unitPrice, totalPrice, appliedOfferId per item."
                     },
                     "401": {
                         "description": "Unauthenticated"
@@ -461,7 +461,7 @@
                     "Cart"
                 ],
                 "summary": "Update cart item",
-                "description": "Update quantity or notes of a cart item. Offers are automatically re-evaluated when quantity changes.",
+                "description": "Update quantity or notes. Offers are automatically re-evaluated when quantity changes. Best offer (lowest total) is selected. For bundle offers, eligibility depends on other cart items.",
                 "operationId": "ea94cd0b1a73da425dfeaddbed019f2d",
                 "parameters": [
                     {
@@ -519,7 +519,7 @@
                     "Cart"
                 ],
                 "summary": "Remove cart item",
-                "description": "Remove an item from the shopping cart",
+                "description": "Remove item from cart. **Important**: Re-evaluates offers for ALL remaining items (bundle eligibility may change when a product is removed).",
                 "operationId": "69b9d42c3cbeb43afa63cbda7a2b27ab",
                 "parameters": [
                     {
@@ -558,7 +558,7 @@
                     "Cart"
                 ],
                 "summary": "Get available offers for cart item",
-                "description": "Get all available offers for a cart item based on current quantity. Returns all applicable offers with pricing details.",
+                "description": "Get all offers applicable to this cart item. Considers current quantity and other cart items (for bundle offers). Bundle offers require ALL products in the offer to be in cart with required quantities. Returns each offer with unitPrice, totalPrice, savings, savingsPercentage. Sorted by total price (best first).",
                 "operationId": "027548119f1b9704ebce886d6d8caa12",
                 "parameters": [
                     {
@@ -615,22 +615,26 @@
                                                     "items": {
                                                         "properties": {
                                                             "offer": {
-                                                                "description": "Offer object",
+                                                                "description": "Offer object (see Offer schema)",
                                                                 "type": "object"
                                                             },
                                                             "unitPrice": {
+                                                                "description": "Unit price if this offer applied",
                                                                 "type": "number",
                                                                 "format": "float"
                                                             },
                                                             "totalPrice": {
+                                                                "description": "Total price if this offer applied",
                                                                 "type": "number",
                                                                 "format": "float"
                                                             },
                                                             "savings": {
+                                                                "description": "Amount saved vs base price",
                                                                 "type": "number",
                                                                 "format": "float"
                                                             },
                                                             "savingsPercentage": {
+                                                                "description": "Savings as percentage",
                                                                 "type": "number",
                                                                 "format": "float"
                                                             }
@@ -670,7 +674,7 @@
                     "Cart"
                 ],
                 "summary": "Apply specific offer to cart item",
-                "description": "Manually apply a specific offer to a cart item. This overrides the automatically selected best offer.",
+                "description": "Manually apply a specific offer. Overrides auto-selected best offer. Offer must be for this product and quantity requirement must be met. For bundle offers, all bundle products must be in cart. Returns cart item with baseUnitPrice, baseTotalPrice, unitPrice, totalPrice.",
                 "operationId": "19021345dd5e8f535417bf4a7151d6e3",
                 "parameters": [
                     {
@@ -732,7 +736,7 @@
                     "Cart"
                 ],
                 "summary": "Remove applied offer from cart item",
-                "description": "Remove the manually applied offer and revert to automatically selected best offer (or base price if no offers available).",
+                "description": "Remove manual offer and revert to auto-selected best offer (or base price if none). Recalculates best offer for this product based on current quantity and cart state.",
                 "operationId": "0920bdca391370253402f30793945b99",
                 "parameters": [
                     {
@@ -771,7 +775,7 @@
                     "Cart"
                 ],
                 "summary": "Checkout cart",
-                "description": "Convert cart items to orders. If cart contains items from multiple suppliers, multiple orders will be created automatically (one per supplier). All orders are created in a single atomic transaction - either all succeed or all fail. Cart is cleared after successful checkout.",
+                "description": "Convert cart to orders. Uses cart item unitPrice/totalPrice (offer-adjusted) for order creation. Multi-supplier cart splits into multiple orders (one per supplier). Atomic transaction. Cart cleared after success.",
                 "operationId": "0828f2d0d3702f88bfb754cc8a45d808",
                 "requestBody": {
                     "required": false,
@@ -1993,6 +1997,11 @@
                                         "format": "email",
                                         "example": "ahmed@example.com"
                                     },
+                                    "phone": {
+                                        "description": "Optional phone number",
+                                        "type": "string",
+                                        "example": "+966501234567"
+                                    },
                                     "password": {
                                         "type": "string",
                                         "format": "password",
@@ -2354,6 +2363,108 @@
                     },
                     "404": {
                         "description": "Driver or region not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/enums": {
+            "get": {
+                "tags": [
+                    "Enums"
+                ],
+                "summary": "Get all enums",
+                "description": "Returns all enum types used in the system. Useful for frontend dropdowns, form options, and validation. Each key contains an array of valid values.",
+                "operationId": "19bfab5776f7224dbe4b0f39e4afe92a",
+                "parameters": [
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "description": "Optional. Return only this enum type.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "offerType",
+                                "orderStatus",
+                                "userRole",
+                                "companyType",
+                                "stockMovementType",
+                                "discountType"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Enums retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "offerType": {
+                                                    "description": "Offer types: buy_x_get_y, percentage_discount, fixed_discount, bundle_percentage, bundle_fixed",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "orderStatus": {
+                                                    "description": "Order statuses: pending, accepted, prepared, shipped, delivered, cancelled",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "userRole": {
+                                                    "description": "User roles: admin, supplier, buyer, driver",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "companyType": {
+                                                    "description": "Company types: supplier, buyer",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "stockMovementType": {
+                                                    "description": "Stock movement types: in, out, adjustment, return",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "discountType": {
+                                                    "description": "Discount types: percentage, fixed",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
                     }
                 },
                 "security": [
@@ -3011,7 +3122,7 @@
                     "Offers"
                 ],
                 "summary": "List offers",
-                "description": "Get a paginated list of offers. Suppliers see only their offers, buyers see all active offers.",
+                "description": "Get a paginated list of offers. Suppliers see only their offers, buyers see all active offers. Filter by offer_type, supplier_company_id, is_active.",
                 "operationId": "1c493e29b79a76d2b014efcf07eb504c",
                 "parameters": [
                     {
@@ -3115,12 +3226,14 @@
                                         "example": "Special promotion"
                                     },
                                     "offer_type": {
+                                        "description": "bundle_percentage/bundle_fixed require multiple products in product_ids",
                                         "type": "string",
                                         "enum": [
                                             "buy_x_get_y",
                                             "percentage_discount",
                                             "fixed_discount",
-                                            "bundle"
+                                            "bundle_percentage",
+                                            "bundle_fixed"
                                         ]
                                     },
                                     "discount_value": {
@@ -4025,6 +4138,11 @@
                                     "pharmacist_price"
                                 ],
                                 "properties": {
+                                    "supplier_company_id": {
+                                        "description": "Required for admins. Supplier company ID. Ignored for suppliers (uses their company).",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
                                     "name": {
                                         "type": "string",
                                         "example": "Paracetamol 500mg"
@@ -5263,6 +5381,116 @@
         }
     },
     "components": {
+        "schemas": {
+            "CartItem": {
+                "description": "Cart item with product, pricing, and optional applied offer",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "product": {
+                        "description": "Product object",
+                        "type": "object"
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "unitPrice": {
+                        "description": "Current unit price (after offer if applied)",
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "totalPrice": {
+                        "description": "Current total (quantity × unitPrice, after offer if applied)",
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "baseUnitPrice": {
+                        "description": "Product base price before any offer (for showing strikethrough/original price)",
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "baseTotalPrice": {
+                        "description": "Base total before offer (quantity × baseUnitPrice). When offer applied, use to show savings.",
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "appliedOffer": {
+                        "description": "Offer object when an offer is applied",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "appliedOfferId": {
+                        "description": "ID of applied offer. Null when no offer.",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "notes": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "Offer": {
+                "description": "Product offer or promotion",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "offerType": {
+                        "type": "string",
+                        "enum": [
+                            "buy_x_get_y",
+                            "percentage_discount",
+                            "fixed_discount",
+                            "bundle_percentage",
+                            "bundle_fixed"
+                        ]
+                    },
+                    "discountValue": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "quantityRequired": {
+                        "description": "Minimum quantity to qualify",
+                        "type": "integer"
+                    },
+                    "quantityFree": {
+                        "description": "For buy_x_get_y: free items per qualifying set",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "startDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "endDate": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "isActive": {
+                        "type": "boolean"
+                    },
+                    "isCurrentlyActive": {
+                        "description": "Within date range and active",
+                        "type": "boolean"
+                    }
+                },
+                "type": "object"
+            }
+        },
         "securitySchemes": {
             "sanctum": {
                 "type": "http",
@@ -5279,7 +5507,7 @@
         },
         {
             "name": "Cart",
-            "description": "Shopping cart management endpoints"
+            "description": "Shopping cart management. **Offer system**: Each cart item can have one offer applied. The system auto-selects the best offer (lowest total price) per product. Offer types: buy_x_get_y, percentage_discount, fixed_discount, bundle_percentage, bundle_fixed. Bundle offers require ALL products in the offer to be in cart with required quantities. Cart items include baseUnitPrice/baseTotalPrice (before offer) for displaying price changes."
         },
         {
             "name": "Categories",
@@ -5298,6 +5526,10 @@
             "description": "Driver management endpoints"
         },
         {
+            "name": "Enums",
+            "description": "System enums and constants. Use for dropdowns, validation, and form options."
+        },
+        {
             "name": "Invoices",
             "description": "Invoice management endpoints"
         },
@@ -5307,7 +5539,7 @@
         },
         {
             "name": "Offers",
-            "description": "Product offers and promotions management endpoints"
+            "description": "Product offers and promotions. **Offer types**: buy_x_get_y (buy X get Y free), percentage_discount, fixed_discount, bundle_percentage (bundle with % off), bundle_fixed (bundle with fixed off). All offers require quantity_required. Bundle offers require multiple products. Applied in cart via CartOfferService (best offer auto-selected per product)."
         },
         {
             "name": "Orders",

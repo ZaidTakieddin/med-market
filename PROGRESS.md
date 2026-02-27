@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-02-27 (Codebase rules: documentation hub requirements)
+> Last Updated: 2026-02-27 (Enums endpoint, Cart base prices, Swagger)
 
 ### Related Documentation
 
@@ -94,6 +94,11 @@
 -   [x] Logout endpoint (`POST /api/v1/auth/logout`)
 -   [x] Get authenticated user (`GET /api/v1/auth/me`)
 -   [x] Form request validation (RegisterRequest, LoginRequest)
+
+### Enums API
+
+-   [x] Get all enums (`GET /api/v1/enums`) - Returns offerType, orderStatus, userRole, companyType, stockMovementType, discountType
+-   [x] Optional filter (`?type=offerType`) - Return single enum type
 
 ### Order Management API
 
@@ -803,6 +808,17 @@ _Currently no tasks in progress_
 
 ### Recent Improvements
 
+-   **Enums Endpoint (2026-02-27)**:
+    - Added `GET /api/v1/enums` - returns all system enums (offerType, orderStatus, userRole, companyType, stockMovementType, discountType)
+    - Optional `?type=offerType` to return a single enum
+    - Useful for frontend dropdowns, form options, validation
+-   **Cart & Offer Enhancements (2026-02-27)**:
+    - Cart items now return `baseUnitPrice` and `baseTotalPrice` (prices before offer) for frontend to show price changes (e.g. strikethrough original, show discounted)
+    - Swagger docs improved: CartItem and Offer schemas, Cart/Offer tag descriptions
+    - Documented offer system: one offer per product, best offer auto-selected, bundle requirements
+    - Documented remove-item re-evaluation of remaining offers (bundle eligibility)
+    - OfferController create: fixed offer_type enum (bundle_percentage, bundle_fixed instead of bundle)
+    - Checkout description: cart item prices (offer-adjusted) used for order creation
 -   **Codebase Rules (2026-02-27)**: Updated `.cursor/rules/codebase_rules.mdc` with documentation hub requirements:
     - PROGRESS.md is the main brain: must document every change, mistakes, and current system state
     - Added "Related Documentation" section at top of PROGRESS.md linking to all system docs

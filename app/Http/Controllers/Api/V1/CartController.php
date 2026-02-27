@@ -18,7 +18,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
-#[OA\Tag(name: 'Cart', description: 'Shopping cart management endpoints')]
+#[OA\Tag(
+    name: 'Cart',
+    description: 'Shopping cart management. **Offer system**: Each cart item can have one offer applied. The system auto-selects the best offer (lowest total price) per product. Offer types: buy_x_get_y, percentage_discount, fixed_discount, bundle_percentage, bundle_fixed. Bundle offers require ALL products in the offer to be in cart with required quantities. Cart items include baseUnitPrice/baseTotalPrice (before offer) for displaying price changes.'
+)]
 class CartController extends BaseApiController
 {
     public function __construct(
@@ -32,13 +35,13 @@ class CartController extends BaseApiController
     #[OA\Get(
         path: '/cart',
         summary: 'Get cart',
-        description: 'Get the current user\'s shopping cart with all items. Items are grouped by supplier to show how checkout will split orders. If cart contains items from multiple suppliers, itemsBySupplier will contain multiple groups.',
+        description: 'Get the current user\'s shopping cart with all items. Items are grouped by supplier to show how checkout will split orders. Each cart item includes baseUnitPrice/baseTotalPrice (before offer) and unitPrice/totalPrice (after offer when applied) for displaying price changes.',
         tags: ['Cart'],
         security: [['sanctum' => []]],
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Cart retrieved successfully. Response includes items array (flat) and itemsBySupplier array (grouped by supplier)',
+                description: 'Cart retrieved successfully. Items include baseUnitPrice, baseTotalPrice (before offer), unitPrice, totalPrice (after offer), appliedOfferId.',
                 content: new OA\JsonContent(
                     properties: [
                         new OA\Property(property: 'success', type: 'boolean', example: true),
@@ -50,8 +53,8 @@ class CartController extends BaseApiController
                                 new OA\Property(
                                     property: 'items',
                                     type: 'array',
-                                    description: 'All cart items (flat array)',
-                                    items: new OA\Items(type: 'object')
+                                    description: 'All cart items (flat array). Each has baseUnitPrice, baseTotalPrice, unitPrice, totalPrice, appliedOfferId.',
+                                    items: new OA\Items(ref: '#/components/schemas/CartItem')
                                 ),
                                 new OA\Property(
                                     property: 'itemsBySupplier',
@@ -65,7 +68,7 @@ class CartController extends BaseApiController
                                                 property: 'items',
                                                 type: 'array',
                                                 description: 'Cart items for this supplier',
-                                                items: new OA\Items(type: 'object')
+                                                items: new OA\Items(ref: '#/components/schemas/CartItem')
                                             ),
                                             new OA\Property(property: 'subtotal', type: 'number', format: 'float', description: 'Subtotal for this supplier\'s items'),
                                             new OA\Property(property: 'itemCount', type: 'integer', description: 'Number of items from this supplier'),
@@ -123,7 +126,7 @@ class CartController extends BaseApiController
     #[OA\Post(
         path: '/cart/items',
         summary: 'Add item to cart',
-        description: 'Add a product to the shopping cart. The unit_price is automatically calculated using the product\'s pharmacist_price with any applicable discounts and offers applied. Offers are automatically detected and applied if the quantity meets the offer requirements.',
+        description: 'Add a product to the shopping cart. The system auto-selects the best offer (lowest total) for this product. If product already in cart, quantity is added and offers re-evaluated. Bundle offers require all bundle products in cart. Response includes baseUnitPrice/baseTotalPrice (before offer) for displaying price changes.',
         tags: ['Cart'],
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(
@@ -138,7 +141,7 @@ class CartController extends BaseApiController
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: 'Item added to cart successfully. Price uses product pharmacist_price with discounts and offers applied. If an offer is applied, appliedOfferId will be set.'),
+            new OA\Response(response: 200, description: 'Item added. Returns full cart with baseUnitPrice, baseTotalPrice, unitPrice, totalPrice, appliedOfferId per item.'),
             new OA\Response(response: 401, description: 'Unauthenticated'),
             new OA\Response(response: 403, description: 'Forbidden - Only buyers can add items to cart'),
             new OA\Response(response: 404, description: 'Product not found'),
@@ -256,7 +259,7 @@ class CartController extends BaseApiController
     #[OA\Put(
         path: '/cart/items/{id}',
         summary: 'Update cart item',
-        description: 'Update quantity or notes of a cart item. Offers are automatically re-evaluated when quantity changes.',
+        description: 'Update quantity or notes. Offers are automatically re-evaluated when quantity changes. Best offer (lowest total) is selected. For bundle offers, eligibility depends on other cart items.',
         tags: ['Cart'],
         security: [['sanctum' => []]],
         parameters: [
@@ -342,7 +345,7 @@ class CartController extends BaseApiController
     #[OA\Get(
         path: '/cart/items/{id}/offers',
         summary: 'Get available offers for cart item',
-        description: 'Get all available offers for a cart item based on current quantity. Returns all applicable offers with pricing details.',
+        description: 'Get all offers applicable to this cart item. Considers current quantity and other cart items (for bundle offers). Bundle offers require ALL products in the offer to be in cart with required quantities. Returns each offer with unitPrice, totalPrice, savings, savingsPercentage. Sorted by total price (best first).',
         tags: ['Cart'],
         security: [['sanctum' => []]],
         parameters: [
@@ -371,11 +374,11 @@ class CartController extends BaseApiController
                                     items: new OA\Items(
                                         type: 'object',
                                         properties: [
-                                            new OA\Property(property: 'offer', type: 'object', description: 'Offer object'),
-                                            new OA\Property(property: 'unitPrice', type: 'number', format: 'float'),
-                                            new OA\Property(property: 'totalPrice', type: 'number', format: 'float'),
-                                            new OA\Property(property: 'savings', type: 'number', format: 'float'),
-                                            new OA\Property(property: 'savingsPercentage', type: 'number', format: 'float'),
+                                            new OA\Property(property: 'offer', type: 'object', description: 'Offer object (see Offer schema)'),
+                                            new OA\Property(property: 'unitPrice', type: 'number', format: 'float', description: 'Unit price if this offer applied'),
+                                            new OA\Property(property: 'totalPrice', type: 'number', format: 'float', description: 'Total price if this offer applied'),
+                                            new OA\Property(property: 'savings', type: 'number', format: 'float', description: 'Amount saved vs base price'),
+                                            new OA\Property(property: 'savingsPercentage', type: 'number', format: 'float', description: 'Savings as percentage'),
                                         ]
                                     )
                                 ),
@@ -447,7 +450,7 @@ class CartController extends BaseApiController
     #[OA\Post(
         path: '/cart/items/{id}/apply-offer',
         summary: 'Apply specific offer to cart item',
-        description: 'Manually apply a specific offer to a cart item. This overrides the automatically selected best offer.',
+        description: 'Manually apply a specific offer. Overrides auto-selected best offer. Offer must be for this product and quantity requirement must be met. For bundle offers, all bundle products must be in cart. Returns cart item with baseUnitPrice, baseTotalPrice, unitPrice, totalPrice.',
         tags: ['Cart'],
         security: [['sanctum' => []]],
         parameters: [
@@ -532,7 +535,7 @@ class CartController extends BaseApiController
     #[OA\Post(
         path: '/cart/items/{id}/remove-offer',
         summary: 'Remove applied offer from cart item',
-        description: 'Remove the manually applied offer and revert to automatically selected best offer (or base price if no offers available).',
+        description: 'Remove manual offer and revert to auto-selected best offer (or base price if none). Recalculates best offer for this product based on current quantity and cart state.',
         tags: ['Cart'],
         security: [['sanctum' => []]],
         parameters: [
@@ -601,7 +604,7 @@ class CartController extends BaseApiController
     #[OA\Delete(
         path: '/cart/items/{id}',
         summary: 'Remove cart item',
-        description: 'Remove an item from the shopping cart',
+        description: 'Remove item from cart. **Important**: Re-evaluates offers for ALL remaining items (bundle eligibility may change when a product is removed).',
         tags: ['Cart'],
         security: [['sanctum' => []]],
         parameters: [
@@ -708,7 +711,7 @@ class CartController extends BaseApiController
     #[OA\Post(
         path: '/cart/checkout',
         summary: 'Checkout cart',
-        description: 'Convert cart items to orders. If cart contains items from multiple suppliers, multiple orders will be created automatically (one per supplier). All orders are created in a single atomic transaction - either all succeed or all fail. Cart is cleared after successful checkout.',
+        description: 'Convert cart to orders. Uses cart item unitPrice/totalPrice (offer-adjusted) for order creation. Multi-supplier cart splits into multiple orders (one per supplier). Atomic transaction. Cart cleared after success.',
         tags: ['Cart'],
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(

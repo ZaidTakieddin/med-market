@@ -13,7 +13,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
-#[OA\Tag(name: 'Offers', description: 'Product offers and promotions management endpoints')]
+#[OA\Tag(
+    name: 'Offers',
+    description: 'Product offers and promotions. **Offer types**: buy_x_get_y (buy X get Y free), percentage_discount, fixed_discount, bundle_percentage (bundle with % off), bundle_fixed (bundle with fixed off). All offers require quantity_required. Bundle offers require multiple products. Applied in cart via CartOfferService (best offer auto-selected per product).'
+)]
 class OfferController extends BaseApiController
 {
     /**
@@ -22,7 +25,7 @@ class OfferController extends BaseApiController
     #[OA\Get(
         path: '/offers',
         summary: 'List offers',
-        description: 'Get a paginated list of offers. Suppliers see only their offers, buyers see all active offers.',
+        description: 'Get a paginated list of offers. Suppliers see only their offers, buyers see all active offers. Filter by offer_type, supplier_company_id, is_active.',
         tags: ['Offers'],
         security: [['sanctum' => []]],
         parameters: [
@@ -122,7 +125,7 @@ class OfferController extends BaseApiController
                 properties: [
                     new OA\Property(property: 'name', type: 'string', example: 'Buy 2 Get 1 Free'),
                     new OA\Property(property: 'description', type: 'string', example: 'Special promotion'),
-                    new OA\Property(property: 'offer_type', type: 'string', enum: ['buy_x_get_y', 'percentage_discount', 'fixed_discount', 'bundle']),
+                    new OA\Property(property: 'offer_type', type: 'string', enum: ['buy_x_get_y', 'percentage_discount', 'fixed_discount', 'bundle_percentage', 'bundle_fixed'], description: 'bundle_percentage/bundle_fixed require multiple products in product_ids'),
                     new OA\Property(property: 'discount_value', type: 'number', format: 'float'),
                     new OA\Property(property: 'discount_type', type: 'string', enum: ['percentage', 'fixed']),
                     new OA\Property(property: 'quantity_required', type: 'integer'),

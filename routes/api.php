@@ -23,6 +23,9 @@ Route::prefix('v1')->group(function () {
 
     // Protected routes (require authentication)
     Route::middleware('auth:sanctum')->group(function () {
+        // Enums (system constants for dropdowns, forms)
+        Route::get('enums', [App\Http\Controllers\Api\V1\EnumsController::class, 'index']);
+
         // Auth routes
         Route::prefix('auth')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
