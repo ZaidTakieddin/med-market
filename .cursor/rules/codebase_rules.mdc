@@ -188,6 +188,17 @@ app/
 - Public API endpoints must be documented.
 - Complex business logic must be commented.
 
+### Project Documentation Hub
+
+- **PROGRESS.md** is the main brain of the project. It must:
+  - Be updated with every change: document what was done, when, and why.
+  - Document any mistakes, issues encountered, and how they were resolved.
+  - Reference all system-related docs: README.md, DEPLOYMENT.md, QUEUE_WORKERS.md, domain READMEs.
+  - Reflect the current state of the system (completed features, in progress, pending).
+  - Include a "Last Updated" date and changelog-style entries for recent work.
+- **QUEUE_WORKERS.md**: Document all queue-related changes—new jobs, queue configuration, worker setup, retry logic, troubleshooting.
+- **DEPLOYMENT.md**: Document all deployment-related changes—environment variables, platform-specific config, migration procedures, deployment steps.
+
 ---
 
 ## 16. What NOT to Do
@@ -197,6 +208,7 @@ app/
 - No direct DB writes from jobs without validation.
 - No magic numbers (use constants).
 - No assumptions about user behavior.
+- No changes without updating the relevant docs (PROGRESS.md, QUEUE_WORKERS.md, or DEPLOYMENT.md).
 
 ---
 

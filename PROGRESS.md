@@ -1,6 +1,17 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-02-16 (Product manufacturer_id filter, Company description in create migration)
+> Last Updated: 2026-02-27 (Codebase rules: documentation hub requirements)
+
+### Related Documentation
+
+- [README.md](./README.md) - Project overview, setup, API docs
+- [DEPLOYMENT.md](./DEPLOYMENT.md) - Production deployment guide
+- [QUEUE_WORKERS.md](./QUEUE_WORKERS.md) - Queue workers setup and configuration
+- [app/Domain/Orders/README.md](./app/Domain/Orders/README.md) - Order domain
+- [app/Domain/Inventory/README.md](./app/Domain/Inventory/README.md) - Inventory domain
+- [app/Domain/Products/README.md](./app/Domain/Products/README.md) - Product domain
+- [app/Domain/Companies/README.md](./app/Domain/Companies/README.md) - Company domain
+- [app/Domain/Deliveries/README.md](./app/Domain/Deliveries/README.md) - Deliveries domain
 
 ## 📋 Table of Contents
 
@@ -792,6 +803,12 @@ _Currently no tasks in progress_
 
 ### Recent Improvements
 
+-   **Codebase Rules (2026-02-27)**: Updated `.cursor/rules/codebase_rules.mdc` with documentation hub requirements:
+    - PROGRESS.md is the main brain: must document every change, mistakes, and current system state
+    - Added "Related Documentation" section at top of PROGRESS.md linking to all system docs
+    - Queue-related changes → document in QUEUE_WORKERS.md
+    - Deployment-related changes → document in DEPLOYMENT.md
+    - Added rule: no changes without updating relevant docs
 -   **Transaction Handling**: Implemented global transaction cleanup middleware to handle PostgreSQL connection pooling issues
 -   **Error Handling**: Improved API error responses for unauthenticated requests
 -   **Cache Strategy**: Configured file-based cache (eliminates transaction conflicts), Redis ready for production
