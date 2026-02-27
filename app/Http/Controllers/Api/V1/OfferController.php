@@ -121,11 +121,11 @@ class OfferController extends BaseApiController
             requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['name', 'offer_type', 'start_date', 'product_ids'],
+                required: ['name', 'offer_type', 'start_date'],
                 properties: [
                     new OA\Property(property: 'name', type: 'string', example: 'Buy 2 Get 1 Free'),
                     new OA\Property(property: 'description', type: 'string', example: 'Special promotion'),
-                    new OA\Property(property: 'offer_type', type: 'string', enum: ['buy_x_get_y', 'percentage_discount', 'fixed_discount', 'bundle_percentage', 'bundle_fixed'], description: 'bundle_percentage/bundle_fixed require multiple products in product_ids'),
+                    new OA\Property(property: 'offer_type', type: 'string', enum: ['buy_x_get_y', 'percentage_discount', 'fixed_discount', 'bundle_percentage', 'bundle_fixed'], description: 'Bundle types require products array with quantity per product'),
                     new OA\Property(property: 'discount_value', type: 'number', format: 'float'),
                     new OA\Property(property: 'discount_type', type: 'string', enum: ['percentage', 'fixed']),
                     new OA\Property(property: 'quantity_required', type: 'integer'),
@@ -133,7 +133,12 @@ class OfferController extends BaseApiController
                     new OA\Property(property: 'start_date', type: 'string', format: 'date-time'),
                     new OA\Property(property: 'end_date', type: 'string', format: 'date-time', nullable: true, description: 'Optional. When omitted, offer has no time limit (active indefinitely after start_date)'),
                     new OA\Property(property: 'is_active', type: 'boolean', default: true, description: 'Whether the offer is active. Defaults to true.'),
-                    new OA\Property(property: 'product_ids', type: 'array', items: new OA\Items(type: 'integer')),
+                    new OA\Property(property: 'product_ids', type: 'array', items: new OA\Items(type: 'integer'), description: 'Simple format. Uses offer quantity_required for all.'),
+                    new OA\Property(property: 'products', type: 'array', description: 'Bundle format: [{ product_id, quantity }]. Required for bundle_percentage/bundle_fixed.',
+                        items: new OA\Items(type: 'object', properties: [
+                            new OA\Property(property: 'product_id', type: 'integer'),
+                            new OA\Property(property: 'quantity', type: 'integer', description: 'Required quantity for this product'),
+                        ])),
                 ]
             )
         ),
@@ -165,10 +170,8 @@ class OfferController extends BaseApiController
                 'is_active' => $request->is_active ?? true,
             ]);
 
-            // Attach products
-            if ($request->has('product_ids') && !empty($request->product_ids)) {
-                $offer->products()->attach($request->product_ids);
-            }
+            // Attach products (with per-product quantity for bundles)
+            $this->syncOfferProducts($offer, $request);
 
             $offer->load(['supplierCompany', 'products']);
 
@@ -183,6 +186,31 @@ class OfferController extends BaseApiController
                 'trace' => $e->getTraceAsString()
             ]);
             return $this->error('Failed to create offer: ' . $e->getMessage(), null, 500);
+        }
+    }
+
+    /**
+     * Sync offer products with optional per-product quantity (for bundle offers).
+     */
+    private function syncOfferProducts(Offer $offer, \Illuminate\Http\Request $request): void
+    {
+        $products = $request->input('products');
+        $productIds = $request->input('product_ids');
+
+        if (!empty($products)) {
+            $syncData = [];
+            foreach ($products as $item) {
+                $productId = $item['product_id'] ?? $item['id'] ?? null;
+                $quantity = (int) ($item['quantity'] ?? 1);
+                if ($productId) {
+                    $syncData[$productId] = ['quantity_required' => $quantity];
+                }
+            }
+            $offer->products()->sync($syncData);
+        } elseif (!empty($productIds)) {
+            $quantityRequired = $offer->quantity_required ?? 1;
+            $syncData = array_fill_keys($productIds, ['quantity_required' => $quantityRequired]);
+            $offer->products()->sync($syncData);
         }
     }
 
@@ -246,6 +274,11 @@ class OfferController extends BaseApiController
                     new OA\Property(property: 'end_date', type: 'string', format: 'date-time', nullable: true, description: 'Optional. When null, offer has no time limit (active indefinitely after start_date)'),
                     new OA\Property(property: 'is_active', type: 'boolean', description: 'Whether the offer is active'),
                     new OA\Property(property: 'product_ids', type: 'array', items: new OA\Items(type: 'integer')),
+                    new OA\Property(property: 'products', type: 'array', description: 'For bundles: [{ product_id, quantity }] per product',
+                        items: new OA\Items(type: 'object', properties: [
+                            new OA\Property(property: 'product_id', type: 'integer'),
+                            new OA\Property(property: 'quantity', type: 'integer'),
+                        ])),
                 ]
             )
         ),
@@ -268,8 +301,8 @@ class OfferController extends BaseApiController
             $offer->update($request->validated());
 
             // Update products if provided
-            if ($request->has('product_ids')) {
-                $offer->products()->sync($request->product_ids);
+            if ($request->has('product_ids') || $request->has('products')) {
+                $this->syncOfferProducts($offer, $request);
             }
 
             $offer->load(['supplierCompany', 'products']);

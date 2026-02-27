@@ -15,6 +15,8 @@ class CreateOfferRequest extends BaseFormRequest
 
     public function rules(): array
     {
+        $isBundle = in_array($this->input('offer_type'), [OfferType::BUNDLE_PERCENTAGE, OfferType::BUNDLE_FIXED], true);
+
         return [
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
@@ -25,9 +27,33 @@ class CreateOfferRequest extends BaseFormRequest
             'start_date' => ['required', 'date', 'after_or_equal:today'],
             'end_date' => ['nullable', 'date', 'after:start_date'],
             'is_active' => ['nullable', 'boolean'],
-            'product_ids' => ['required', 'array', 'min:1'],
+            'product_ids' => ['nullable', 'array', 'min:1'],
             'product_ids.*' => ['integer', 'exists:products,id'],
+            'products' => ['nullable', 'array', 'min:1'],
+            'products.*.product_id' => ['required_with:products', 'integer', 'exists:products,id'],
+            'products.*.quantity' => ['required_with:products', 'integer', 'min:1'],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $isBundle = in_array($this->input('offer_type'), [OfferType::BUNDLE_PERCENTAGE, OfferType::BUNDLE_FIXED], true);
+            $products = $this->input('products', []);
+            $productIds = $this->input('product_ids', []);
+            $hasProducts = is_array($products) && count($products) >= 1;
+            $hasProductIds = is_array($productIds) && count($productIds) >= 1;
+
+            if ($isBundle) {
+                if (!$hasProducts) {
+                    $validator->errors()->add('products', 'Bundle offers require products array with product_id and quantity for each product.');
+                } elseif (count($products) < 2) {
+                    $validator->errors()->add('products', 'Bundle offers require at least 2 products.');
+                }
+            } elseif (!$hasProducts && !$hasProductIds) {
+                $validator->errors()->add('product_ids', 'At least one product must be selected (use product_ids or products).');
+            }
+        });
     }
 
     public function messages(): array
@@ -41,6 +67,9 @@ class CreateOfferRequest extends BaseFormRequest
             'end_date.after' => 'End date must be after start date.',
             'product_ids.required' => 'At least one product must be selected.',
             'product_ids.min' => 'At least one product must be selected.',
+            'products.required' => 'Bundle offers require products with quantity for each product.',
+            'products.*.product_id.required_with' => 'Each product must have a product_id.',
+            'products.*.quantity.required_with' => 'Each product must have a quantity.',
         ];
     }
 }

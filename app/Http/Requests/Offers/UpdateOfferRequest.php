@@ -33,8 +33,11 @@ class UpdateOfferRequest extends BaseFormRequest
                 $startDate ? 'after:' . $startDate : null,
             ]),
             'is_active' => ['sometimes', 'boolean'],
-            'product_ids' => ['sometimes', 'array', 'min:1'],
+            'product_ids' => ['sometimes', 'nullable', 'array', 'min:1'],
             'product_ids.*' => ['integer', 'exists:products,id'],
+            'products' => ['sometimes', 'nullable', 'array', 'min:1'],
+            'products.*.product_id' => ['required_with:products', 'integer', 'exists:products,id'],
+            'products.*.quantity' => ['required_with:products', 'integer', 'min:1'],
         ];
     }
 }

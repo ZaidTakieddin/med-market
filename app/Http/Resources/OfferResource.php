@@ -27,7 +27,12 @@ class OfferResource extends JsonResource
             'isActive' => $this->is_active,
             'isCurrentlyActive' => $this->isActive(),
             'supplierCompany' => new CompanyResource($this->whenLoaded('supplierCompany')),
-            'products' => ProductResource::collection($this->whenLoaded('products')),
+            'products' => $this->whenLoaded('products', function () {
+                return $this->products->map(fn ($product) => array_merge(
+                    (new ProductResource($product))->toArray(request()),
+                    ['quantityRequired' => $product->pivot->quantity_required ?? $this->quantity_required]
+                ));
+            }),
             'createdAt' => $this->created_at->toISOString(),
             'updatedAt' => $this->updated_at->toISOString(),
         ];

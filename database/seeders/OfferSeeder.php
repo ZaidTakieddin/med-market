@@ -56,7 +56,7 @@ class OfferSeeder extends Seeder
                 'end_date' => now()->addDays(25),
                 'is_active' => true,
             ]);
-            $offer1->products()->attach([$product1->id]);
+            $offer1->products()->attach([$product1->id => ['quantity_required' => 2]]);
 
             // Percentage Discount Offer
             $offer2 = Offer::create([
@@ -72,7 +72,7 @@ class OfferSeeder extends Seeder
                 'is_active' => true,
             ]);
             if ($product2) {
-                $offer2->products()->attach([$product2->id]);
+                $offer2->products()->attach([$product2->id => ['quantity_required' => 3]]);
             }
 
             $offers[] = $offer1;
@@ -97,7 +97,7 @@ class OfferSeeder extends Seeder
                 'end_date' => now()->addDays(23),
                 'is_active' => true,
             ]);
-            $offer3->products()->attach([$product1->id]);
+            $offer3->products()->attach([$product1->id => ['quantity_required' => 2]]);
 
             // Bundle Offer
             $offer4 = Offer::create([
@@ -113,7 +113,10 @@ class OfferSeeder extends Seeder
                 'is_active' => true,
             ]);
             if ($product2) {
-                $offer4->products()->attach([$product1->id, $product2->id]);
+                $offer4->products()->attach([
+                    $product1->id => ['quantity_required' => 1],
+                    $product2->id => ['quantity_required' => 1],
+                ]);
             }
 
             $offers[] = $offer3;
@@ -138,7 +141,7 @@ class OfferSeeder extends Seeder
                 'end_date' => now()->addDays(20),
                 'is_active' => true,
             ]);
-            $offer5->products()->attach([$product1->id]);
+            $offer5->products()->attach([$product1->id => ['quantity_required' => 2]]);
 
             // Fixed Discount on Premium Products
             if ($supplier3Products->count() > 2) {
@@ -155,7 +158,7 @@ class OfferSeeder extends Seeder
                     'end_date' => now()->addDays(29),
                     'is_active' => true,
                 ]);
-                $offer6->products()->attach([$product3->id]);
+                $offer6->products()->attach([$product3->id => ['quantity_required' => 1]]);
                 $offers[] = $offer6;
             }
 

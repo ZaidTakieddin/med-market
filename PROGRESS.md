@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-02-27 (Enums endpoint, Cart base prices, Swagger)
+> Last Updated: 2026-02-27 (Bundle offers per-product quantity)
 
 ### Related Documentation
 
@@ -808,6 +808,11 @@ _Currently no tasks in progress_
 
 ### Recent Improvements
 
+-   **Bundle Offers Per-Product Quantity (2026-02-27)**:
+    - Bundle offers now require `products` array: `[{ product_id, quantity }]` - each product has its own required quantity
+    - `product_ids` still supported for non-bundle offers (uses offer-level quantity_required)
+    - OfferResource returns `quantityRequired` per product in products array
+    - OfferSeeder updated to use pivot quantity_required for all offers
 -   **Enums Endpoint (2026-02-27)**:
     - Added `GET /api/v1/enums` - returns all system enums (offerType, orderStatus, userRole, companyType, stockMovementType, discountType)
     - Optional `?type=offerType` to return a single enum

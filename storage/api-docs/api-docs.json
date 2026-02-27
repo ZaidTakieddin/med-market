@@ -3213,8 +3213,7 @@
                                 "required": [
                                     "name",
                                     "offer_type",
-                                    "start_date",
-                                    "product_ids"
+                                    "start_date"
                                 ],
                                 "properties": {
                                     "name": {
@@ -3226,7 +3225,7 @@
                                         "example": "Special promotion"
                                     },
                                     "offer_type": {
-                                        "description": "bundle_percentage/bundle_fixed require multiple products in product_ids",
+                                        "description": "Bundle types require products array with quantity per product",
                                         "type": "string",
                                         "enum": [
                                             "buy_x_get_y",
@@ -3269,9 +3268,26 @@
                                         "default": true
                                     },
                                     "product_ids": {
+                                        "description": "Simple format. Uses offer quantity_required for all.",
                                         "type": "array",
                                         "items": {
                                             "type": "integer"
+                                        }
+                                    },
+                                    "products": {
+                                        "description": "Bundle format: [{ product_id, quantity }]. Required for bundle_percentage/bundle_fixed.",
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "product_id": {
+                                                    "type": "integer"
+                                                },
+                                                "quantity": {
+                                                    "description": "Required quantity for this product",
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     }
                                 },
@@ -3403,6 +3419,21 @@
                                         "type": "array",
                                         "items": {
                                             "type": "integer"
+                                        }
+                                    },
+                                    "products": {
+                                        "description": "For bundles: [{ product_id, quantity }] per product",
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "product_id": {
+                                                    "type": "integer"
+                                                },
+                                                "quantity": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     }
                                 },
