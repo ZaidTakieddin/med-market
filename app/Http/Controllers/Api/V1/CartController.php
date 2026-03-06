@@ -780,6 +780,7 @@ class CartController extends BaseApiController
                             'quantity' => $cartItem->quantity,
                             'unit_price' => $cartItem->unit_price,
                             'notes' => $cartItem->notes,
+                            'applied_offer_id' => $cartItem->applied_offer_id,
                         ];
                     }
 
@@ -796,9 +797,11 @@ class CartController extends BaseApiController
                         'buyerCompany.region.city',
                         'supplierCompany.categories',
                         'supplierCompany.manufacturers',
+                        'invoice',
                         'items.product.category',
                         'items.product.manufacturer',
                         'items.product.supplierCompany',
+                        'items.appliedOffer',
                     ]);
                 }
 
@@ -926,6 +929,7 @@ class CartController extends BaseApiController
                         'quantity' => $cartItem->quantity,
                         'unit_price' => $cartItem->unit_price,
                         'notes' => $cartItem->notes,
+                        'applied_offer_id' => $cartItem->applied_offer_id,
                     ];
                 }
 
@@ -943,9 +947,11 @@ class CartController extends BaseApiController
                     'buyerCompany.region.city',
                     'supplierCompany.categories',
                     'supplierCompany.manufacturers',
+                    'invoice',
                     'items.product.category',
                     'items.product.manufacturer',
                     'items.product.supplierCompany',
+                    'items.appliedOffer',
                 ]);
 
                 // Remove only the checked out items from cart

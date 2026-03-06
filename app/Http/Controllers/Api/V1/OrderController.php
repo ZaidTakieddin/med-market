@@ -88,10 +88,12 @@ class OrderController extends BaseApiController
                 'buyerCompany.region.city',
                 'supplierCompany.categories',
                 'supplierCompany.manufacturers',
+                'invoice',
                 'items',
                 'items.product.category',
                 'items.product.manufacturer',
                 'items.product.supplierCompany',
+                'items.appliedOffer',
             ]);
 
             // Filter by company
@@ -246,9 +248,11 @@ class OrderController extends BaseApiController
                 'buyerCompany.region.city',
                 'supplierCompany.categories',
                 'supplierCompany.manufacturers',
+                'invoice',
                 'items.product.category',
                 'items.product.manufacturer',
                 'items.product.supplierCompany',
+                'items.appliedOffer',
             ])),
             'Order created successfully',
             201
@@ -302,9 +306,11 @@ class OrderController extends BaseApiController
             'supplierCompany.categories',
             'supplierCompany.manufacturers',
             'creator',
+            'invoice',
             'items.product.category',
             'items.product.manufacturer',
             'items.product.supplierCompany',
+            'items.appliedOffer',
             'statusLogs.user'
         ]);
 
@@ -383,9 +389,11 @@ class OrderController extends BaseApiController
                     'buyerCompany.region.city',
                     'supplierCompany.categories',
                     'supplierCompany.manufacturers',
+                    'invoice',
                     'items.product.category',
                     'items.product.manufacturer',
                     'items.product.supplierCompany',
+                    'items.appliedOffer',
                 ])),
                 'Order status updated successfully'
             );
@@ -466,9 +474,11 @@ class OrderController extends BaseApiController
                     'buyerCompany.region.city',
                     'supplierCompany.categories',
                     'supplierCompany.manufacturers',
+                    'invoice',
                     'items.product.category',
                     'items.product.manufacturer',
                     'items.product.supplierCompany',
+                    'items.appliedOffer',
                 ])),
                 'Order cancelled successfully'
             );
@@ -562,9 +572,11 @@ class OrderController extends BaseApiController
                 'supplierCompany.categories',
                 'supplierCompany.manufacturers',
                 'driver',
+                'invoice',
                 'items.product.category',
                 'items.product.manufacturer',
                 'items.product.supplierCompany',
+                'items.appliedOffer',
             ]);
 
             return $this->success(

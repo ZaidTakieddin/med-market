@@ -18,6 +18,7 @@ class OrderItem extends Model
         'unit_price',
         'total_price',
         'notes',
+        'applied_offer_id',
     ];
 
     protected $casts = [
@@ -40,5 +41,13 @@ class OrderItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Get the applied offer (if any).
+     */
+    public function appliedOffer(): BelongsTo
+    {
+        return $this->belongsTo(Offer::class, 'applied_offer_id');
     }
 }

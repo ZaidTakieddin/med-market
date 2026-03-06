@@ -131,7 +131,12 @@ class InvoiceController extends BaseApiController
             return $this->error('Unauthorized', null, 403);
         }
 
-        $invoice->load(['order.items.product', 'buyerCompany', 'supplierCompany']);
+        $invoice->load([
+            'order.items.product',
+            'order.items.appliedOffer',
+            'buyerCompany',
+            'supplierCompany',
+        ]);
 
         return $this->success(new InvoiceResource($invoice));
     }
@@ -174,7 +179,12 @@ class InvoiceController extends BaseApiController
             return $this->error('Invoice not found for this order', null, 404);
         }
 
-        $invoice->load(['order.items.product', 'buyerCompany', 'supplierCompany']);
+        $invoice->load([
+            'order.items.product',
+            'order.items.appliedOffer',
+            'buyerCompany',
+            'supplierCompany',
+        ]);
 
         return $this->success(new InvoiceResource($invoice));
     }

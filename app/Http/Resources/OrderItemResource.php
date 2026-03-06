@@ -21,6 +21,8 @@ class OrderItemResource extends JsonResource
             'unitPrice' => (float) $this->unit_price,
             'totalPrice' => (float) $this->total_price,
             'notes' => $this->notes,
+            'appliedOffer' => new OfferResource($this->whenLoaded('appliedOffer')),
+            'appliedOfferId' => $this->applied_offer_id,
         ];
     }
 }

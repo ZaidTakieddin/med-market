@@ -24,6 +24,7 @@ return new class extends Migration
             $table->decimal('unit_price', 10, 2); // Price at time of order
             $table->decimal('total_price', 10, 2); // quantity * unit_price
             $table->text('notes')->nullable();
+            $table->unsignedBigInteger('applied_offer_id')->nullable();
             $table->softDeletes();
             $table->timestamps();
 

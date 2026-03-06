@@ -184,6 +184,7 @@ app/
 ## 15. Documentation
 
 - Use Swagger for API documentation.
+- **After any updates, try to update Swagger docs related to the modifications** (endpoint descriptions, request/response schemas, new fields).
 - Every major domain must have a short README.
 - Public API endpoints must be documented.
 - Complex business logic must be commented.
