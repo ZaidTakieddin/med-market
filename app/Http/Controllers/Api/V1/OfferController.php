@@ -115,7 +115,7 @@ class OfferController extends BaseApiController
     #[OA\Post(
         path: '/offers',
         summary: 'Create offer',
-        description: 'Create a new product offer or promotion (suppliers only)',
+        description: 'Create a new product offer or promotion (suppliers only). Request body accepts snake_case or camelCase (e.g. offer_type or offerType) matching OfferResource.',
         tags: ['Offers'],
         security: [['sanctum' => []]],
             requestBody: new OA\RequestBody(
@@ -125,7 +125,8 @@ class OfferController extends BaseApiController
                 properties: [
                     new OA\Property(property: 'name', type: 'string', example: 'Buy 2 Get 1 Free'),
                     new OA\Property(property: 'description', type: 'string', example: 'Special promotion'),
-                    new OA\Property(property: 'offer_type', type: 'string', enum: ['buy_x_get_y', 'percentage_discount', 'fixed_discount', 'bundle_percentage', 'bundle_fixed'], description: 'Bundle types require products array with quantity per product'),
+                    new OA\Property(property: 'offer_type', type: 'string', enum: ['buy_x_get_y', 'percentage_discount', 'fixed_discount', 'bundle_percentage', 'bundle_fixed'], description: 'Bundle types require products array with quantity per product. Alias: offerType.'),
+                    new OA\Property(property: 'offerType', type: 'string', enum: ['buy_x_get_y', 'percentage_discount', 'fixed_discount', 'bundle_percentage', 'bundle_fixed'], description: 'Same as offer_type (camelCase).'),
                     new OA\Property(property: 'discount_value', type: 'number', format: 'float'),
                     new OA\Property(property: 'discount_type', type: 'string', enum: ['percentage', 'fixed']),
                     new OA\Property(property: 'quantity_required', type: 'integer'),

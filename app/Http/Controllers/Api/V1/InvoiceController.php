@@ -43,7 +43,7 @@ class InvoiceController extends BaseApiController
     {
         try {
             $user = auth()->user();
-            $query = Invoice::with(['order', 'buyerCompany', 'supplierCompany']);
+            $query = Invoice::with(['order.driver', 'buyerCompany', 'supplierCompany']);
 
             // Filter by user role
             if ($user->isBuyer()) {
@@ -132,6 +132,7 @@ class InvoiceController extends BaseApiController
         }
 
         $invoice->load([
+            'order.driver',
             'order.items.product',
             'order.items.appliedOffer',
             'buyerCompany',
@@ -180,6 +181,7 @@ class InvoiceController extends BaseApiController
         }
 
         $invoice->load([
+            'order.driver',
             'order.items.product',
             'order.items.appliedOffer',
             'buyerCompany',
@@ -263,7 +265,7 @@ class InvoiceController extends BaseApiController
 
         $invoice->markAsSent();
 
-        return $this->success(new InvoiceResource($invoice->load(['order', 'buyerCompany', 'supplierCompany'])), 'Invoice marked as sent successfully');
+        return $this->success(new InvoiceResource($invoice->load(['order.driver', 'buyerCompany', 'supplierCompany'])), 'Invoice marked as sent successfully');
     }
 
     /**
@@ -325,6 +327,6 @@ class InvoiceController extends BaseApiController
             $invoice->update(['notes' => $request->notes]);
         }
 
-        return $this->success(new InvoiceResource($invoice->load(['order', 'buyerCompany', 'supplierCompany'])), 'Invoice marked as paid successfully');
+        return $this->success(new InvoiceResource($invoice->load(['order.driver', 'buyerCompany', 'supplierCompany'])), 'Invoice marked as paid successfully');
     }
 }

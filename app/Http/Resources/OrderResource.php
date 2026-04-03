@@ -21,7 +21,7 @@ class OrderResource extends JsonResource
             'buyerCompany' => new CompanyResource($this->whenLoaded('buyerCompany')),
             'supplierCompany' => new CompanyResource($this->whenLoaded('supplierCompany')),
             'creator' => new UserResource($this->whenLoaded('creator')),
-            'driver' => new UserResource($this->whenLoaded('driver')),
+            'driver' => $this->driver ? new UserResource($this->driver) : null,
             'items' => OrderItemResource::collection($this->whenLoaded('items')),
             'subtotal' => (float) $this->subtotal,
             'taxAmount' => (float) $this->tax_amount,

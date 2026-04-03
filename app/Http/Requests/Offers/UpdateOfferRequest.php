@@ -13,6 +13,32 @@ class UpdateOfferRequest extends BaseFormRequest
         return true; // Authorization handled in controller
     }
 
+    protected function prepareForValidation(): void
+    {
+        $map = [
+            'offerType' => 'offer_type',
+            'discountValue' => 'discount_value',
+            'quantityRequired' => 'quantity_required',
+            'quantityFree' => 'quantity_free',
+            'startDate' => 'start_date',
+            'endDate' => 'end_date',
+            'isActive' => 'is_active',
+            'productIds' => 'product_ids',
+        ];
+        $merge = [];
+        foreach ($map as $camel => $snake) {
+            if ($this->has($camel) && !$this->has($snake)) {
+                $merge[$snake] = $this->input($camel);
+            }
+        }
+        if ($this->input('end_date') === '' || $this->input('endDate') === '') {
+            $merge['end_date'] = null;
+        }
+        if (!empty($merge)) {
+            $this->merge($merge);
+        }
+    }
+
     public function rules(): array
     {
         $offer = $this->route('offer');

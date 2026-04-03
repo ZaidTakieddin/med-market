@@ -13,10 +13,37 @@ class CreateOfferRequest extends BaseFormRequest
         return true; // Authorization handled in controller
     }
 
+    /**
+     * Accept camelCase JSON (aligned with OfferResource) as well as snake_case.
+     */
+    protected function prepareForValidation(): void
+    {
+        $map = [
+            'offerType' => 'offer_type',
+            'discountValue' => 'discount_value',
+            'quantityRequired' => 'quantity_required',
+            'quantityFree' => 'quantity_free',
+            'startDate' => 'start_date',
+            'endDate' => 'end_date',
+            'isActive' => 'is_active',
+            'productIds' => 'product_ids',
+        ];
+        $merge = [];
+        foreach ($map as $camel => $snake) {
+            if ($this->has($camel) && !$this->has($snake)) {
+                $merge[$snake] = $this->input($camel);
+            }
+        }
+        if (!empty($merge)) {
+            $this->merge($merge);
+        }
+        if ($this->input('end_date') === '' || $this->input('endDate') === '') {
+            $this->merge(['end_date' => null]);
+        }
+    }
+
     public function rules(): array
     {
-        $isBundle = in_array($this->input('offer_type'), [OfferType::BUNDLE_PERCENTAGE, OfferType::BUNDLE_FIXED], true);
-
         return [
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
@@ -25,7 +52,7 @@ class CreateOfferRequest extends BaseFormRequest
             'quantity_required' => ['required', 'integer', 'min:1'],
             'quantity_free' => ['nullable', 'integer', 'min:0'],
             'start_date' => ['required', 'date', 'after_or_equal:today'],
-            'end_date' => ['nullable', 'date', 'after:start_date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'is_active' => ['nullable', 'boolean'],
             'product_ids' => ['nullable', 'array', 'min:1'],
             'product_ids.*' => ['integer', 'exists:products,id'],
@@ -64,7 +91,7 @@ class CreateOfferRequest extends BaseFormRequest
             'offer_type.in' => 'Invalid offer type.',
             'start_date.required' => 'Start date is required.',
             'start_date.after_or_equal' => 'Start date must be today or later.',
-            'end_date.after' => 'End date must be after start date.',
+            'end_date.after_or_equal' => 'End date must be on or after the start date.',
             'product_ids.required' => 'At least one product must be selected.',
             'product_ids.min' => 'At least one product must be selected.',
             'products.required' => 'Bundle offers require products with quantity for each product.',

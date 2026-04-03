@@ -308,6 +308,7 @@ class DriverController extends BaseApiController
                     'buyerCompany.region.city',
                     'supplierCompany.categories',
                     'supplierCompany.manufacturers',
+                    'driver',
                     'items.product.category',
                     'items.product.manufacturer',
                     'items.product.supplierCompany',

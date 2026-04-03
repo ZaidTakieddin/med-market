@@ -3203,7 +3203,7 @@
                     "Offers"
                 ],
                 "summary": "Create offer",
-                "description": "Create a new product offer or promotion (suppliers only)",
+                "description": "Create a new product offer or promotion (suppliers only). Request body accepts snake_case or camelCase (e.g. offer_type or offerType) matching OfferResource.",
                 "operationId": "dd38976d492305d9255839335d5bf687",
                 "requestBody": {
                     "required": true,
@@ -3225,7 +3225,18 @@
                                         "example": "Special promotion"
                                     },
                                     "offer_type": {
-                                        "description": "Bundle types require products array with quantity per product",
+                                        "description": "Bundle types require products array with quantity per product. Alias: offerType.",
+                                        "type": "string",
+                                        "enum": [
+                                            "buy_x_get_y",
+                                            "percentage_discount",
+                                            "fixed_discount",
+                                            "bundle_percentage",
+                                            "bundle_fixed"
+                                        ]
+                                    },
+                                    "offerType": {
+                                        "description": "Same as offer_type (camelCase).",
                                         "type": "string",
                                         "enum": [
                                             "buy_x_get_y",
