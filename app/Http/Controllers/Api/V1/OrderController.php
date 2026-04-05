@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Constants\OrderStatus;
 use App\Domain\Orders\OrderCreationService;
 use App\Domain\Orders\OrderStateTransitionService;
+use App\Domain\Pricing\PricingService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Orders\CreateOrderRequest;
 use App\Http\Requests\Orders\UpdateOrderStatusRequest;
@@ -21,7 +22,8 @@ class OrderController extends BaseApiController
 {
     public function __construct(
         private OrderCreationService $orderCreationService,
-        private OrderStateTransitionService $orderStateTransitionService
+        private OrderStateTransitionService $orderStateTransitionService,
+        private PricingService $pricingService
     ) {}
 
     /**
@@ -163,7 +165,7 @@ class OrderController extends BaseApiController
     #[OA\Post(
         path: '/orders',
         summary: 'Create order',
-        description: 'Create a new order for a **single supplier**. Only buyers can create orders. If unit_price is not provided, it will use the product\'s pharmacist_price with any applicable discounts applied (getFinalPharmacistPrice method). **Important:** This endpoint creates ONE order for ONE supplier. If you need to order from multiple suppliers, use the cart checkout endpoint (`POST /cart/checkout`) which automatically splits the cart into multiple orders (one per supplier).',
+        description: 'Create a new order for a **single supplier**. Only buyers and salesmen can create orders. If unit_price is not provided, PricingService resolves the correct price based on buyer type, supplier classification, quantity (wholesale eligibility), and custom price lists. **Important:** This endpoint creates ONE order for ONE supplier. If you need to order from multiple suppliers, use the cart checkout endpoint (`POST /cart/checkout`) which automatically splits the cart into multiple orders (one per supplier).',
         tags: ['Orders'],
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(
@@ -180,7 +182,7 @@ class OrderController extends BaseApiController
                             properties: [
                                 new OA\Property(property: 'product_id', type: 'integer', example: 1, description: 'Product ID (must belong to supplier_company_id)'),
                                 new OA\Property(property: 'quantity', type: 'integer', example: 10, description: 'Quantity ordered'),
-                                new OA\Property(property: 'unit_price', type: 'number', format: 'float', nullable: true, description: 'Optional - will use product pharmacist_price with discounts applied (getFinalPharmacistPrice) if not provided', example: 25.50),
+                                new OA\Property(property: 'unit_price', type: 'number', format: 'float', nullable: true, description: 'Optional - PricingService resolves the correct tier price (custom, wholesale, or retail) if not provided', example: 25.50),
                                 new OA\Property(property: 'notes', type: 'string', nullable: true, description: 'Item-specific notes'),
                             ]
                         )
@@ -224,18 +226,25 @@ class OrderController extends BaseApiController
             return $this->error('Only buyers and salesmen can create orders', null, 403);
         }
 
-        // Prepare items with pharmacist_price from products
+        $buyerCompany = $user->company;
         $items = [];
         foreach ($request->items as $item) {
             $product = \App\Models\Product::findOrFail($item['product_id']);
             
-            // Use provided unit_price or calculate from product's pharmacist_price
-            $unitPrice = $item['unit_price'] ?? $product->getFinalPharmacistPrice();
+            if ($item['unit_price'] ?? null) {
+                $unitPrice = $item['unit_price'];
+                $pricingType = $item['pricing_type'] ?? null;
+            } else {
+                $priceResult = $this->pricingService->resolve($product, $buyerCompany, $item['quantity']);
+                $unitPrice = $priceResult->unitPrice;
+                $pricingType = $priceResult->pricingType;
+            }
             
             $items[] = [
                 'product_id' => $item['product_id'],
                 'quantity' => $item['quantity'],
                 'unit_price' => $unitPrice,
+                'pricing_type' => $pricingType,
                 'notes' => $item['notes'] ?? null,
             ];
         }

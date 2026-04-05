@@ -107,24 +107,28 @@ This is stored in `cart_items.pricing_type` and `order_items.pricing_type` for a
 - Validating supplier-buyer-product combinations
 - Managing date ranges and activation
 
-## Integration Points
+## Integration Points (All Implemented)
 
 ### With Products Domain
 - Products carry wholesale pricing fields
 - Product-level discounts apply after tier resolution
+- `ProductController::index()` filters wholesale-only suppliers from pharmacy buyers
 
-### With Cart Domain
-- Cart operations use `PricingService` to set unit prices
-- Price recalculates when quantity crosses wholesale threshold
-- `pricing_type` is stored on cart items
+### With Cart Domain (Phase 3 — Implemented)
+- `CartController` injects `PricingService` and uses `resolve()` on every add/update/remove
+- Price recalculates when quantity crosses wholesale threshold (wholesale_min_qty)
+- `pricing_type` is stored on cart items and passed through to order items on checkout
+- `CartOfferService` accepts a `$basePrice` parameter — offer discounts apply on top of the tier-resolved price
+- Catalog visibility check: `canBuyerSeeSupplier()` called before adding products to cart
 
-### With Orders Domain
-- Order items record which pricing tier was applied
-- Order creation validates pricing consistency
+### With Orders Domain (Phase 3 — Implemented)
+- `OrderController::store()` uses `PricingService` when `unit_price` is not provided
+- `OrderCreationService` accepts and stores `pricing_type` on order items
+- `OrderItemResource` and `CartItemResource` expose `pricingType`
 
 ### With Offers Domain
 - Promotional offers layer on top of tier-resolved prices
-- Offers are applied after `PricingService` determines the base price
+- `CartOfferService` receives the tier-resolved base price and calculates offer discounts from that base
 
 ## Business Rules
 

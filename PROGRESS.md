@@ -296,17 +296,16 @@
 
 ## 🔄 In Progress
 
-### Supplier Classifications & Multi-Tier Pricing (Phase 1: Data Model — COMPLETED)
+### Supplier Classifications & Multi-Tier Pricing
 
-Phase 1 (data model) and Phase 2 (PricingService) are complete. Remaining phases:
+Phases 1–3 complete. Remaining phases:
 
 - [x] **Phase 1**: Data model — migrations, constants, models, seeders ✅
 - [x] **Phase 2**: PricingService — central price resolution engine ✅
-- [ ] **Phase 3**: Cart & order integration with PricingService
+- [x] **Phase 3**: Cart & order integration with PricingService + catalog visibility ✅
 - [ ] **Phase 4**: Buyer-supplier relationship & credit management endpoints
-- [ ] **Phase 5**: API & visibility rules (role-based price filtering, catalog visibility)
-- [ ] **Phase 6**: Salesman features (management, region assignment, on-behalf ordering)
-- [ ] **Phase 7**: Seeders, documentation polish, Swagger updates
+- [ ] **Phase 5**: Salesman features (management, region assignment, on-behalf ordering)
+- [ ] **Phase 6**: Seeders, documentation polish, Swagger updates
 
 ---
 
@@ -870,6 +869,22 @@ Phase 1 (data model) and Phase 2 (PricingService) are complete. Remaining phases
     - **UpdateProductRequest**: Added `required_with:wholesale_price` to `wholesale_min_qty` (aligned with CreateProductRequest).
     - **OrderController**: Added `salesman` to eager-loaded relations in both `index()` and `show()` — `OrderResource` wraps salesman in `whenLoaded()`.
     - **EnumsController Swagger**: Added `supplierClassification`, `buyerClassification`, `pricingType`, `paymentTerms` to OpenAPI `type` query param enum.
+-   **Supplier Classifications & Multi-Tier Pricing — Phase 3: Cart/Order/Catalog Integration (2026-04-03)**:
+    - Integrated `PricingService` into `CartController` — all add/update/remove operations now resolve prices based on buyer type, supplier classification, quantity (wholesale eligibility), and custom price lists
+    - `addItem()`: resolves tier price via PricingService, checks catalog visibility (`canBuyerSeeSupplier`), sets `pricing_type` on cart items
+    - `updateItem()`: re-resolves price when quantity changes (qty may cross wholesale threshold)
+    - `removeItem()`: re-evaluates all remaining items with PricingService
+    - `removeOffer()` / `applyOffer()` / `getAvailableOffers()`: use tier-resolved base price instead of hardcoded pharmacist price
+    - `checkout()` / `checkoutSupplier()`: passes `pricing_type` through to order items
+    - Integrated `PricingService` into `OrderController::store()` — auto-resolves price when `unit_price` not provided
+    - Updated `OrderCreationService` to accept and store `pricing_type` on order items
+    - Updated `CartOfferService` — all public methods (`findBestOffer`, `getAvailableOffers`, `applyOffer`) now accept optional `$basePrice` parameter; offer discounts apply on top of tier-resolved price
+    - Added **catalog visibility** to `ProductController::index()` — wholesale-only suppliers hidden from pharmacy buyers
+    - Fixed `CartItemResource::baseUnitPrice` to use correct tier price based on `pricing_type` (wholesale → `getFinalWholesalePrice()`, retail → `getFinalPharmacistPrice()`, custom → stored price)
+    - Added `pricing_type` validation to `CreateOrderRequest` (items.*.pricing_type)
+    - Updated Swagger descriptions in `OrderController` to reflect PricingService integration
+    - **Pricing resolution flow**: PricingService resolves tier price → CartOfferService checks promotional offers → best price wins
+    - **Files modified**: CartController, OrderController, ProductController, CartOfferService, OrderCreationService, CartItemResource, CreateOrderRequest
 -   **Supplier Classifications & Multi-Tier Pricing — Phase 2: PricingService & Salesman Integration (2026-04-03)**:
     - Created `PricingService` (`App\Domain\Pricing\PricingService`) — central price resolution engine
       - `resolve()`: single product price resolution (custom → wholesale → retail → discount)

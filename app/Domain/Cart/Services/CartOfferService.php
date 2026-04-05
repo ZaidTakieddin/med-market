@@ -16,11 +16,11 @@ class CartOfferService
      * @param Product $product
      * @param int $quantity
      * @param Collection|null $cartItems Optional: other cart items for bundle offers
+     * @param float|null $basePrice Optional: tier-resolved price from PricingService. Falls back to pharmacist price.
      * @return array Returns array of ['offer' => Offer, 'unit_price' => float, 'total_price' => float, 'savings' => float]
      */
-    public function getAvailableOffers(Product $product, int $quantity, ?Collection $cartItems = null): array
+    public function getAvailableOffers(Product $product, int $quantity, ?Collection $cartItems = null, ?float $basePrice = null): array
     {
-        // Get active offers for this product with pivot data
         $offers = $product->offers()
             ->where('is_active', true)
             ->where('start_date', '<=', now())
@@ -34,7 +34,7 @@ class CartOfferService
             return [];
         }
 
-        $basePrice = $product->getFinalPharmacistPrice();
+        $basePrice = $basePrice ?? $product->getFinalPharmacistPrice();
         $baseTotal = $quantity * $basePrice;
         $availableOffers = [];
 
@@ -46,7 +46,7 @@ class CartOfferService
                 continue; // Quantity requirement not met
             }
 
-            $result = $this->calculateOfferPrice($offer, $product, $quantity, $cartItems);
+            $result = $this->calculateOfferPrice($offer, $product, $quantity, $cartItems, $basePrice);
             
             if ($result) {
                 $savings = $baseTotal - $result['total_price'];
@@ -74,11 +74,11 @@ class CartOfferService
      * @param Product $product
      * @param int $quantity
      * @param Collection|null $cartItems Optional: other cart items for bundle offers
+     * @param float|null $basePrice Optional: tier-resolved price from PricingService. Falls back to pharmacist price.
      * @return array|null Returns ['offer' => Offer, 'unit_price' => float, 'total_price' => float] or null
      */
-    public function findBestOffer(Product $product, int $quantity, ?Collection $cartItems = null): ?array
+    public function findBestOffer(Product $product, int $quantity, ?Collection $cartItems = null, ?float $basePrice = null): ?array
     {
-        // Get active offers for this product with pivot data
         $offers = $product->offers()
             ->where('is_active', true)
             ->where('start_date', '<=', now())
@@ -93,18 +93,17 @@ class CartOfferService
         }
 
         $bestOffer = null;
-        $bestPrice = $product->getFinalPharmacistPrice();
-        $bestTotal = $quantity * $bestPrice;
+        $basePrice = $basePrice ?? $product->getFinalPharmacistPrice();
+        $bestTotal = $quantity * $basePrice;
 
         foreach ($offers as $offer) {
-            // Check if quantity requirement is met
             $quantityRequired = $offer->pivot->quantity_required ?? $offer->quantity_required;
             
             if ($quantity < $quantityRequired) {
-                continue; // Quantity requirement not met
+                continue;
             }
 
-            $result = $this->calculateOfferPrice($offer, $product, $quantity, $cartItems);
+            $result = $this->calculateOfferPrice($offer, $product, $quantity, $cartItems, $basePrice);
             
             if ($result && $result['total_price'] < $bestTotal) {
                 $bestOffer = $offer;
@@ -131,11 +130,12 @@ class CartOfferService
      * @param Product $product
      * @param int $quantity
      * @param Collection|null $cartItems
+     * @param float|null $basePrice Tier-resolved price. Falls back to pharmacist price.
      * @return array|null Returns ['unit_price' => float, 'total_price' => float] or null
      */
-    protected function calculateOfferPrice(Offer $offer, Product $product, int $quantity, ?Collection $cartItems = null): ?array
+    protected function calculateOfferPrice(Offer $offer, Product $product, int $quantity, ?Collection $cartItems = null, ?float $basePrice = null): ?array
     {
-        $basePrice = $product->getFinalPharmacistPrice();
+        $basePrice = $basePrice ?? $product->getFinalPharmacistPrice();
         $quantityRequired = $offer->pivot->quantity_required ?? $offer->quantity_required;
 
         // Check if quantity requirement is met
@@ -155,7 +155,7 @@ class CartOfferService
             
             case OfferType::BUNDLE_PERCENTAGE:
             case OfferType::BUNDLE_FIXED:
-                return $this->calculateBundle($offer, $product, $quantity, $cartItems, $quantityRequired);
+                return $this->calculateBundle($offer, $product, $quantity, $cartItems, $quantityRequired, $basePrice);
             
             default:
                 return null;
@@ -236,28 +236,24 @@ class CartOfferService
      * Calculate price for Bundle offer.
      * Bundle offers require multiple products, so we check if all required products are in cart.
      */
-    protected function calculateBundle(Offer $offer, Product $product, int $quantity, ?Collection $cartItems, int $quantityRequired): ?array
+    protected function calculateBundle(Offer $offer, Product $product, int $quantity, ?Collection $cartItems, int $quantityRequired, ?float $basePrice = null): ?array
     {
         if (!$cartItems) {
             return null;
         }
 
-        // Get all products in the bundle offer
         $bundleProducts = $offer->products;
         
-        // Check if all bundle products are in cart with required quantities
         $allProductsInCart = true;
         foreach ($bundleProducts as $bundleProduct) {
             $bundleQuantityRequired = $bundleProduct->pivot->quantity_required ?? $quantityRequired;
             
             if ($bundleProduct->id === $product->id) {
-                // This is the current product, check if quantity meets requirement
                 if ($quantity < $bundleQuantityRequired) {
                     $allProductsInCart = false;
                     break;
                 }
             } else {
-                // Check if other bundle products are in cart
                 $cartItem = $cartItems->firstWhere('product_id', $bundleProduct->id);
                 
                 if (!$cartItem || $cartItem->quantity < $bundleQuantityRequired) {
@@ -271,8 +267,7 @@ class CartOfferService
             return null;
         }
 
-        // Apply bundle discount (discount type inferred from offer_type)
-        $basePrice = $product->getFinalPharmacistPrice();
+        $basePrice = $basePrice ?? $product->getFinalPharmacistPrice();
         $discountValue = $offer->pivot->discount_override ?? $offer->discount_value;
         
         if (!$discountValue) {
@@ -299,9 +294,10 @@ class CartOfferService
      * @param Product $product
      * @param int $quantity
      * @param Collection|null $cartItems Optional: other cart items for bundle offers
+     * @param float|null $basePrice Optional: tier-resolved price from PricingService.
      * @return array|null Returns ['unit_price' => float, 'total_price' => float] or null if offer cannot be applied
      */
-    public function applyOffer(Offer $offer, Product $product, int $quantity, ?Collection $cartItems = null): ?array
+    public function applyOffer(Offer $offer, Product $product, int $quantity, ?Collection $cartItems = null, ?float $basePrice = null): ?array
     {
         // Verify offer is for this product and load pivot data
         $productOffer = $product->offers()
@@ -327,6 +323,6 @@ class CartOfferService
             return null;
         }
 
-        return $this->calculateOfferPrice($offer, $product, $quantity, $cartItems);
+        return $this->calculateOfferPrice($offer, $product, $quantity, $cartItems, $basePrice);
     }
 }

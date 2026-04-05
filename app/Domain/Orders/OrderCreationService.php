@@ -114,7 +114,6 @@ class OrderCreationService
             'notes' => $notes,
         ]);
 
-        // Create order items
         foreach ($items as $item) {
             OrderItem::create([
                 'order_id' => $order->id,
@@ -122,6 +121,7 @@ class OrderCreationService
                 'quantity' => $item['quantity'],
                 'unit_price' => $item['unit_price'],
                 'total_price' => $item['quantity'] * $item['unit_price'],
+                'pricing_type' => $item['pricing_type'] ?? null,
                 'notes' => $item['notes'] ?? null,
                 'applied_offer_id' => $item['applied_offer_id'] ?? null,
             ]);

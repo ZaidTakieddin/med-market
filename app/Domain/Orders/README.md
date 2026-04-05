@@ -349,6 +349,8 @@ Orders can be placed by salesmen on behalf of pharmacists:
 Each `OrderItem` now records the pricing tier that was applied:
 - `pricing_type` — `wholesale`, `retail`, or `custom`
 - This provides an audit trail of which price was used for each line item
+- `OrderController::store()` uses `PricingService::resolve()` to automatically determine the correct price when `unit_price` is not provided
+- `OrderCreationService::create()` accepts and persists `pricing_type` alongside each order item
 
 ## Future Enhancements
 

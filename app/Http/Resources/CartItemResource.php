@@ -14,9 +14,17 @@ class CartItemResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $baseUnitPrice = $this->relationLoaded('product')
-            ? (float) $this->product->getFinalPharmacistPrice()
-            : (float) $this->unit_price;
+        $baseUnitPrice = (float) $this->unit_price;
+
+        if ($this->applied_offer_id && $this->relationLoaded('product')) {
+            $product = $this->product;
+            $baseUnitPrice = match ($this->pricing_type) {
+                'wholesale' => (float) ($product->getFinalWholesalePrice() ?? $product->getFinalPharmacistPrice()),
+                'custom' => (float) $this->unit_price,
+                default => (float) $product->getFinalPharmacistPrice(),
+            };
+        }
+
         $baseTotalPrice = round($this->quantity * $baseUnitPrice, 2);
 
         return [

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Cart\Services\CartOfferService;
 use App\Domain\Orders\OrderCreationService;
+use App\Domain\Pricing\PricingService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Cart\AddCartItemRequest;
 use App\Http\Requests\Cart\UpdateCartItemRequest;
@@ -26,7 +27,8 @@ class CartController extends BaseApiController
 {
     public function __construct(
         private OrderCreationService $orderCreationService,
-        private CartOfferService $cartOfferService
+        private CartOfferService $cartOfferService,
+        private PricingService $pricingService
     ) {}
 
     /**
@@ -163,26 +165,31 @@ class CartController extends BaseApiController
                 return $this->error('Product is not available', null, 400);
             }
 
+            $buyerCompany = $user->company;
+            if (!$buyerCompany) {
+                return $this->error('User has no company assigned', null, 400);
+            }
+
+            if (!$this->pricingService->canBuyerSeeSupplier($product->supplierCompany, $buyerCompany)) {
+                return $this->error('This product is not available for your account type', null, 403);
+            }
+
             $cart = Cart::firstOrCreate(
                 ['user_id' => $user->id],
                 ['company_id' => $user->company_id]
             );
 
-            // Load product offers for offer checking
             $product->load('offers');
-            
-            // Get current cart items for bundle offer checking
             $currentCartItems = $cart->items()->with('product')->get();
-            
-            // Check if item already exists in cart
             $existingItem = $cart->items()->where('product_id', $product->id)->first();
 
             if ($existingItem) {
-                // Update quantity
                 $newQuantity = $existingItem->quantity + $request->quantity;
                 
-                // Check for offers with new quantity
-                $offerResult = $this->cartOfferService->findBestOffer($product, $newQuantity, $currentCartItems);
+                $priceResult = $this->pricingService->resolve($product, $buyerCompany, $newQuantity);
+                $tierPrice = $priceResult->unitPrice;
+
+                $offerResult = $this->cartOfferService->findBestOffer($product, $newQuantity, $currentCartItems, $tierPrice);
                 
                 if ($offerResult) {
                     $existingItem->quantity = $newQuantity;
@@ -191,36 +198,39 @@ class CartController extends BaseApiController
                     $existingItem->applied_offer_id = $offerResult['offer']->id;
                 } else {
                     $existingItem->quantity = $newQuantity;
-                    $existingItem->unit_price = $product->getFinalPharmacistPrice();
-                    $existingItem->calculateTotal();
+                    $existingItem->unit_price = $tierPrice;
+                    $existingItem->total_price = $newQuantity * $tierPrice;
                     $existingItem->applied_offer_id = null;
                 }
                 
+                $existingItem->pricing_type = $priceResult->pricingType;
                 $existingItem->notes = $request->notes ?? $existingItem->notes;
                 $existingItem->save();
             } else {
-                // Check for offers
-                $offerResult = $this->cartOfferService->findBestOffer($product, $request->quantity, $currentCartItems);
+                $priceResult = $this->pricingService->resolve($product, $buyerCompany, $request->quantity);
+                $tierPrice = $priceResult->unitPrice;
+
+                $offerResult = $this->cartOfferService->findBestOffer($product, $request->quantity, $currentCartItems, $tierPrice);
                 
                 if ($offerResult) {
-                    // Create new cart item with offer applied
                     $cartItem = CartItem::create([
                         'cart_id' => $cart->id,
                         'product_id' => $product->id,
                         'quantity' => $request->quantity,
                         'unit_price' => $offerResult['unit_price'],
                         'total_price' => $offerResult['total_price'],
+                        'pricing_type' => $priceResult->pricingType,
                         'applied_offer_id' => $offerResult['offer']->id,
                         'notes' => $request->notes,
                     ]);
                 } else {
-                    // Create new cart item without offer
                     $cartItem = CartItem::create([
                         'cart_id' => $cart->id,
                         'product_id' => $product->id,
                         'quantity' => $request->quantity,
-                        'unit_price' => $product->getFinalPharmacistPrice(),
-                        'total_price' => $request->quantity * $product->getFinalPharmacistPrice(),
+                        'unit_price' => $tierPrice,
+                        'total_price' => $request->quantity * $tierPrice,
+                        'pricing_type' => $priceResult->pricingType,
                         'applied_offer_id' => null,
                         'notes' => $request->notes,
                     ]);
@@ -296,22 +306,25 @@ class CartController extends BaseApiController
                 $newQuantity = $request->quantity;
                 $product = $cartItem->product;
                 $product->load('offers');
+                $buyerCompany = $user->company;
                 
-                // Get all cart items for bundle offer checking
                 $cartItems = $cartItem->cart->items()->with('product')->get();
                 
-                // Check for offers with new quantity
-                $offerResult = $this->cartOfferService->findBestOffer($product, $newQuantity, $cartItems);
+                $priceResult = $this->pricingService->resolve($product, $buyerCompany, $newQuantity);
+                $tierPrice = $priceResult->unitPrice;
+
+                $offerResult = $this->cartOfferService->findBestOffer($product, $newQuantity, $cartItems, $tierPrice);
                 
                 $cartItem->quantity = $newQuantity;
+                $cartItem->pricing_type = $priceResult->pricingType;
                 
                 if ($offerResult) {
                     $cartItem->unit_price = $offerResult['unit_price'];
                     $cartItem->total_price = $offerResult['total_price'];
                     $cartItem->applied_offer_id = $offerResult['offer']->id;
                 } else {
-                    $cartItem->unit_price = $product->getFinalPharmacistPrice();
-                    $cartItem->calculateTotal();
+                    $cartItem->unit_price = $tierPrice;
+                    $cartItem->total_price = $newQuantity * $tierPrice;
                     $cartItem->applied_offer_id = null;
                 }
             }
@@ -405,14 +418,15 @@ class CartController extends BaseApiController
 
             $product = $cartItem->product;
             $product->load('offers');
+            $buyerCompany = $user->company;
             
-            // Get all cart items for bundle offer checking
             $cartItems = $cartItem->cart->items()->with('product')->get();
             
-            // Get all available offers
-            $availableOffers = $this->cartOfferService->getAvailableOffers($product, $cartItem->quantity, $cartItems);
+            $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
+            $basePrice = $priceResult->unitPrice;
+
+            $availableOffers = $this->cartOfferService->getAvailableOffers($product, $cartItem->quantity, $cartItems, $basePrice);
             
-            $basePrice = $product->getFinalPharmacistPrice();
             $baseTotal = $cartItem->quantity * $basePrice;
 
             // Format offers for response
@@ -490,18 +504,17 @@ class CartController extends BaseApiController
 
             $product = $cartItem->product;
             $offer = \App\Models\Offer::findOrFail($request->offer_id);
+            $buyerCompany = $user->company;
             
-            // Verify offer is for this product
             $productOffers = $product->offers()->where('offers.id', $offer->id)->first();
             if (!$productOffers) {
                 return $this->error('This offer is not available for this product', null, 400);
             }
 
-            // Get all cart items for bundle offer checking
             $cartItems = $cartItem->cart->items()->with('product')->get();
             
-            // Apply the specific offer
-            $offerResult = $this->cartOfferService->applyOffer($offer, $product, $cartItem->quantity, $cartItems);
+            $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
+            $offerResult = $this->cartOfferService->applyOffer($offer, $product, $cartItem->quantity, $cartItems, $priceResult->unitPrice);
             
             if (!$offerResult) {
                 return $this->error('Offer cannot be applied. Quantity requirement may not be met or offer is not valid for this cart.', null, 400);
@@ -561,23 +574,25 @@ class CartController extends BaseApiController
 
             $product = $cartItem->product;
             $product->load('offers');
+            $buyerCompany = $user->company;
             
-            // Get all cart items for bundle offer checking
             $cartItems = $cartItem->cart->items()->with('product')->get();
             
-            // Find best offer automatically
-            $offerResult = $this->cartOfferService->findBestOffer($product, $cartItem->quantity, $cartItems);
+            $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
+            $tierPrice = $priceResult->unitPrice;
+
+            $offerResult = $this->cartOfferService->findBestOffer($product, $cartItem->quantity, $cartItems, $tierPrice);
             
             if ($offerResult) {
                 $cartItem->unit_price = $offerResult['unit_price'];
                 $cartItem->total_price = $offerResult['total_price'];
                 $cartItem->applied_offer_id = $offerResult['offer']->id;
             } else {
-                // No offers available, revert to base price
-                $cartItem->unit_price = $product->getFinalPharmacistPrice();
-                $cartItem->calculateTotal();
+                $cartItem->unit_price = $tierPrice;
+                $cartItem->total_price = $cartItem->quantity * $tierPrice;
                 $cartItem->applied_offer_id = null;
             }
+            $cartItem->pricing_type = $priceResult->pricingType;
             
             $cartItem->save();
 
@@ -629,27 +644,29 @@ class CartController extends BaseApiController
             }
 
             $cart = $cartItem->cart;
-            $product = $cartItem->product;
+            $buyerCompany = $user->company;
             $cartItem->delete();
 
-            // Re-evaluate offers for remaining items (important for bundle offers)
             $remainingItems = $cart->items()->with('product.offers')->get();
             foreach ($remainingItems as $item) {
                 $itemProduct = $item->product;
                 $itemProduct->load('offers');
                 
-                // Check for offers with current quantity
-                $offerResult = $this->cartOfferService->findBestOffer($itemProduct, $item->quantity, $remainingItems);
+                $priceResult = $this->pricingService->resolve($itemProduct, $buyerCompany, $item->quantity);
+                $tierPrice = $priceResult->unitPrice;
+
+                $offerResult = $this->cartOfferService->findBestOffer($itemProduct, $item->quantity, $remainingItems, $tierPrice);
                 
                 if ($offerResult) {
                     $item->unit_price = $offerResult['unit_price'];
                     $item->total_price = $offerResult['total_price'];
                     $item->applied_offer_id = $offerResult['offer']->id;
                 } else {
-                    $item->unit_price = $itemProduct->getFinalPharmacistPrice();
-                    $item->calculateTotal();
+                    $item->unit_price = $tierPrice;
+                    $item->total_price = $item->quantity * $tierPrice;
                     $item->applied_offer_id = null;
                 }
+                $item->pricing_type = $priceResult->pricingType;
                 $item->save();
             }
 
@@ -779,6 +796,7 @@ class CartController extends BaseApiController
                             'product_id' => $cartItem->product_id,
                             'quantity' => $cartItem->quantity,
                             'unit_price' => $cartItem->unit_price,
+                            'pricing_type' => $cartItem->pricing_type ?? 'retail',
                             'notes' => $cartItem->notes,
                             'applied_offer_id' => $cartItem->applied_offer_id,
                         ];
@@ -922,13 +940,13 @@ class CartController extends BaseApiController
 
             DB::beginTransaction();
             try {
-                // Prepare order items
                 $orderItems = [];
                 foreach ($supplierItems as $cartItem) {
                     $orderItems[] = [
                         'product_id' => $cartItem->product_id,
                         'quantity' => $cartItem->quantity,
                         'unit_price' => $cartItem->unit_price,
+                        'pricing_type' => $cartItem->pricing_type ?? 'retail',
                         'notes' => $cartItem->notes,
                         'applied_offer_id' => $cartItem->applied_offer_id,
                     ];

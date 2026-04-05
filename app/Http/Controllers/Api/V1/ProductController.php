@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Constants\BuyerClassification;
+use App\Constants\SupplierClassification;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Products\CreateProductRequest;
 use App\Http\Requests\Products\UpdateProductRequest;
@@ -45,30 +47,28 @@ class ProductController extends BaseApiController
             $user = auth()->user();
             $query = Product::with(['supplierCompany', 'category', 'manufacturer']);
 
-            // Suppliers see only their products
+            $activeOffersEagerLoad = ['offers' => function ($q) {
+                $q->where('is_active', true)
+                  ->where('start_date', '<=', now())
+                  ->where(function ($subQ) {
+                      $subQ->whereNull('end_date')
+                           ->orWhere('end_date', '>=', now());
+                  });
+            }];
+
             if ($user->isSupplier()) {
                 $query->where('supplier_company_id', $user->company_id);
-                // Load all offers for suppliers
-                $query->with(['offers' => function ($q) {
-                    $q->where('is_active', true)
-                      ->where('start_date', '<=', now())
-                      ->where(function ($subQ) {
-                          $subQ->whereNull('end_date')
-                               ->orWhere('end_date', '>=', now());
-                      });
-                }]);
+                $query->with($activeOffersEagerLoad);
             } else {
-                // Buyers see all active products
                 $query->where('is_active', true);
-                // Load only active offers for buyers
-                $query->with(['offers' => function ($q) {
-                    $q->where('is_active', true)
-                      ->where('start_date', '<=', now())
-                      ->where(function ($subQ) {
-                          $subQ->whereNull('end_date')
-                               ->orWhere('end_date', '>=', now());
-                      });
-                }]);
+                $query->with($activeOffersEagerLoad);
+
+                $buyerCompany = $user->company;
+                if ($buyerCompany && $buyerCompany->buyer_classification === BuyerClassification::PHARMACY) {
+                    $query->whereHas('supplierCompany', function ($q) {
+                        $q->where('supplier_classification', '!=', SupplierClassification::WHOLESALE);
+                    });
+                }
             }
 
             // Filter by supplier
