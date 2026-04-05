@@ -3,6 +3,9 @@
 namespace Database\Seeders;
 
 use App\Constants\OrderStatus;
+use App\Constants\PaymentTerms;
+use App\Constants\PricingType;
+use App\Constants\UserRole;
 use App\Domain\Orders\OrderCreationService;
 use App\Domain\Orders\OrderStateTransitionService;
 use App\Jobs\GenerateInvoiceJob;
@@ -26,7 +29,8 @@ class OrderSeeder extends Seeder
     {
         $buyers = Company::where('type', 'buyer')->get();
         $suppliers = Company::where('type', 'supplier')->get();
-        $buyerUsers = User::where('role', 'buyer')->get();
+        $buyerUsers = User::whereIn('role', UserRole::buyerRoles())->get();
+        $salesmanUsers = User::where('role', UserRole::SALESMAN)->get();
 
         if ($buyers->isEmpty() || $suppliers->isEmpty() || $buyerUsers->isEmpty()) {
             $this->command->warn('لا توجد بيانات كافية. يرجى تشغيل CompanySeeder و UserSeeder أولاً.');
@@ -36,14 +40,13 @@ class OrderSeeder extends Seeder
         $buyer1 = $buyers->first();
         $buyer2 = $buyers->count() > 1 ? $buyers->skip(1)->first() : $buyer1;
         $buyer3 = $buyers->count() > 2 ? $buyers->skip(2)->first() : $buyer1;
-        // Ensure orders attach to supplier companies with id 2 and 4
         $supplier1 = $suppliers->first();
-        $supplier2 = $suppliers->firstWhere('id', 2) ?? $suppliers->skip(1)->first() ?? $supplier1;
+        $supplier2 = $suppliers->skip(1)->first() ?? $supplier1;
         $supplier3 = $suppliers->skip(2)->first() ?? $supplier1;
-        $supplier4 = $suppliers->firstWhere('id', 4) ?? $suppliers->skip(3)->first() ?? $supplier1;
-        $buyerUser1 = $buyerUsers->first();
-        $buyerUser2 = $buyerUsers->count() > 1 ? $buyerUsers->skip(1)->first() : $buyerUser1;
-        $buyerUser3 = $buyerUsers->count() > 2 ? $buyerUsers->skip(2)->first() : $buyerUser1;
+        $supplier4 = $suppliers->skip(3)->first() ?? $supplier1;
+        $buyerUser1 = $buyerUsers->where('role', UserRole::BUYER)->first() ?? $buyerUsers->first();
+        $buyerUser2 = $buyerUsers->where('role', UserRole::BUYER)->skip(1)->first() ?? $buyerUser1;
+        $buyerUser3 = $buyerUsers->where('role', UserRole::BUYER)->skip(2)->first() ?? $buyerUser1;
 
         // Get products from each supplier (2 and 4 must have orders)
         $productsSupplier1 = Product::where('supplier_company_id', $supplier1->id)
@@ -152,15 +155,47 @@ class OrderSeeder extends Seeder
                         'unit_price' => (float) $product4a->price,
                     ],
                 ],
-                'notes' => 'طلب من المورد الرابع (supplier id 4)',
+                'notes' => 'طلب من المورد الرابع',
             ],
         ];
+
+        // Add a salesman-placed order if salesman users exist
+        $supplierSalesman = $salesmanUsers->first(fn ($u) => $u->company?->type === 'supplier');
+        if ($supplierSalesman) {
+            $salesmanSupplierProducts = Product::where('supplier_company_id', $supplierSalesman->company_id)
+                ->where('is_active', true)
+                ->limit(2)
+                ->get();
+
+            if ($salesmanSupplierProducts->isNotEmpty()) {
+                $sp = $salesmanSupplierProducts->first();
+                $orders[] = [
+                    'buyer_company_id' => $buyer1->id,
+                    'supplier_company_id' => $supplierSalesman->company_id,
+                    'created_by' => $supplierSalesman->id,
+                    'status' => OrderStatus::PENDING,
+                    'items' => [
+                        [
+                            'product_id' => $sp->id,
+                            'quantity' => $sp->wholesale_min_qty ?? 5,
+                            'unit_price' => (float) ($sp->wholesale_price ?? $sp->pharmacist_price ?? $sp->price),
+                        ],
+                    ],
+                    'notes' => 'طلب من مندوب المبيعات نيابة عن الصيدلية',
+                    'placed_by_salesman_id' => $supplierSalesman->id,
+                    'payment_method' => PaymentTerms::NET_30,
+                    'pricing_type' => PricingType::WHOLESALE,
+                ];
+            }
+        }
 
         foreach ($orders as $index => $orderData) {
             $items = $orderData['items'];
             $targetStatus = $orderData['status'];
-            unset($orderData['items']);
-            unset($orderData['status']);
+            $placedBySalesmanId = $orderData['placed_by_salesman_id'] ?? null;
+            $paymentMethod = $orderData['payment_method'] ?? null;
+            $itemPricingType = $orderData['pricing_type'] ?? PricingType::RETAIL;
+            unset($orderData['items'], $orderData['status'], $orderData['placed_by_salesman_id'], $orderData['payment_method'], $orderData['pricing_type']);
 
             try {
                 $order = $this->orderCreationService->create(
@@ -171,6 +206,24 @@ class OrderSeeder extends Seeder
                     notes: $orderData['notes'] ?? null,
                     taxRate: 15
                 );
+
+                $extraFields = [];
+                if ($placedBySalesmanId) {
+                    $extraFields['placed_by_salesman_id'] = $placedBySalesmanId;
+                }
+                if ($paymentMethod) {
+                    $extraFields['payment_method'] = $paymentMethod;
+                    if ($paymentMethod !== PaymentTerms::CASH) {
+                        $extraFields['payment_due_date'] = now()->addDays(PaymentTerms::getDays($paymentMethod));
+                    }
+                }
+                if (!empty($extraFields)) {
+                    $order->update($extraFields);
+                }
+
+                if ($itemPricingType !== PricingType::RETAIL) {
+                    $order->items()->update(['pricing_type' => $itemPricingType]);
+                }
 
                 // Update status if needed (for accepted order) using OrderStateTransitionService
                 if ($targetStatus === OrderStatus::ACCEPTED) {

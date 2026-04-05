@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Cart;
 
+use App\Constants\PricingType;
 use App\Http\Requests\BaseFormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateCartItemRequest extends BaseFormRequest
 {
@@ -16,6 +18,7 @@ class UpdateCartItemRequest extends BaseFormRequest
         return [
             'quantity' => ['sometimes', 'integer', 'min:1'],
             'notes' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'pricing_type' => ['sometimes', 'string', Rule::in(PricingType::all())],
         ];
     }
 

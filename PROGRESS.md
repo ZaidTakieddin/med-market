@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-02-27 (Bundle offers per-product quantity)
+> Last Updated: 2026-04-03 (Phase 1/2 comprehensive audit: 11 issues fixed across controllers, seeders, form requests, resources)
 
 ### Related Documentation
 
@@ -12,6 +12,7 @@
 - [app/Domain/Products/README.md](./app/Domain/Products/README.md) - Product domain
 - [app/Domain/Companies/README.md](./app/Domain/Companies/README.md) - Company domain
 - [app/Domain/Deliveries/README.md](./app/Domain/Deliveries/README.md) - Deliveries domain
+- [app/Domain/Pricing/README.md](./app/Domain/Pricing/README.md) - Pricing domain (NEW)
 
 ## 📋 Table of Contents
 
@@ -56,6 +57,14 @@
 -   [x] Order status logs table (audit trail)
 -   [x] Personal access tokens table (Sanctum)
 -   [x] Cache, jobs, sessions tables
+-   [x] Company classifications (supplier_classification, buyer_classification, min_order_amount)
+-   [x] Product wholesale pricing (wholesale_price, wholesale_min_qty)
+-   [x] Pricing type tracking on cart_items and order_items
+-   [x] Price lists table (custom per-buyer pricing)
+-   [x] Buyer-supplier relationships table (payment terms, credit limits)
+-   [x] Salesman regions pivot table
+-   [x] Salesman clients table (salesman-pharmacy assignments)
+-   [x] Order payment fields (payment_method, payment_due_date, placed_by_salesman_id)
 
 ### Models & Relationships
 
@@ -77,8 +86,12 @@
 ### Constants & Enums
 
 -   [x] OrderStatus constants with transition validation
--   [x] UserRole constants
--   [x] CompanyType constants
+-   [x] UserRole constants (admin, supplier, buyer, driver, salesman)
+-   [x] CompanyType constants (supplier, buyer)
+-   [x] SupplierClassification constants (wholesale, retail, hybrid)
+-   [x] BuyerClassification constants (pharmacy, salesman)
+-   [x] PricingType constants (wholesale, retail, custom)
+-   [x] PaymentTerms constants (cash, net_15, net_30, net_60)
 -   [x] StockMovementType constants
 
 ### Domain Services
@@ -86,6 +99,8 @@
 -   [x] OrderCreationService - Creates orders with items and calculates totals
 -   [x] OrderStateTransitionService - Handles order state transitions with validation and logging
 -   [x] StockMovementService - Records stock movements and updates inventory
+-   [x] PricingService - Central price resolution engine (custom price list → wholesale → retail → discount)
+-   [x] PriceResult DTO - Immutable result object with unitPrice, originalPrice, pricingType, discountAmount, wholesaleEligible, minQtyMet
 
 ### Authentication System
 
@@ -238,10 +253,23 @@
 -   [x] OrderSeeder - Seeds sample orders with Arabic notes
 -   [x] CitySeeder - Seeds cities (Damascus, Aleppo, Homs, etc.) with Arabic names
 -   [x] RegionSeeder - Seeds regions for each city (Mazzeh, Malki, Rawda for Damascus, etc.)
--   [x] DatabaseSeeder - Orchestrates all seeders in correct order (cities → regions → companies)
+-   [x] BuyerSupplierRelationshipSeeder - Seeds buyer-supplier relationships, price lists, salesman-pharmacy clients
+    -   [x] Credit terms (cash, net_15, net_30, net_60) with credit limits
+    -   [x] Custom price list entries for special customers
+    -   [x] Salesman-pharmacy client assignments (supplier-associated and independent)
+-   [x] DatabaseSeeder - Orchestrates all seeders in correct order (cities → regions → companies → ... → relationships → orders)
 -   [x] Separate database configuration for seeders (unpooled connection)
 -   [x] All seeders use Arabic data for names, addresses, and descriptions
 -   [x] All seeders are idempotent (can be run multiple times safely)
+-   [x] CompanySeeder updated with supplier_classification and buyer_classification
+    -   [x] Supplier 1: retail, Supplier 2: hybrid, Supplier 3: wholesale, Supplier 4: retail
+    -   [x] New salesman buyer company (مؤسسة الأمل للتوزيع الطبي)
+-   [x] UserSeeder updated with salesman users
+    -   [x] Supplier-associated salesmen (belong to supplier companies, like drivers)
+    -   [x] Independent salesman (belongs to salesman buyer company)
+-   [x] ProductSeeder updated with wholesale pricing
+    -   [x] Supplier 2 (hybrid) products have wholesale_price and wholesale_min_qty
+    -   [x] Supplier 3 (wholesale) products have wholesale_price and wholesale_min_qty
 
 ### Infrastructure & Reliability
 
@@ -262,12 +290,23 @@
     -   [x] `app/Domain/Products/README.md` - Product domain documentation
     -   [x] `app/Domain/Companies/README.md` - Company domain documentation
     -   [x] `app/Domain/Deliveries/README.md` - Deliveries domain documentation
+    -   [x] `app/Domain/Pricing/README.md` - Pricing domain documentation (NEW)
 
 ---
 
 ## 🔄 In Progress
 
-_Currently no tasks in progress_
+### Supplier Classifications & Multi-Tier Pricing (Phase 1: Data Model — COMPLETED)
+
+Phase 1 (data model) and Phase 2 (PricingService) are complete. Remaining phases:
+
+- [x] **Phase 1**: Data model — migrations, constants, models, seeders ✅
+- [x] **Phase 2**: PricingService — central price resolution engine ✅
+- [ ] **Phase 3**: Cart & order integration with PricingService
+- [ ] **Phase 4**: Buyer-supplier relationship & credit management endpoints
+- [ ] **Phase 5**: API & visibility rules (role-based price filtering, catalog visibility)
+- [ ] **Phase 6**: Salesman features (management, region assignment, on-behalf ordering)
+- [ ] **Phase 7**: Seeders, documentation polish, Swagger updates
 
 ---
 
@@ -802,12 +841,83 @@ _Currently no tasks in progress_
 -   ~~**Multi-Supplier Cart Checkout**: Need to decide between backend automatic splitting vs frontend bulk order creation. Recommendation: Backend handles splitting for better data integrity and atomic operations.~~ ✅ **DECIDED & IMPLEMENTED**: Option A (Backend handles splitting) - Implemented in CartController checkout method
 -   ~~**Categories and Manufacturers Management**: Should suppliers control their categories/manufacturers or auto-sync from products?~~ ✅ **DECIDED & IMPLEMENTED**: Auto-sync from products (suppliers cannot manually control) - Ensures data reliability and consistency. Categories and manufacturers are admin-managed, and supplier relationships are automatically derived from their active products via ProductObserver.
 
+### Supplier & Pricing Decisions (2026-04-03)
+
+-   ✅ **Wholesale catalog visibility**: Wholesale-only suppliers are **hidden** from pharmacist buyers. Only salesmen and admins can see them.
+-   ✅ **Salesman pricing fallback**: If a salesman doesn't meet wholesale min qty on a line item, they get **retail price** (not rejected).
+-   ✅ **Custom price lists**: Implemented via `price_lists` table. Highest priority in price resolution chain.
+-   ✅ **Credit terms**: `buyer_supplier_relationships` table with payment_terms (cash/net_15/net_30/net_60) and credit_limit.
+-   ✅ **Salesman dual model**: Salesmen can be supplier-associated (like drivers) OR independent (own buyer company). Both supported.
+-   ✅ **Min qty enforcement**: Per line item, not per order total.
+-   ✅ **Price resolution order**: Custom price list → wholesale tier → retail → product discount → promotional offers.
+
 ### Technical Debt
 
--   None currently
+-   `OrderStatus` vs `OrderState` inconsistency (shipped→cancelled) — pre-existing, not introduced in this change
+-   `App\Domain\Users\UserRole` duplicates `App\Constants\UserRole` — should consolidate to single source
 
 ### Recent Improvements
 
+-   **Phase 1/2 Comprehensive Audit — 11 Issues Fixed (2026-04-03)**:
+    - **InvoiceController** (HIGH): Fixed supplier-associated salesman access — was checking `buyer_company_id === company_id` but supplier salesmen have supplier `company_id`. Added `canAccessInvoice()` and `canAccessOrder()` helpers with proper branch logic for independent vs supplier-associated salesmen.
+    - **CompanyController::store** (HIGH): Added missing `$this->authorize('create', Company::class)` — previously any authenticated user could create companies despite admin-only policy.
+    - **StockController** (HIGH): Added missing `use App\Http\Resources\StockMovementResource` import.
+    - **OfferController** (MEDIUM): Added `isSupplier()` guard to `update()` and `destroy()` — supplier-associated salesmen shared supplier `company_id` and could modify offers.
+    - **UserSeeder** (HIGH): Fixed hardcoded `company_id => 4` and `company_id => 1` for supplier users. Now uses `$suppliers->first()` and `$suppliers->skip(1)->first()` for portable IDs.
+    - **OrderSeeder** (HIGH): Changed `User::where('role', 'buyer')` to `User::whereIn('role', UserRole::buyerRoles())`. Added salesman-placed order with `placed_by_salesman_id`, `payment_method` (NET_30), `payment_due_date`, and `pricing_type` (WHOLESALE). Order items now update `pricing_type` post-creation.
+    - **CreateOrderRequest**: Added `payment_method` (validated against `PaymentTerms::all()`) and `placed_by_salesman_id` (validated `exists:users,id`).
+    - **AddCartItemRequest / UpdateCartItemRequest**: Added `pricing_type` validation (`Rule::in(PricingType::all())`).
+    - **UpdateProductRequest**: Added `required_with:wholesale_price` to `wholesale_min_qty` (aligned with CreateProductRequest).
+    - **OrderController**: Added `salesman` to eager-loaded relations in both `index()` and `show()` — `OrderResource` wraps salesman in `whenLoaded()`.
+    - **EnumsController Swagger**: Added `supplierClassification`, `buyerClassification`, `pricingType`, `paymentTerms` to OpenAPI `type` query param enum.
+-   **Supplier Classifications & Multi-Tier Pricing — Phase 2: PricingService & Salesman Integration (2026-04-03)**:
+    - Created `PricingService` (`App\Domain\Pricing\PricingService`) — central price resolution engine
+      - `resolve()`: single product price resolution (custom → wholesale → retail → discount)
+      - `resolveMany()`: batch resolution with preloaded price lists for performance
+      - `isWholesaleEligible()`: checks supplier classification + buyer classification
+      - `canBuyerSeeSupplier()`: catalog visibility (wholesale-only hidden from pharmacies)
+      - `getDisplayPrice()`: formatted price info for API responses
+    - Created `PriceResult` DTO (`App\Domain\Pricing\PriceResult`) — immutable price result
+    - Fixed salesman role across all controllers:
+      - CartController: `isBuyer()` → `canBuy()` in `addItem()`, `checkout()`, `checkoutSupplier()`
+      - OrderController: `isBuyer()` → `canBuy()` in `store()`; added salesman order visibility logic in `index()`
+      - InvoiceController: added `isSalesman()` to all authorization checks (index, show, getByOrder, download, markAsPaid)
+      - ProfileController: added salesman to company update permission check
+      - AuthController: added 'salesman' to Swagger role enum
+      - EnumsController: updated Swagger role description
+      - SendOrderNotificationJob: buyer notifications now include salesman role users
+    - Updated `app/Domain/Pricing/README.md` to reflect implemented services
+-   **Supplier Classifications & Multi-Tier Pricing — Phase 1: Data Model (2026-04-03)**:
+    - Added supplier classification system: `wholesale`, `retail`, `hybrid` (on companies table)
+    - Added buyer classification system: `pharmacy`, `salesman` (on companies table)
+    - Added `salesman` user role (can be supplier-associated or independent)
+    - Added three-tier product pricing: `wholesale_price` + `wholesale_min_qty` alongside existing `pharmacist_price` and `customer_price`
+    - Added `pricing_type` tracking on `cart_items` and `order_items` (wholesale/retail/custom)
+    - Created `price_lists` table for custom per-buyer negotiated pricing
+    - Created `buyer_supplier_relationships` table with payment terms (cash/net_15/net_30/net_60) and credit limits
+    - Created `salesman_regions` pivot table (similar to driver_regions)
+    - Created `salesman_clients` table for salesman-pharmacy assignments (supports both supplier-associated and independent salesmen)
+    - Added `payment_method`, `payment_due_date`, `placed_by_salesman_id` to orders table
+    - Created 4 new constant classes: `SupplierClassification`, `BuyerClassification`, `PricingType`, `PaymentTerms`
+    - Updated `UserRole` with `SALESMAN` + helper methods (`supplierRoles()`, `buyerRoles()`)
+    - Updated `CompanyType` with classification helper methods
+    - Updated Company model: new fields, classification checks (`isWholesale()`, `isRetail()`, `isHybrid()`, `isPharmacy()`, `isSalesmanCompany()`, `canOfferWholesaleTo()`)
+    - Updated Product model: wholesale pricing fields, `getEffectiveWholesalePrice()`, `getFinalWholesalePrice()`, `qualifiesForWholesale()`, `priceLists()` relationship
+    - Updated User model: salesman support (`isSalesman()`, `isSupplierSalesman()`, `isIndependentSalesman()`, `canBuy()`, `salesmanRegions()`, `salesmanClients()`, `salesmanOrders()`)
+    - Updated Order model: `placed_by_salesman_id`, `payment_method`, `payment_due_date`, `salesman()` relationship, `isPlacedBySalesman()`
+    - Updated CartItem and OrderItem models: `pricing_type` field
+    - Created 3 new models: `PriceList`, `BuyerSupplierRelationship`, `SalesmanClient`
+    - Updated EnumsController to expose new constants (supplierClassification, buyerClassification, pricingType, paymentTerms)
+    - Created new domain: `app/Domain/Pricing/README.md`
+    - Updated domain READMEs: Companies, Products, Orders, Deliveries
+    - Backfill strategy: existing suppliers → `retail`, existing buyers → `pharmacy`
+    - **Key decisions**: Wholesale-only suppliers hidden from pharmacists; salesman falls back to retail if min qty not met; per-item min qty enforcement; custom price lists have highest priority
+    - **Seeders updated**:
+      - CompanySeeder: 4 suppliers (1 retail, 1 hybrid, 1 wholesale, 1 retail) + 4 buyers (3 pharmacies, 1 salesman company)
+      - UserSeeder: added 2 supplier-associated salesmen + 1 independent salesman
+      - ProductSeeder: added wholesale_price + wholesale_min_qty to hybrid/wholesale supplier products
+      - BuyerSupplierRelationshipSeeder (NEW): credit terms, price lists, salesman-pharmacy assignments
+      - DatabaseSeeder: updated call order to include new seeder
 -   **Bundle Offers Per-Product Quantity (2026-02-27)**:
     - Bundle offers now require `products` array: `[{ product_id, quantity }]` - each product has its own required quantity
     - `product_ids` still supported for non-bundle offers (uses offer-level quantity_required)
@@ -1246,18 +1356,20 @@ These features improve security, performance, and code quality.
 
 -   **Total Endpoints**: 70+ routes (including cart, offers, drivers, profile, categories, manufacturers, cities, regions, invoices endpoints)
 -   **Completed Features**: 110+ (including all new requirements and documentation updates)
--   **Database Seeders**: 9 (CitySeeder, RegionSeeder, CompanySeeder, CategorySeeder, ManufacturerSeeder, UserSeeder, ProductSeeder, OfferSeeder, OrderSeeder)
+-   **Database Seeders**: 10 (CitySeeder, RegionSeeder, CompanySeeder, CategorySeeder, ManufacturerSeeder, UserSeeder, ProductSeeder, OfferSeeder, BuyerSupplierRelationshipSeeder, OrderSeeder)
 -   **Pending Tasks**: See "Missing Features & Requirements" section below
 -   **Critical Missing Features**: 5 (Invoice API, Product Images, Export API, Notification Infrastructure, Testing Suite)
 -   **High Priority Missing Features**: 5 (Driver Availability, Payment Integration, Analytics, Advanced Search, Real-Time)
 -   **Medium Priority Missing Features**: 5 (Order Templates, Wishlist, Reviews, Multi-Language, Inventory Enhancements)
 -   **Security & Quality Missing Features**: 4 (Security Enhancements, Performance Optimizations, User Management, Additional Features)
--   **Documentation Files**: 9 (README.md, DEPLOYMENT.md, PROGRESS.md, QUEUE_WORKERS.md, 5 Domain READMEs)
+-   **Documentation Files**: 10 (README.md, DEPLOYMENT.md, PROGRESS.md, QUEUE_WORKERS.md, 6 Domain READMEs)
 -   **Background Jobs**: 4 (SendOrderNotificationJob, GenerateInvoiceJob, LowStockAlertJob, ExportOrdersJob)
 -   **Deployment Files**: 3 (Procfile, render.yaml, railway.json)
 -   **Observers**: 3 (OrderObserver, StockMovementObserver, ProductObserver)
 -   **Console Commands**: 1 (SyncSupplierCategoriesAndManufacturers)
--   **Domain Services**: 1 (CartOfferService - automatic and manual offer detection/application in cart)
+-   **Domain Services**: 2 (CartOfferService - automatic and manual offer detection/application in cart; PricingService - central price resolution engine)
+-   **New Models**: 3 (PriceList, BuyerSupplierRelationship, SalesmanClient)
+-   **New Constants**: 4 (SupplierClassification, BuyerClassification, PricingType, PaymentTerms)
 -   **Invoice Management**: Full API with status tracking, payment management, and file downloads
 -   **Location System**: Cities and Regions (hierarchical), Driver-region assignments
 -   **Geospatial Features**: Company coordinates (latitude, longitude) for delivery tracking

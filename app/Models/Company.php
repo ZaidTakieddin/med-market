@@ -17,6 +17,9 @@ class Company extends Model
         'name',
         'description',
         'type',
+        'supplier_classification',
+        'buyer_classification',
+        'min_order_amount',
         'email',
         'phone',
         'address',
@@ -33,6 +36,7 @@ class Company extends Model
         'is_active' => 'boolean',
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
+        'min_order_amount' => 'decimal:2',
     ];
 
     /**
@@ -84,6 +88,58 @@ class Company extends Model
     }
 
     /**
+     * Check if supplier sells wholesale (wholesale or hybrid).
+     */
+    public function isWholesale(): bool
+    {
+        return in_array($this->supplier_classification, ['wholesale', 'hybrid'], true);
+    }
+
+    /**
+     * Check if supplier sells retail (retail or hybrid).
+     */
+    public function isRetail(): bool
+    {
+        return in_array($this->supplier_classification, ['retail', 'hybrid'], true);
+    }
+
+    /**
+     * Check if supplier is hybrid (both wholesale and retail).
+     */
+    public function isHybrid(): bool
+    {
+        return $this->supplier_classification === 'hybrid';
+    }
+
+    /**
+     * Check if buyer is a pharmacy.
+     */
+    public function isPharmacy(): bool
+    {
+        return $this->buyer_classification === 'pharmacy';
+    }
+
+    /**
+     * Check if buyer is a salesman company.
+     */
+    public function isSalesmanCompany(): bool
+    {
+        return $this->buyer_classification === 'salesman';
+    }
+
+    /**
+     * Check if this supplier can offer wholesale pricing to a given buyer.
+     */
+    public function canOfferWholesaleTo(Company $buyer): bool
+    {
+        if (!$this->isSupplier() || !$this->isWholesale()) {
+            return false;
+        }
+
+        return $buyer->isSalesmanCompany();
+    }
+
+    /**
      * Get offers created by this company (if supplier).
      */
     public function offers(): HasMany
@@ -123,6 +179,46 @@ class Company extends Model
     public function region(): BelongsTo
     {
         return $this->belongsTo(Region::class);
+    }
+
+    /**
+     * Get price lists where this company is the supplier.
+     */
+    public function supplierPriceLists(): HasMany
+    {
+        return $this->hasMany(PriceList::class, 'supplier_company_id');
+    }
+
+    /**
+     * Get price lists where this company is the buyer.
+     */
+    public function buyerPriceLists(): HasMany
+    {
+        return $this->hasMany(PriceList::class, 'buyer_company_id');
+    }
+
+    /**
+     * Get buyer relationships where this company is the supplier.
+     */
+    public function buyerRelationships(): HasMany
+    {
+        return $this->hasMany(BuyerSupplierRelationship::class, 'supplier_company_id');
+    }
+
+    /**
+     * Get supplier relationships where this company is the buyer.
+     */
+    public function supplierRelationships(): HasMany
+    {
+        return $this->hasMany(BuyerSupplierRelationship::class, 'buyer_company_id');
+    }
+
+    /**
+     * Get salesman client entries where this company is the pharmacy.
+     */
+    public function salesmanAssignments(): HasMany
+    {
+        return $this->hasMany(SalesmanClient::class, 'pharmacy_company_id');
     }
 }
 

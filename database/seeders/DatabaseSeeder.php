@@ -23,16 +23,17 @@ class DatabaseSeeder extends Seeder
             }
 
             $this->call([
-                CitySeeder::class,          // First: Create cities (admin managed)
-                RegionSeeder::class,        // Second: Create regions (admin managed, depends on cities)
-                CompanySeeder::class,       // Third: Create companies (suppliers and buyers, can use regions)
-                CategorySeeder::class,      // Fourth: Create categories (admin managed)
-                ManufacturerSeeder::class,  // Fifth: Create manufacturers (admin managed)
-                UserSeeder::class,          // Sixth: Create users (depends on companies)
-                ProductSeeder::class,       // Seventh: Create products (depends on companies, categories, manufacturers)
-                OfferSeeder::class,         // Eighth: Create offers (depends on companies and products)
-                OrderSeeder::class,         // Ninth: Create orders (depends on companies, users, products)
-                SyncSupplierCategoriesAndManufacturersSeeder::class, // Tenth: Sync supplier categories & manufacturers
+                CitySeeder::class,                                  // 1: Create cities (admin managed)
+                RegionSeeder::class,                                // 2: Create regions (admin managed, depends on cities)
+                CompanySeeder::class,                               // 3: Create companies with classifications (suppliers + buyers + salesmen)
+                CategorySeeder::class,                              // 4: Create categories (admin managed)
+                ManufacturerSeeder::class,                          // 5: Create manufacturers (admin managed)
+                UserSeeder::class,                                  // 6: Create users: admins, suppliers, buyers, drivers, salesmen
+                ProductSeeder::class,                               // 7: Create products with wholesale pricing (depends on companies, categories, manufacturers)
+                OfferSeeder::class,                                 // 8: Create offers (depends on companies and products)
+                BuyerSupplierRelationshipSeeder::class,             // 9: Create buyer-supplier relationships, price lists, salesman clients
+                OrderSeeder::class,                                 // 10: Create orders (depends on companies, users, products)
+                SyncSupplierCategoriesAndManufacturersSeeder::class, // 11: Sync supplier categories & manufacturers
             ]);
 
             $this->command->info('تم إنشاء جميع البيانات بنجاح!');

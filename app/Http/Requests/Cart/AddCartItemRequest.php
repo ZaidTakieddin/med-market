@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Cart;
 
+use App\Constants\PricingType;
 use App\Http\Requests\BaseFormRequest;
+use Illuminate\Validation\Rule;
 
 class AddCartItemRequest extends BaseFormRequest
 {
@@ -17,6 +19,7 @@ class AddCartItemRequest extends BaseFormRequest
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'quantity' => ['required', 'integer', 'min:1'],
             'notes' => ['nullable', 'string', 'max:500'],
+            'pricing_type' => ['nullable', 'string', Rule::in(PricingType::all())],
         ];
     }
 

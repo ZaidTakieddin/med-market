@@ -17,6 +17,7 @@ class OrderItem extends Model
         'quantity',
         'unit_price',
         'total_price',
+        'pricing_type',
         'notes',
         'applied_offer_id',
     ];

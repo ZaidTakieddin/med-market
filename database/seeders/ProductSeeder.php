@@ -135,7 +135,7 @@ class ProductSeeder extends Seeder
                 'is_active' => true,
             ],
 
-            // Supplier 2 Products
+            // Supplier 2 Products (HYBRID supplier — has wholesale + retail pricing)
             [
                 'supplier_company_id' => $supplier2->id,
                 'name' => 'أسبرين 100 مجم',
@@ -145,7 +145,9 @@ class ProductSeeder extends Seeder
                 'sku' => 'ASP-100-001',
                 'barcode' => '6224001234572',
                 'unit' => 'box',
-                'price' => 12.00, // Legacy
+                'price' => 12.00,
+                'wholesale_price' => 9.00,
+                'wholesale_min_qty' => 20,
                 'pharmacist_price' => 12.00,
                 'customer_price' => 15.00,
                 'discount' => null,
@@ -163,7 +165,9 @@ class ProductSeeder extends Seeder
                 'sku' => 'CET-10-001',
                 'barcode' => '6224001234573',
                 'unit' => 'box',
-                'price' => 20.00, // Legacy
+                'price' => 20.00,
+                'wholesale_price' => 15.00,
+                'wholesale_min_qty' => 15,
                 'pharmacist_price' => 20.00,
                 'customer_price' => 25.00,
                 'discount' => 10.00,
@@ -181,7 +185,9 @@ class ProductSeeder extends Seeder
                 'sku' => 'MET-500-001',
                 'barcode' => '6224001234574',
                 'unit' => 'box',
-                'price' => 28.50, // Legacy
+                'price' => 28.50,
+                'wholesale_price' => 22.00,
+                'wholesale_min_qty' => 10,
                 'pharmacist_price' => 28.50,
                 'customer_price' => 35.00,
                 'discount' => null,
@@ -199,7 +205,9 @@ class ProductSeeder extends Seeder
                 'sku' => 'ATE-50-001',
                 'barcode' => '6224001234575',
                 'unit' => 'box',
-                'price' => 32.00, // Legacy
+                'price' => 32.00,
+                'wholesale_price' => 25.00,
+                'wholesale_min_qty' => 10,
                 'pharmacist_price' => 32.00,
                 'customer_price' => 40.00,
                 'discount' => 8.00,
@@ -209,7 +217,7 @@ class ProductSeeder extends Seeder
                 'is_active' => true,
             ],
 
-            // Supplier 3 Products
+            // Supplier 3 Products (WHOLESALE supplier — all have wholesale pricing)
             [
                 'supplier_company_id' => $supplier3->id,
                 'name' => 'فيتامين د3 1000 وحدة',
@@ -219,7 +227,9 @@ class ProductSeeder extends Seeder
                 'sku' => 'VIT-D3-001',
                 'barcode' => '6224001234576',
                 'unit' => 'box',
-                'price' => 55.00, // Legacy
+                'price' => 55.00,
+                'wholesale_price' => 40.00,
+                'wholesale_min_qty' => 25,
                 'pharmacist_price' => 55.00,
                 'customer_price' => 70.00,
                 'discount' => 20.00,
@@ -237,7 +247,9 @@ class ProductSeeder extends Seeder
                 'sku' => 'OMG-3-001',
                 'barcode' => '6224001234577',
                 'unit' => 'box',
-                'price' => 75.00, // Legacy
+                'price' => 75.00,
+                'wholesale_price' => 55.00,
+                'wholesale_min_qty' => 20,
                 'pharmacist_price' => 75.00,
                 'customer_price' => 95.00,
                 'discount' => null,
@@ -255,7 +267,9 @@ class ProductSeeder extends Seeder
                 'sku' => 'COL-VITC-001',
                 'barcode' => '6224001234578',
                 'unit' => 'box',
-                'price' => 120.00, // Legacy
+                'price' => 120.00,
+                'wholesale_price' => 90.00,
+                'wholesale_min_qty' => 15,
                 'pharmacist_price' => 120.00,
                 'customer_price' => 150.00,
                 'discount' => 25.00,

@@ -152,6 +152,46 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is a salesman (supplier-associated or independent).
+     */
+    public function isSalesman(): bool
+    {
+        return $this->role === 'salesman';
+    }
+
+    /**
+     * Check if user is a supplier-associated salesman.
+     */
+    public function isSupplierSalesman(): bool
+    {
+        if (!$this->isSalesman()) {
+            return false;
+        }
+
+        return $this->company && $this->company->isSupplier();
+    }
+
+    /**
+     * Check if user is an independent salesman (has own buyer company).
+     */
+    public function isIndependentSalesman(): bool
+    {
+        if (!$this->isSalesman()) {
+            return false;
+        }
+
+        return $this->company && $this->company->isBuyer();
+    }
+
+    /**
+     * Check if user can buy (buyer or salesman).
+     */
+    public function canBuy(): bool
+    {
+        return $this->isBuyer() || $this->isSalesman();
+    }
+
+    /**
      * Get regions assigned to this driver.
      */
     public function driverRegions(): BelongsToMany
@@ -170,5 +210,30 @@ class User extends Authenticatable
         }
 
         return $this->driverRegions()->where('region_id', $regionId)->exists();
+    }
+
+    /**
+     * Get regions assigned to this salesman.
+     */
+    public function salesmanRegions(): BelongsToMany
+    {
+        return $this->belongsToMany(Region::class, 'salesman_regions', 'salesman_id', 'region_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get pharmacy clients assigned to this salesman.
+     */
+    public function salesmanClients(): HasMany
+    {
+        return $this->hasMany(SalesmanClient::class, 'salesman_user_id');
+    }
+
+    /**
+     * Get orders placed by this salesman on behalf of others.
+     */
+    public function salesmanOrders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'placed_by_salesman_id');
     }
 }

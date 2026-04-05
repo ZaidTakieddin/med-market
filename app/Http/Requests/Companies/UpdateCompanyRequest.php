@@ -2,13 +2,16 @@
 
 namespace App\Http\Requests\Companies;
 
+use App\Constants\BuyerClassification;
+use App\Constants\SupplierClassification;
 use App\Http\Requests\BaseFormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateCompanyRequest extends BaseFormRequest
 {
     public function authorize(): bool
     {
-        return true; // Authorization handled in controller
+        return true;
     }
 
     public function rules(): array
@@ -16,6 +19,9 @@ class UpdateCompanyRequest extends BaseFormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
+            'supplier_classification' => ['nullable', 'string', Rule::in(SupplierClassification::all())],
+            'buyer_classification' => ['nullable', 'string', Rule::in(BuyerClassification::all())],
+            'min_order_amount' => ['nullable', 'numeric', 'min:0'],
             'email' => ['nullable', 'string', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string', 'max:500'],

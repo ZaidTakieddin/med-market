@@ -89,6 +89,7 @@ class OrderController extends BaseApiController
                 'supplierCompany.categories',
                 'supplierCompany.manufacturers',
                 'driver',
+                'salesman',
                 'invoice',
                 'items',
                 'items.product.category',
@@ -97,9 +98,13 @@ class OrderController extends BaseApiController
                 'items.appliedOffer',
             ]);
 
-            // Filter by company
-            if ($user->isBuyer()) {
+            if ($user->isBuyer() || ($user->isSalesman() && $user->isIndependentSalesman())) {
                 $query->where('buyer_company_id', $user->company_id);
+            } elseif ($user->isSalesman() && $user->isSupplierSalesman()) {
+                $query->where(function ($q) use ($user) {
+                    $q->where('supplier_company_id', $user->company_id)
+                      ->orWhere('placed_by_salesman_id', $user->id);
+                });
             } elseif ($user->isSupplier()) {
                 $query->where('supplier_company_id', $user->company_id);
             }
@@ -215,8 +220,8 @@ class OrderController extends BaseApiController
     {
         $user = auth()->user();
 
-        if (!$user->isBuyer()) {
-            return $this->error('Only buyers can create orders', null, 403);
+        if (!$user->canBuy()) {
+            return $this->error('Only buyers and salesmen can create orders', null, 403);
         }
 
         // Prepare items with pharmacist_price from products
@@ -309,6 +314,7 @@ class OrderController extends BaseApiController
             'supplierCompany.manufacturers',
             'creator',
             'driver',
+            'salesman',
             'invoice',
             'items.product.category',
             'items.product.manufacturer',

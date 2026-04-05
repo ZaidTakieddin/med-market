@@ -17,11 +17,14 @@ Products contain:
 - **Inventory**: Stock quantity, minimum stock level
 - **Relationships**: Supplier company, category, manufacturer, order items, stock movements, offers
 
-### Dual Pricing System
+### Three-Tier Pricing System
 
-Products support two pricing tiers:
-- **Pharmacist Price** (`pharmacist_price`) - Price for pharmacies/buyers (required)
-- **Customer Price** (`customer_price`) - Price for end customers (optional)
+Products support three pricing tiers:
+- **Wholesale Price** (`wholesale_price`) - Lowest price, for salesmen/bulk buyers when `qty >= wholesale_min_qty` (optional)
+- **Pharmacist Price** (`pharmacist_price`) - Standard B2B price for pharmacies/buyers (required)
+- **Customer Price** (`customer_price`) - Suggested retail price for end customers (optional)
+
+The `wholesale_min_qty` field defines the minimum quantity per line item to qualify for wholesale pricing.
 
 ### Discount System
 
@@ -48,17 +51,22 @@ Products are organized by categories and manufacturers, both managed by admins:
 ### Price Calculation Methods
 
 ```php
-// Get effective pharmacist price
+// Retail pricing
 $price = $product->getEffectivePharmacistPrice();
-
-// Get effective customer price (with fallback chain)
-$price = $product->getEffectiveCustomerPrice();
-
-// Get final pharmacist price (after product discount - discount targets pharmacist only)
 $finalPrice = $product->getFinalPharmacistPrice();
 
-// Get final customer price (product discount does not apply; returns effective price as-is)
+// Wholesale pricing
+$wholesalePrice = $product->getEffectiveWholesalePrice(); // null if not set
+$finalWholesale = $product->getFinalWholesalePrice();      // null if not set
+
+// Customer pricing
+$price = $product->getEffectiveCustomerPrice();
 $finalPrice = $product->getFinalCustomerPrice();
+
+// Check wholesale eligibility
+if ($product->qualifiesForWholesale($quantity)) {
+    // Use wholesale price
+}
 ```
 
 ### Stock Management
@@ -78,6 +86,7 @@ if ($product->isLowStock()) {
 - `orderItems()` - Has many order items
 - `stockMovements()` - Has many stock movements
 - `offers()` - Belongs to many offers (with pivot: quantity_required, quantity_free, discount_override)
+- `priceLists()` - Has many custom price list entries
 
 ## Current Implementation
 
@@ -146,11 +155,12 @@ This domain is prepared for future services:
 - `App\Models\Product` - Main product model
 - `App\Models\Category` - Product categories (admin-managed)
 - `App\Models\Manufacturer` - Product manufacturers (admin-managed)
-- `App\Models\Company` - Supplier companies
-- `App\Models\OrderItem` - Order line items
+- `App\Models\Company` - Supplier companies (with classification)
+- `App\Models\OrderItem` - Order line items (with pricing_type)
 - `App\Models\StockMovement` - Stock movement history
 - `App\Models\Offer` - Product offers/promotions
-- `App\Models\CartItem` - Cart items
+- `App\Models\CartItem` - Cart items (with pricing_type)
+- `App\Models\PriceList` - Custom per-buyer pricing entries
 
 ## Integration Points
 
@@ -205,10 +215,13 @@ Products are added to carts:
    - Categories and manufacturers are admin-managed (suppliers select from predefined lists)
 
 2. **Pricing**:
-   - Pharmacist price is primary pricing for B2B (required)
-   - Customer price is optional (for B2C scenarios)
-   - Product discount applies to pharmacist price only; customer price is returned as-is
+   - Three tiers: wholesale (optional), pharmacist (required), customer (optional)
+   - Wholesale price requires `wholesale_min_qty` — per-item quantity threshold
+   - Product discount applies to both wholesale and pharmacist prices
+   - Customer price is returned as-is (discount does not apply)
+   - Custom price lists (per buyer) override tier-based pricing
    - API returns `pharmacistPriceAfterDiscount` when discount exists
+   - API returns `wholesalePrice` and `wholesaleMinQty` for wholesale-capable suppliers
 
 3. **Stock Management**:
    - Stock cannot go negative
@@ -228,6 +241,7 @@ Products are added to carts:
 ## Constants
 
 - `App\Constants\DiscountType` - Discount type constants (`PERCENTAGE`, `FIXED`)
+- `App\Constants\PricingType` - Pricing tier constants (`WHOLESALE`, `RETAIL`, `CUSTOM`)
 
 ## Observers
 

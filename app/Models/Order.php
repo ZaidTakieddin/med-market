@@ -20,10 +20,13 @@ class Order extends Model
         'supplier_company_id',
         'created_by',
         'driver_id',
+        'placed_by_salesman_id',
         'status',
         'subtotal',
         'tax_amount',
         'total_amount',
+        'payment_method',
+        'payment_due_date',
         'notes',
         'accepted_at',
         'prepared_at',
@@ -37,6 +40,7 @@ class Order extends Model
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'payment_due_date' => 'date',
         'accepted_at' => 'datetime',
         'prepared_at' => 'datetime',
         'shipped_at' => 'datetime',
@@ -109,10 +113,26 @@ class Order extends Model
     }
 
     /**
+     * Get the salesman who placed this order (if any).
+     */
+    public function salesman(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'placed_by_salesman_id');
+    }
+
+    /**
      * Check if order is in a final state.
      */
     public function isFinalState(): bool
     {
         return in_array($this->status, [OrderState::DELIVERED, OrderState::CANCELLED], true);
+    }
+
+    /**
+     * Check if order was placed by a salesman on behalf of a buyer.
+     */
+    public function isPlacedBySalesman(): bool
+    {
+        return $this->placed_by_salesman_id !== null;
     }
 }

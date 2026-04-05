@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Orders;
 
+use App\Constants\PaymentTerms;
 use App\Http\Requests\BaseFormRequest;
+use Illuminate\Validation\Rule;
 
 class CreateOrderRequest extends BaseFormRequest
 {
@@ -18,10 +20,12 @@ class CreateOrderRequest extends BaseFormRequest
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
-            'items.*.unit_price' => ['nullable', 'numeric', 'min:0'], // Optional - will be calculated from product pharmacist_price
+            'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'items.*.notes' => ['nullable', 'string', 'max:500'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'payment_method' => ['nullable', 'string', Rule::in(PaymentTerms::all())],
+            'placed_by_salesman_id' => ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 

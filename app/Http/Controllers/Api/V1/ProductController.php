@@ -189,7 +189,9 @@ class ProductController extends BaseApiController
                 'sku' => $request->sku,
                 'barcode' => $request->barcode,
                 'unit' => $request->unit ?? 'piece',
-                'price' => $pharmacistPrice, // Legacy column (NOT NULL in DB)
+                'price' => $pharmacistPrice,
+                'wholesale_price' => $request->wholesale_price,
+                'wholesale_min_qty' => $request->wholesale_min_qty,
                 'pharmacist_price' => $pharmacistPrice,
                 'customer_price' => $request->customer_price,
                 'discount' => $request->discount,

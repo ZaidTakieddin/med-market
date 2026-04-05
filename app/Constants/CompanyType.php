@@ -25,5 +25,28 @@ class CompanyType
     {
         return in_array($type, self::all(), true);
     }
+
+    /**
+     * Get all valid supplier classifications.
+     */
+    public static function supplierClassifications(): array
+    {
+        return [
+            SupplierClassification::WHOLESALE,
+            SupplierClassification::RETAIL,
+            SupplierClassification::HYBRID,
+        ];
+    }
+
+    /**
+     * Get all valid buyer classifications.
+     */
+    public static function buyerClassifications(): array
+    {
+        return [
+            BuyerClassification::PHARMACY,
+            BuyerClassification::SALESMAN,
+        ];
+    }
 }
 

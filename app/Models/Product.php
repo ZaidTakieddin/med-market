@@ -22,7 +22,9 @@ class Product extends Model
         'sku',
         'barcode',
         'unit',
-        'price', // Legacy field - kept for backward compatibility
+        'price',
+        'wholesale_price',
+        'wholesale_min_qty',
         'pharmacist_price',
         'customer_price',
         'discount',
@@ -35,6 +37,8 @@ class Product extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'wholesale_price' => 'decimal:2',
+        'wholesale_min_qty' => 'integer',
         'pharmacist_price' => 'decimal:2',
         'customer_price' => 'decimal:2',
         'discount' => 'decimal:2',
@@ -145,5 +149,55 @@ class Product extends Model
     public function getFinalCustomerPrice(): float
     {
         return (float) $this->getEffectiveCustomerPrice();
+    }
+
+    /**
+     * Get the effective wholesale price.
+     * Returns wholesale_price if set, otherwise falls back to pharmacist_price.
+     */
+    public function getEffectiveWholesalePrice(): ?float
+    {
+        return $this->wholesale_price !== null ? (float) $this->wholesale_price : null;
+    }
+
+    /**
+     * Calculate the final wholesale price after discount.
+     */
+    public function getFinalWholesalePrice(): ?float
+    {
+        $price = $this->getEffectiveWholesalePrice();
+        if ($price === null) {
+            return null;
+        }
+
+        if ($this->discount && $this->discount_type) {
+            if ($this->discount_type === 'percentage') {
+                return $price * (1 - ($this->discount / 100));
+            } else {
+                return max(0, $price - $this->discount);
+            }
+        }
+
+        return $price;
+    }
+
+    /**
+     * Check if a given quantity qualifies for wholesale pricing.
+     */
+    public function qualifiesForWholesale(int $quantity): bool
+    {
+        if ($this->wholesale_price === null || $this->wholesale_min_qty === null) {
+            return false;
+        }
+
+        return $quantity >= $this->wholesale_min_qty;
+    }
+
+    /**
+     * Get price lists for this product.
+     */
+    public function priceLists(): HasMany
+    {
+        return $this->hasMany(PriceList::class);
     }
 }

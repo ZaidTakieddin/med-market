@@ -1,10 +1,10 @@
 # Companies Domain
 
-This domain handles company-related business logic in the Med Market B2B system. Companies represent suppliers (who provide products) and buyers (pharmacies who purchase products).
+This domain handles company-related business logic in the Med Market B2B system. Companies represent suppliers (who provide products) and buyers (pharmacies/salesmen who purchase products).
 
 ## Overview
 
-The Companies domain manages company information, relationships, and business rules. While company CRUD operations are handled in controllers, this domain is prepared for future company-specific business logic and services.
+The Companies domain manages company information, relationships, classifications, and business rules. Companies are classified by type (supplier/buyer) and further by sub-classification (supplier: wholesale/retail/hybrid; buyer: pharmacy/salesman).
 
 ## Key Concepts
 
@@ -12,14 +12,29 @@ The Companies domain manages company information, relationships, and business ru
 
 Companies can be one of two types:
 - **supplier** - Companies that supply products to buyers
-- **buyer** - Companies (pharmacies) that purchase products from suppliers
+- **buyer** - Companies (pharmacies/salesmen) that purchase products from suppliers
+
+### Supplier Classifications
+
+Suppliers are further classified:
+- **wholesale** — Sells products in bulk. Primarily serves salesmen and large buyers. Hidden from pharmacist catalog.
+- **retail** — Sells products in standard quantities to pharmacists directly.
+- **hybrid** — Operates as both wholesale and retail. Offers different prices depending on buyer type and quantity.
+
+### Buyer Classifications
+
+Buyers are further classified:
+- **pharmacy** — End B2B customer. Buys from retail or hybrid suppliers at the pharmacist price.
+- **salesman** — Intermediary who buys in bulk at wholesale prices and resells to pharmacists. Can be independent or supplier-associated.
 
 ### Company Structure
 
 Companies contain:
 - **Basic Information**: Name, type, address, contact details
+- **Classifications**: `supplier_classification` (wholesale/retail/hybrid), `buyer_classification` (pharmacy/salesman)
+- **Financial**: `min_order_amount` (minimum order value for wholesale)
 - **Location Information**: Address, coordinates (latitude, longitude), region_id, address_line
-- **Relationships**: Users, products (suppliers), orders (buyers/suppliers), region (with city)
+- **Relationships**: Users, products (suppliers), orders (buyers/suppliers), region (with city), price lists, buyer-supplier relationships
 - **Supplier Metadata**: Categories and manufacturers (auto-synced from products)
 - **Metadata**: Additional company-specific data
 
@@ -60,18 +75,24 @@ Currently, company business logic is in:
 
 ## Company Model Features
 
-### Type Checking
+### Type & Classification Checking
 
 ```php
-// Check if company is a supplier
-if ($company->isSupplier()) {
-    // Handle supplier logic
-}
+// Check company type
+$company->isSupplier();
+$company->isBuyer();
 
-// Check if company is a buyer
-if ($company->isBuyer()) {
-    // Handle buyer logic
-}
+// Check supplier classification
+$company->isWholesale();     // wholesale or hybrid
+$company->isRetail();        // retail or hybrid
+$company->isHybrid();        // hybrid only
+
+// Check buyer classification
+$company->isPharmacy();
+$company->isSalesmanCompany();
+
+// Check pricing eligibility
+$company->canOfferWholesaleTo($buyerCompany);
 ```
 
 ### Relationships
@@ -83,40 +104,62 @@ if ($company->isBuyer()) {
 - `categories()` - Belongs to many categories (suppliers only, auto-synced from products)
 - `manufacturers()` - Belongs to many manufacturers (suppliers only, auto-synced from products)
 - `region()` - Belongs to region (with city information)
+- `supplierPriceLists()` - Has many price lists as supplier
+- `buyerPriceLists()` - Has many price lists as buyer
+- `buyerRelationships()` - Has many buyer relationships (as supplier)
+- `supplierRelationships()` - Has many supplier relationships (as buyer)
+- `salesmanAssignments()` - Has many salesman client entries (as pharmacy)
+
+## Buyer-Supplier Relationships
+
+The `buyer_supplier_relationships` table manages the financial relationship between buyers and suppliers:
+- **Payment Terms**: cash, net_15, net_30, net_60
+- **Credit Limits**: Maximum credit extended to a buyer
+- **Current Balance**: Outstanding credit balance
+- **Approval Status**: Whether the relationship is approved
+
+```php
+// Check credit availability
+$relationship->hasCreditAvailable($orderAmount);
+
+// Calculate payment due date
+$dueDate = $relationship->calculateDueDate($orderDate);
+```
+
+## Salesman Support
+
+Companies support two types of salesmen:
+
+### Supplier-Associated Salesman
+- User with `role = salesman` and `company_id` pointing to a supplier company
+- Managed by the supplier (similar to drivers)
+- Can place orders on behalf of pharmacists
+- Assigned to regions via `salesman_regions` table
+
+### Independent Salesman
+- User with `role = salesman` and their own buyer company (`buyer_classification = salesman`)
+- Operates independently, buys from any wholesale/hybrid supplier
+- Resells to pharmacists at their own margin
+
+### Salesman-Pharmacy Clients
+The `salesman_clients` table tracks which pharmacies a salesman serves:
+- `salesman_user_id` — For supplier-associated salesmen
+- `salesman_company_id` — For independent salesmen
+- `pharmacy_company_id` — The pharmacy being served
 
 ## Future Domain Services
 
-This domain is prepared for future services:
-
 ### CompanyManagementService (Planned)
-
-**Purpose**: Handle complex company operations, bulk updates, company analytics.
-
-**Potential Features**:
 - Bulk company operations
 - Company statistics and analytics
 - Company verification and approval
 - Company subscription management
 
-### CompanyRelationshipService (Planned)
-
-**Purpose**: Manage relationships between companies.
-
-**Potential Features**:
-- Supplier-buyer relationships
-- Preferred supplier lists
-- Company partnerships
-- Relationship history
-
-### CompanySettingsService (Planned)
-
-**Purpose**: Manage company-specific settings and preferences.
-
-**Potential Features**:
-- Company settings management
-- Notification preferences
-- Payment terms
-- Delivery preferences
+### BuyerSupplierRelationshipService (Planned)
+- Manage buyer-supplier relationships
+- Credit limit management and balance tracking
+- Payment terms negotiation
+- Relationship approval workflows
 
 ## Related Models
 
@@ -127,6 +170,9 @@ This domain is prepared for future services:
 - `App\Models\Manufacturer` - Manufacturers (for supplier relationships)
 - `App\Models\Order` - Orders linking buyer and supplier companies
 - `App\Models\Cart` - Carts belonging to buyer companies
+- `App\Models\PriceList` - Custom per-buyer pricing
+- `App\Models\BuyerSupplierRelationship` - Financial relationship between buyer and supplier
+- `App\Models\SalesmanClient` - Salesman-pharmacy client assignments
 
 ## Integration Points
 
@@ -167,11 +213,16 @@ Buyer companies have carts:
 1. **Company Creation**:
    - Admin-only operation
    - Type must be `supplier` or `buyer`
+   - Suppliers must have `supplier_classification` (wholesale/retail/hybrid)
+   - Buyers must have `buyer_classification` (pharmacy/salesman)
    - Name must be unique
 
-2. **Company Types**:
+2. **Company Types & Classifications**:
    - Suppliers can create products
    - Buyers can create orders
+   - Wholesale-only suppliers are hidden from pharmacist catalogs
+   - Hybrid suppliers offer both wholesale and retail pricing
+   - Salesman buyers can access wholesale pricing when qty thresholds are met
    - Companies can have multiple users
 
 3. **Authorization**:
@@ -193,6 +244,9 @@ Buyer companies have carts:
 ## Constants
 
 - `App\Constants\CompanyType` - Company type constants (`SUPPLIER`, `BUYER`)
+- `App\Constants\SupplierClassification` - Supplier sub-types (`WHOLESALE`, `RETAIL`, `HYBRID`)
+- `App\Constants\BuyerClassification` - Buyer sub-types (`PHARMACY`, `SALESMAN`)
+- `App\Constants\PaymentTerms` - Payment term options (`CASH`, `NET_15`, `NET_30`, `NET_60`)
 
 ## Authorization
 
@@ -233,10 +287,12 @@ Supplier categories and manufacturers are automatically synced from their produc
 - Company verification and approval workflow
 - Company profiles and branding
 - Company ratings and reviews
-- Company subscription plans
+- Company subscription plans (Basic/Professional/Enterprise)
 - Company analytics dashboard
 - Company communication features
 - Company document management
-- Company payment terms management
+- Salesman performance metrics and commission tracking
+- Salesman territory management (exclusive regions)
+- Credit limit auto-adjustment based on payment history
 - Supplier category/manufacturer analytics
 

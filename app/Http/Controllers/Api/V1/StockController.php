@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Stock\AdjustStockRequest;
 use App\Http\Requests\Stock\AddStockRequest;
 use App\Models\Product;
+use App\Http\Resources\StockMovementResource;
 use App\Models\StockMovement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

@@ -25,6 +25,7 @@ class CartItemResource extends JsonResource
             'quantity' => $this->quantity,
             'unitPrice' => (float) $this->unit_price,
             'totalPrice' => (float) $this->total_price,
+            'pricingType' => $this->pricing_type,
             'baseUnitPrice' => $baseUnitPrice,
             'baseTotalPrice' => $baseTotalPrice,
             'appliedOffer' => new OfferResource($this->whenLoaded('appliedOffer')),

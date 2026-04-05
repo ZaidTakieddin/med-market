@@ -16,6 +16,7 @@ class CartItem extends Model
         'quantity',
         'unit_price',
         'total_price',
+        'pricing_type',
         'applied_offer_id',
         'notes',
     ];

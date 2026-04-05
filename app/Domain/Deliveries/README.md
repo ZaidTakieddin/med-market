@@ -46,14 +46,24 @@ Currently handled in `DriverController`:
 - Assign regions to driver (`POST /drivers/{id}/regions`)
 - Remove region from driver (`DELETE /drivers/{id}/regions/{region_id}`)
 
+### Salesman Region Assignment
+
+Salesmen (supplier-associated) can also be assigned to regions, similar to drivers:
+- `salesman_regions` pivot table links salesmen to regions
+- Salesmen can serve specific geographic areas
+- Helps with territory management and client assignment
+
 ### Models
 
-- `App\Models\User` - Drivers are users with `driver` role
+- `App\Models\User` - Drivers are users with `driver` role, Salesmen are users with `salesman` role
   - `driverRegions()` - Belongs to many regions (via driver_regions pivot)
+  - `salesmanRegions()` - Belongs to many regions (via salesman_regions pivot)
+  - `salesmanClients()` - Has many salesman-pharmacy client assignments
   - `servesRegion(int $regionId)` - Check if driver serves a specific region
-- `App\Models\Order` - Orders have `driver_id` field
-- `App\Models\Region` - Regions that drivers can serve
-- `App\Models\Company` - Companies have region_id (pharmacies use this for driver assignment)
+- `App\Models\Order` - Orders have `driver_id` and `placed_by_salesman_id` fields
+- `App\Models\Region` - Regions that drivers and salesmen can serve
+- `App\Models\Company` - Companies have region_id (pharmacies use this for driver/salesman assignment)
+- `App\Models\SalesmanClient` - Tracks salesman-pharmacy client relationships
 
 ## Future Domain Services
 

@@ -20,6 +20,7 @@ class OrderItemResource extends JsonResource
             'quantity' => $this->quantity,
             'unitPrice' => (float) $this->unit_price,
             'totalPrice' => (float) $this->total_price,
+            'pricingType' => $this->pricing_type,
             'notes' => $this->notes,
             'appliedOffer' => new OfferResource($this->whenLoaded('appliedOffer')),
             'appliedOfferId' => $this->applied_offer_id,

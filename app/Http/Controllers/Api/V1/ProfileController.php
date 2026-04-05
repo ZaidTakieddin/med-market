@@ -174,8 +174,7 @@ class ProfileController extends BaseApiController
         try {
             $user = auth()->user();
 
-            // Only admins or company owners can update company
-            if (!$user->isAdmin() && $user->role !== 'supplier' && $user->role !== 'buyer') {
+            if (!$user->isAdmin() && $user->role !== 'supplier' && $user->role !== 'buyer' && $user->role !== 'salesman') {
                 return $this->error('You do not have permission to update company information', null, 403);
             }
 

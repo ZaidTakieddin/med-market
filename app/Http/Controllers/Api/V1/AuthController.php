@@ -33,7 +33,7 @@ class AuthController extends BaseApiController
                         new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password123'),
                         new OA\Property(property: 'password_confirmation', type: 'string', format: 'password', example: 'password123'),
                         new OA\Property(property: 'company_id', type: 'integer', nullable: true, example: 1),
-                        new OA\Property(property: 'role', type: 'string', enum: ['admin', 'supplier', 'buyer', 'driver'], example: 'buyer'),
+                        new OA\Property(property: 'role', type: 'string', enum: ['admin', 'supplier', 'buyer', 'driver', 'salesman'], example: 'buyer'),
                     ]
                 )
             ),

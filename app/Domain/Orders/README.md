@@ -327,6 +327,29 @@ Orders automatically generate invoices when accepted:
 - System checks if driver serves pharmacy's region (warning logged if not)
 - Driver must belong to supplier's company
 
+## Payment & Credit
+
+Orders now support payment terms and credit:
+- `payment_method` — cash or credit (default: cash)
+- `payment_due_date` — calculated from buyer-supplier relationship payment terms
+- Payment terms are managed per buyer-supplier relationship (cash, net_15, net_30, net_60)
+- Credit limits are enforced via `BuyerSupplierRelationship`
+
+## Salesman Orders
+
+Orders can be placed by salesmen on behalf of pharmacists:
+- `placed_by_salesman_id` — references the salesman user who placed the order
+- The `buyer_company_id` is the pharmacy's company
+- The salesman can be supplier-associated or independent
+- `Order::isPlacedBySalesman()` checks if a salesman placed the order
+- `Order::salesman()` relationship returns the salesman user
+
+## Pricing Type Tracking
+
+Each `OrderItem` now records the pricing tier that was applied:
+- `pricing_type` — `wholesale`, `retail`, or `custom`
+- This provides an audit trail of which price was used for each line item
+
 ## Future Enhancements
 
 -   Order cancellation reasons
@@ -338,3 +361,5 @@ Orders automatically generate invoices when accepted:
 -   Automatic driver assignment based on region
 -   Order analytics by region
 -   Delivery time estimation based on distance
+-   Salesman commission tracking per order
+-   Credit balance auto-update on order completion/payment

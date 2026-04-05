@@ -153,8 +153,8 @@ class CartController extends BaseApiController
         try {
             $user = auth()->user();
             
-            if (!$user->isBuyer()) {
-                return $this->error('Only buyers can add items to cart', null, 403);
+            if (!$user->canBuy()) {
+                return $this->error('Only buyers and salesmen can add items to cart', null, 403);
             }
 
             $product = Product::findOrFail($request->product_id);
@@ -756,8 +756,8 @@ class CartController extends BaseApiController
         try {
             $user = auth()->user();
             
-            if (!$user->isBuyer()) {
-                return $this->error('Only buyers can checkout', null, 403);
+            if (!$user->canBuy()) {
+                return $this->error('Only buyers and salesmen can checkout', null, 403);
             }
 
             $cart = Cart::where('user_id', $user->id)->with('items.product')->first();
@@ -889,8 +889,8 @@ class CartController extends BaseApiController
         try {
             $user = auth()->user();
             
-            if (!$user->isBuyer()) {
-                return $this->error('Only buyers can checkout', null, 403);
+            if (!$user->canBuy()) {
+                return $this->error('Only buyers and salesmen can checkout', null, 403);
             }
 
             $request->validate([

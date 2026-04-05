@@ -146,6 +146,8 @@ class CompanyController extends BaseApiController
         )]
     public function store(CreateCompanyRequest $request): JsonResponse
     {
+        $this->authorize('create', Company::class);
+
         $company = Company::create($request->validated());
 
         return $this->success(

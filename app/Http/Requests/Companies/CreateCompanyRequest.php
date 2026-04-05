@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Companies;
 
+use App\Constants\BuyerClassification;
 use App\Constants\CompanyType;
+use App\Constants\SupplierClassification;
 use App\Http\Requests\BaseFormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,7 +12,7 @@ class CreateCompanyRequest extends BaseFormRequest
 {
     public function authorize(): bool
     {
-        return true; // Authorization handled in controller
+        return true;
     }
 
     public function rules(): array
@@ -19,6 +21,9 @@ class CreateCompanyRequest extends BaseFormRequest
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
             'type' => ['required', 'string', Rule::in(CompanyType::all())],
+            'supplier_classification' => ['nullable', 'string', Rule::in(SupplierClassification::all()), 'required_if:type,supplier'],
+            'buyer_classification' => ['nullable', 'string', Rule::in(BuyerClassification::all()), 'required_if:type,buyer'],
+            'min_order_amount' => ['nullable', 'numeric', 'min:0'],
             'email' => ['nullable', 'string', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string', 'max:500'],
@@ -38,6 +43,10 @@ class CreateCompanyRequest extends BaseFormRequest
             'name.required' => 'Company name is required.',
             'type.required' => 'Company type is required.',
             'type.in' => 'Invalid company type. Must be supplier or buyer.',
+            'supplier_classification.required_if' => 'Supplier classification is required for supplier companies.',
+            'supplier_classification.in' => 'Invalid supplier classification. Must be wholesale, retail, or hybrid.',
+            'buyer_classification.required_if' => 'Buyer classification is required for buyer companies.',
+            'buyer_classification.in' => 'Invalid buyer classification. Must be pharmacy or salesman.',
         ];
     }
 }

@@ -100,10 +100,9 @@ class SendOrderNotificationJob implements ShouldQueue
     {
         $recipients = [];
 
-        // Add buyer company users (buyers)
         if ($order->buyerCompany) {
             $buyerUsers = $order->buyerCompany->users()
-                ->where('role', 'buyer')
+                ->whereIn('role', ['buyer', 'salesman'])
                 ->whereNotNull('email')
                 ->get();
 

@@ -30,6 +30,8 @@ class CreateProductRequest extends BaseFormRequest
             'sku' => ['required', 'string', 'max:100', 'unique:products,sku'],
             'barcode' => ['nullable', 'string', 'max:100'],
             'unit' => ['nullable', 'string', 'max:50', Rule::in(['piece', 'box', 'bottle', 'pack', 'carton'])],
+            'wholesale_price' => ['nullable', 'numeric', 'min:0'],
+            'wholesale_min_qty' => ['nullable', 'integer', 'min:1', 'required_with:wholesale_price'],
             'pharmacist_price' => ['required', 'numeric', 'min:0'],
             'customer_price' => ['nullable', 'numeric', 'min:0'],
             'discount' => ['nullable', 'numeric', 'min:0'],
@@ -52,6 +54,9 @@ class CreateProductRequest extends BaseFormRequest
             'pharmacist_price.required' => 'Pharmacist price is required.',
             'pharmacist_price.min' => 'Pharmacist price cannot be negative.',
             'customer_price.min' => 'Customer price cannot be negative.',
+            'wholesale_price.min' => 'Wholesale price cannot be negative.',
+            'wholesale_min_qty.min' => 'Wholesale minimum quantity must be at least 1.',
+            'wholesale_min_qty.required_with' => 'Wholesale minimum quantity is required when wholesale price is set.',
             'discount.min' => 'Discount cannot be negative.',
             'discount_type.in' => 'Discount type must be either percentage or fixed.',
         ];

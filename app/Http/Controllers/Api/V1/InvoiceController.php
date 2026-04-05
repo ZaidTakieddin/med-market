@@ -45,9 +45,13 @@ class InvoiceController extends BaseApiController
             $user = auth()->user();
             $query = Invoice::with(['order.driver', 'buyerCompany', 'supplierCompany']);
 
-            // Filter by user role
-            if ($user->isBuyer()) {
+            if ($user->isBuyer() || ($user->isSalesman() && $user->isIndependentSalesman())) {
                 $query->where('buyer_company_id', $user->company_id);
+            } elseif ($user->isSalesman() && $user->isSupplierSalesman()) {
+                $query->where(function ($q) use ($user) {
+                    $q->where('supplier_company_id', $user->company_id)
+                      ->orWhereHas('order', fn ($oq) => $oq->where('placed_by_salesman_id', $user->id));
+                });
             } elseif ($user->isSupplier()) {
                 $query->where('supplier_company_id', $user->company_id);
             }
@@ -122,12 +126,7 @@ class InvoiceController extends BaseApiController
     {
         $user = auth()->user();
 
-        // Authorization check
-        if ($user->isBuyer() && $invoice->buyer_company_id !== $user->company_id) {
-            return $this->error('Unauthorized', null, 403);
-        }
-
-        if ($user->isSupplier() && $invoice->supplier_company_id !== $user->company_id) {
+        if (!$this->canAccessInvoice($user, $invoice)) {
             return $this->error('Unauthorized', null, 403);
         }
 
@@ -165,12 +164,7 @@ class InvoiceController extends BaseApiController
     {
         $user = auth()->user();
 
-        // Authorization check
-        if ($user->isBuyer() && $order->buyer_company_id !== $user->company_id) {
-            return $this->error('Unauthorized', null, 403);
-        }
-
-        if ($user->isSupplier() && $order->supplier_company_id !== $user->company_id) {
+        if (!$this->canAccessOrder($user, $order)) {
             return $this->error('Unauthorized', null, 403);
         }
 
@@ -214,12 +208,7 @@ class InvoiceController extends BaseApiController
     {
         $user = auth()->user();
 
-        // Authorization check
-        if ($user->isBuyer() && $invoice->buyer_company_id !== $user->company_id) {
-            return $this->error('Unauthorized', null, 403);
-        }
-
-        if ($user->isSupplier() && $invoice->supplier_company_id !== $user->company_id) {
+        if (!$this->canAccessInvoice($user, $invoice)) {
             return $this->error('Unauthorized', null, 403);
         }
 
@@ -301,12 +290,7 @@ class InvoiceController extends BaseApiController
     {
         $user = auth()->user();
 
-        // Authorization check
-        $isBuyer = $user->isBuyer() && $invoice->buyer_company_id === $user->company_id;
-        $isSupplier = $user->isSupplier() && $invoice->supplier_company_id === $user->company_id;
-        $isAdmin = $user->isAdmin();
-
-        if (!$isBuyer && !$isSupplier && !$isAdmin) {
+        if (!$this->canAccessInvoice($user, $invoice)) {
             return $this->error('Unauthorized', null, 403);
         }
 
@@ -328,5 +312,49 @@ class InvoiceController extends BaseApiController
         }
 
         return $this->success(new InvoiceResource($invoice->load(['order.driver', 'buyerCompany', 'supplierCompany'])), 'Invoice marked as paid successfully');
+    }
+
+    private function canAccessInvoice($user, Invoice $invoice): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        if ($user->isBuyer() || ($user->isSalesman() && $user->isIndependentSalesman())) {
+            return $invoice->buyer_company_id === $user->company_id;
+        }
+
+        if ($user->isSalesman() && $user->isSupplierSalesman()) {
+            return $invoice->supplier_company_id === $user->company_id
+                || ($invoice->order && $invoice->order->placed_by_salesman_id === $user->id);
+        }
+
+        if ($user->isSupplier()) {
+            return $invoice->supplier_company_id === $user->company_id;
+        }
+
+        return false;
+    }
+
+    private function canAccessOrder($user, Order $order): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        if ($user->isBuyer() || ($user->isSalesman() && $user->isIndependentSalesman())) {
+            return $order->buyer_company_id === $user->company_id;
+        }
+
+        if ($user->isSalesman() && $user->isSupplierSalesman()) {
+            return $order->supplier_company_id === $user->company_id
+                || $order->placed_by_salesman_id === $user->id;
+        }
+
+        if ($user->isSupplier()) {
+            return $order->supplier_company_id === $user->company_id;
+        }
+
+        return false;
     }
 }

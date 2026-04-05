@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Constants\BuyerClassification;
 use App\Constants\CompanyType;
 use App\Constants\DiscountType;
 use App\Constants\OfferType;
 use App\Constants\OrderStatus;
+use App\Constants\PaymentTerms;
+use App\Constants\PricingType;
 use App\Constants\StockMovementType;
+use App\Constants\SupplierClassification;
 use App\Constants\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
 use Illuminate\Http\JsonResponse;
@@ -35,7 +39,7 @@ class EnumsController extends BaseApiController
                 required: false,
                 schema: new OA\Schema(
                     type: 'string',
-                    enum: ['offerType', 'orderStatus', 'userRole', 'companyType', 'stockMovementType', 'discountType']
+                    enum: ['offerType', 'orderStatus', 'userRole', 'companyType', 'stockMovementType', 'discountType', 'supplierClassification', 'buyerClassification', 'pricingType', 'paymentTerms']
                 ),
                 description: 'Optional. Return only this enum type.'
             ),
@@ -67,7 +71,7 @@ class EnumsController extends BaseApiController
                                     property: 'userRole',
                                     type: 'array',
                                     items: new OA\Items(type: 'string'),
-                                    description: 'User roles: admin, supplier, buyer, driver'
+                                    description: 'User roles: admin, supplier, buyer, driver, salesman'
                                 ),
                                 new OA\Property(
                                     property: 'companyType',
@@ -102,6 +106,10 @@ class EnumsController extends BaseApiController
             'orderStatus' => OrderStatus::all(),
             'userRole' => UserRole::all(),
             'companyType' => CompanyType::all(),
+            'supplierClassification' => SupplierClassification::all(),
+            'buyerClassification' => BuyerClassification::all(),
+            'pricingType' => PricingType::all(),
+            'paymentTerms' => PaymentTerms::all(),
             'stockMovementType' => StockMovementType::all(),
             'discountType' => DiscountType::all(),
         ];
@@ -117,6 +125,14 @@ class EnumsController extends BaseApiController
                 'user_role' => 'userRole',
                 'companyType' => 'companyType',
                 'company_type' => 'companyType',
+                'supplierClassification' => 'supplierClassification',
+                'supplier_classification' => 'supplierClassification',
+                'buyerClassification' => 'buyerClassification',
+                'buyer_classification' => 'buyerClassification',
+                'pricingType' => 'pricingType',
+                'pricing_type' => 'pricingType',
+                'paymentTerms' => 'paymentTerms',
+                'payment_terms' => 'paymentTerms',
                 'stockMovementType' => 'stockMovementType',
                 'stock_movement_type' => 'stockMovementType',
                 'discountType' => 'discountType',

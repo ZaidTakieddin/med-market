@@ -18,7 +18,7 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
-            'phone' => $this->when($this->role === 'driver', $this->phone),
+            'phone' => $this->when(in_array($this->role, ['driver', 'salesman']), $this->phone),
             'role' => $this->role,
             'company' => new CompanyResource($this->whenLoaded('company')),
             'createdAt' => $this->created_at->toISOString(),

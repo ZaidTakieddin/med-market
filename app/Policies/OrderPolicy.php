@@ -38,8 +38,7 @@ class OrderPolicy
      */
     public function create(User $user): bool
     {
-        // Only buyers (pharmacists) can create orders
-        return $user->isBuyer();
+        return $user->canBuy();
     }
 
     /**
@@ -76,13 +75,17 @@ class OrderPolicy
      */
     public function cancel(User $user, Order $order): bool
     {
-        // Admin can always cancel
         if ($user->isAdmin()) {
             return true;
         }
 
-        // Buyer can cancel if order is pending or accepted
-        if ($user->isBuyer() && $user->company_id === $order->buyer_company_id) {
+        // Buyer or salesman who placed the order can cancel if pending or accepted
+        if ($user->canBuy() && $user->company_id === $order->buyer_company_id) {
+            return in_array($order->status, ['pending', 'accepted'], true);
+        }
+
+        // Supplier-associated salesman who placed the order can cancel
+        if ($user->isSalesman() && $order->placed_by_salesman_id === $user->id) {
             return in_array($order->status, ['pending', 'accepted'], true);
         }
 

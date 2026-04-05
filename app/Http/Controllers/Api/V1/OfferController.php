@@ -295,6 +295,10 @@ class OfferController extends BaseApiController
         try {
             $user = auth()->user();
 
+            if (!$user->isSupplier() && !$user->isAdmin()) {
+                return $this->error('Only suppliers can update offers', null, 403);
+            }
+
             if ($offer->supplier_company_id !== $user->company_id && !$user->isAdmin()) {
                 return $this->error('You can only update your own offers', null, 403);
             }
@@ -344,6 +348,10 @@ class OfferController extends BaseApiController
     {
         try {
             $user = auth()->user();
+
+            if (!$user->isSupplier() && !$user->isAdmin()) {
+                return $this->error('Only suppliers can delete offers', null, 403);
+            }
 
             if ($offer->supplier_company_id !== $user->company_id && !$user->isAdmin()) {
                 return $this->error('You can only delete your own offers', null, 403);
