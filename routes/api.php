@@ -103,6 +103,17 @@ Route::prefix('v1')->group(function () {
 
         // Order driver assignment
         Route::post('orders/{order}/assign-driver', [App\Http\Controllers\Api\V1\OrderController::class, 'assignDriver']);
+
+        // Buyer-Supplier Relationships & Credit Management
+        Route::apiResource('buyer-supplier-relationships', App\Http\Controllers\Api\V1\BuyerSupplierRelationshipController::class);
+        Route::post('buyer-supplier-relationships/{id}/approve', [App\Http\Controllers\Api\V1\BuyerSupplierRelationshipController::class, 'approve']);
+        Route::post('buyer-supplier-relationships/{id}/reject', [App\Http\Controllers\Api\V1\BuyerSupplierRelationshipController::class, 'reject']);
+        Route::post('buyer-supplier-relationships/{id}/adjust-credit', [App\Http\Controllers\Api\V1\BuyerSupplierRelationshipController::class, 'adjustCredit']);
+        Route::get('buyer-supplier-relationships/{id}/check-credit', [App\Http\Controllers\Api\V1\BuyerSupplierRelationshipController::class, 'checkCredit']);
+
+        // Price Lists (Custom Per-Buyer Pricing)
+        Route::get('price-lists/for-buyer/{buyerCompanyId}', [App\Http\Controllers\Api\V1\PriceListController::class, 'forBuyer']);
+        Route::apiResource('price-lists', App\Http\Controllers\Api\V1\PriceListController::class);
     });
 });
 

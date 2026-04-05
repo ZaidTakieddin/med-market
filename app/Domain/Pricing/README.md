@@ -98,14 +98,12 @@ This is stored in `cart_items.pricing_type` and `order_items.pricing_type` for a
 
 **Fields**: `unitPrice`, `originalPrice`, `pricingType`, `discountAmount`, `wholesaleEligible`, `minQtyMet`, `customPriceNote`
 
-### PriceListService (Planned)
+### PriceListController (Implemented — Phase 4)
 
-**Purpose**: CRUD operations for custom price lists.
+**Location**: `App\Http\Controllers\Api\V1\PriceListController`
 
-**Will be responsible for**:
-- Creating/updating price list entries
-- Validating supplier-buyer-product combinations
-- Managing date ranges and activation
+**Endpoints**: Full CRUD + `forBuyer/{buyerCompanyId}` for batch retrieval of valid prices.
+Uses `PriceListPolicy` for authorization (suppliers manage, buyers view).
 
 ## Integration Points (All Implemented)
 

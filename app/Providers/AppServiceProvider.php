@@ -2,16 +2,20 @@
 
 namespace App\Providers;
 
+use App\Models\BuyerSupplierRelationship;
 use App\Models\Company;
 use App\Models\Order;
+use App\Models\PriceList;
 use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Observers\OrderObserver;
 use App\Observers\ProductObserver;
 use App\Observers\StockMovementObserver;
+use App\Policies\BuyerSupplierRelationshipPolicy;
 use App\Policies\CompanyPolicy;
 use App\Policies\OrderPolicy;
+use App\Policies\PriceListPolicy;
 use App\Policies\ProductPolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -28,6 +32,8 @@ class AppServiceProvider extends ServiceProvider
         Company::class => CompanyPolicy::class,
         Product::class => ProductPolicy::class,
         Order::class => OrderPolicy::class,
+        BuyerSupplierRelationship::class => BuyerSupplierRelationshipPolicy::class,
+        PriceList::class => PriceListPolicy::class,
     ];
 
     /**

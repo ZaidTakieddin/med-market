@@ -282,6 +282,23 @@ Supplier categories and manufacturers are automatically synced from their produc
   - Products are deleted or restored
 - Manual sync available via command: `php artisan suppliers:sync-categories-manufacturers`
 
+## Buyer-Supplier Relationships API (Phase 4 — Implemented)
+
+Full CRUD + credit management via `BuyerSupplierRelationshipController`:
+- Create/update/delete relationships between buyer and supplier companies
+- Approve/reject workflow
+- Credit limit management with balance tracking
+- Credit availability checking
+- Audit-logged balance adjustments
+
+## Custom Price Lists API (Phase 4 — Implemented)
+
+Suppliers can set negotiated per-buyer pricing via `PriceListController`:
+- CRUD for custom price entries (buyer + product + optional min_qty)
+- Date range validation (valid_from / valid_to)
+- Batch view of all currently valid prices for a buyer
+- Integrated with `PricingService` — custom prices have highest resolution priority
+
 ## Future Enhancements
 
 - Company verification and approval workflow

@@ -298,12 +298,12 @@
 
 ### Supplier Classifications & Multi-Tier Pricing
 
-Phases 1–3 complete. Remaining phases:
+Phases 1–4 complete. Remaining phases:
 
 - [x] **Phase 1**: Data model — migrations, constants, models, seeders ✅
 - [x] **Phase 2**: PricingService — central price resolution engine ✅
 - [x] **Phase 3**: Cart & order integration with PricingService + catalog visibility ✅
-- [ ] **Phase 4**: Buyer-supplier relationship & credit management endpoints
+- [x] **Phase 4**: Buyer-supplier relationship & credit management + price list endpoints ✅
 - [ ] **Phase 5**: Salesman features (management, region assignment, on-behalf ordering)
 - [ ] **Phase 6**: Seeders, documentation polish, Swagger updates
 
@@ -869,6 +869,28 @@ Phases 1–3 complete. Remaining phases:
     - **UpdateProductRequest**: Added `required_with:wholesale_price` to `wholesale_min_qty` (aligned with CreateProductRequest).
     - **OrderController**: Added `salesman` to eager-loaded relations in both `index()` and `show()` — `OrderResource` wraps salesman in `whenLoaded()`.
     - **EnumsController Swagger**: Added `supplierClassification`, `buyerClassification`, `pricingType`, `paymentTerms` to OpenAPI `type` query param enum.
+-   **Supplier Classifications & Multi-Tier Pricing — Phase 4: Buyer-Supplier Relationships & Price Lists API (2026-04-03)**:
+    - Created `BuyerSupplierRelationshipController` — full CRUD + credit management:
+      - `GET /buyer-supplier-relationships` — list with role-based filtering (admin/supplier/buyer/salesman)
+      - `POST /buyer-supplier-relationships` — create with company validation + duplicate prevention
+      - `GET/PUT/DELETE /buyer-supplier-relationships/{id}` — standard CRUD with policy authorization
+      - `POST /{id}/approve` — approve a pending relationship
+      - `POST /{id}/reject` — reject/revoke approval
+      - `POST /{id}/adjust-credit` — adjust outstanding balance with audit logging (reason required)
+      - `GET /{id}/check-credit` — check credit availability for a given amount
+    - Created `PriceListController` — custom per-buyer pricing CRUD:
+      - `GET /price-lists` — list with filtering (buyer, product, active, currently_valid)
+      - `POST /price-lists` — create with product ownership validation + duplicate prevention
+      - `GET/PUT/DELETE /price-lists/{id}` — standard CRUD with policy authorization
+      - `GET /price-lists/for-buyer/{buyerCompanyId}` — get all currently valid prices for a buyer
+    - Created API Resources: `BuyerSupplierRelationshipResource` (includes `availableCredit` computed field), `PriceListResource` (includes `isCurrentlyValid`)
+    - Created Form Requests: `Create/UpdateBuyerSupplierRelationshipRequest`, `Create/UpdatePriceListRequest`
+    - Created Policies: `BuyerSupplierRelationshipPolicy`, `PriceListPolicy` — suppliers manage, buyers view
+    - Registered policies in `AppServiceProvider`
+    - Added 15 new API routes (9 for relationships, 6 for price lists)
+    - Salesman handling: supplier-associated salesmen see their supplier's data; independent salesmen see their buyer data
+    - **Files created**: 2 controllers, 2 resources, 4 form requests, 2 policies
+    - **Files modified**: `routes/api.php`, `AppServiceProvider`
 -   **Supplier Classifications & Multi-Tier Pricing — Phase 3: Cart/Order/Catalog Integration (2026-04-03)**:
     - Integrated `PricingService` into `CartController` — all add/update/remove operations now resolve prices based on buyer type, supplier classification, quantity (wholesale eligibility), and custom price lists
     - `addItem()`: resolves tier price via PricingService, checks catalog visibility (`canBuyerSeeSupplier`), sets `pricing_type` on cart items
@@ -1369,7 +1391,7 @@ These features improve security, performance, and code quality.
 
 ## 📊 Statistics
 
--   **Total Endpoints**: 70+ routes (including cart, offers, drivers, profile, categories, manufacturers, cities, regions, invoices endpoints)
+-   **Total Endpoints**: 85+ routes (including cart, offers, drivers, profile, categories, manufacturers, cities, regions, invoices, buyer-supplier relationships, price lists endpoints)
 -   **Completed Features**: 110+ (including all new requirements and documentation updates)
 -   **Database Seeders**: 10 (CitySeeder, RegionSeeder, CompanySeeder, CategorySeeder, ManufacturerSeeder, UserSeeder, ProductSeeder, OfferSeeder, BuyerSupplierRelationshipSeeder, OrderSeeder)
 -   **Pending Tasks**: See "Missing Features & Requirements" section below
