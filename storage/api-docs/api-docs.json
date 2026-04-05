@@ -62,7 +62,8 @@
                                             "admin",
                                             "supplier",
                                             "buyer",
-                                            "driver"
+                                            "driver",
+                                            "salesman"
                                         ],
                                         "example": "buyer"
                                     }
@@ -265,6 +266,474 @@
                     },
                     "401": {
                         "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/buyer-supplier-relationships": {
+            "get": {
+                "tags": [
+                    "Buyer-Supplier Relationships"
+                ],
+                "summary": "List relationships",
+                "description": "Get buyer-supplier relationships. Admins see all. Suppliers see their buyer relationships. Buyers see their supplier relationships.",
+                "operationId": "9a752baaf28cbbaa3af5cebaab96093a",
+                "parameters": [
+                    {
+                        "name": "buyer_company_id",
+                        "in": "query",
+                        "description": "Filter by buyer company",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "supplier_company_id",
+                        "in": "query",
+                        "description": "Filter by supplier company",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "is_approved",
+                        "in": "query",
+                        "description": "Filter by approval status",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Relationships retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Buyer-Supplier Relationships"
+                ],
+                "summary": "Create relationship",
+                "description": "Create a buyer-supplier relationship. Only suppliers and admins can create. Prevents duplicate relationships.",
+                "operationId": "2f482fb37fefb7a78a7d65d0a4459f1a",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "buyer_company_id",
+                                    "supplier_company_id",
+                                    "payment_terms"
+                                ],
+                                "properties": {
+                                    "buyer_company_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "supplier_company_id": {
+                                        "type": "integer",
+                                        "example": 2
+                                    },
+                                    "payment_terms": {
+                                        "type": "string",
+                                        "enum": [
+                                            "cash",
+                                            "net_15",
+                                            "net_30",
+                                            "net_60"
+                                        ],
+                                        "example": "net_30"
+                                    },
+                                    "credit_limit": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 50000,
+                                        "nullable": true
+                                    },
+                                    "is_approved": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "VIP customer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Relationship created successfully"
+                    },
+                    "400": {
+                        "description": "Validation error or invalid companies"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "409": {
+                        "description": "Relationship already exists"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/buyer-supplier-relationships/{id}": {
+            "get": {
+                "tags": [
+                    "Buyer-Supplier Relationships"
+                ],
+                "summary": "Get relationship details",
+                "description": "Get a specific buyer-supplier relationship with credit details.",
+                "operationId": "f68d8c11b18ff1522d7f0523a2149263",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Relationship retrieved successfully"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Buyer-Supplier Relationships"
+                ],
+                "summary": "Update relationship",
+                "description": "Update payment terms, credit limit, approval status, or notes. Only the supplier side or admin can update.",
+                "operationId": "2ba5089547c964c8824c16a70f066992",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "payment_terms": {
+                                        "type": "string",
+                                        "enum": [
+                                            "cash",
+                                            "net_15",
+                                            "net_30",
+                                            "net_60"
+                                        ]
+                                    },
+                                    "credit_limit": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "nullable": true
+                                    },
+                                    "is_approved": {
+                                        "type": "boolean"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Relationship updated successfully"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Buyer-Supplier Relationships"
+                ],
+                "summary": "Delete relationship",
+                "description": "Delete a buyer-supplier relationship. Only the supplier side or admin can delete.",
+                "operationId": "d7af3003bb2b47099b1059620b14f376",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Relationship deleted successfully"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/buyer-supplier-relationships/{id}/approve": {
+            "post": {
+                "tags": [
+                    "Buyer-Supplier Relationships"
+                ],
+                "summary": "Approve relationship",
+                "description": "Approve a pending buyer-supplier relationship. Only supplier side or admin.",
+                "operationId": "1cbb22fa8613bb5813237b480734db8f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Relationship approved successfully"
+                    },
+                    "400": {
+                        "description": "Already approved"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/buyer-supplier-relationships/{id}/reject": {
+            "post": {
+                "tags": [
+                    "Buyer-Supplier Relationships"
+                ],
+                "summary": "Reject (revoke approval) relationship",
+                "description": "Reject or revoke approval of a buyer-supplier relationship. Only supplier side or admin.",
+                "operationId": "755ea4ce5c22887001467f9b28aeec53",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Relationship rejected successfully"
+                    },
+                    "400": {
+                        "description": "Not currently approved"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/buyer-supplier-relationships/{id}/adjust-credit": {
+            "post": {
+                "tags": [
+                    "Buyer-Supplier Relationships"
+                ],
+                "summary": "Adjust credit balance",
+                "description": "Adjust the current outstanding balance. Use positive amount to increase (e.g. new order on credit), negative to decrease (e.g. payment received). Only supplier side or admin.",
+                "operationId": "a7918fd9eca9ec24cc345be4cb55201b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "amount",
+                                    "reason"
+                                ],
+                                "properties": {
+                                    "amount": {
+                                        "description": "Positive = increase balance (charge), negative = decrease balance (payment)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": -500
+                                    },
+                                    "reason": {
+                                        "description": "Reason for adjustment",
+                                        "type": "string",
+                                        "example": "Payment received - Invoice #INV-20260403-ABC"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Credit balance adjusted successfully"
+                    },
+                    "400": {
+                        "description": "Invalid adjustment or would exceed credit limit"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/buyer-supplier-relationships/{id}/check-credit": {
+            "get": {
+                "tags": [
+                    "Buyer-Supplier Relationships"
+                ],
+                "summary": "Check credit availability",
+                "description": "Check if a given amount can be charged on credit for this relationship. Returns credit details and availability.",
+                "operationId": "08a569bf87666375806b45fbccd9340b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "amount",
+                        "in": "query",
+                        "description": "Amount to check",
+                        "required": true,
+                        "schema": {
+                            "type": "number",
+                            "format": "float"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Credit check completed"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
                     }
                 },
                 "security": [
@@ -2394,7 +2863,11 @@
                                 "userRole",
                                 "companyType",
                                 "stockMovementType",
-                                "discountType"
+                                "discountType",
+                                "supplierClassification",
+                                "buyerClassification",
+                                "pricingType",
+                                "paymentTerms"
                             ]
                         }
                     }
@@ -2427,7 +2900,7 @@
                                                     }
                                                 },
                                                 "userRole": {
-                                                    "description": "User roles: admin, supplier, buyer, driver",
+                                                    "description": "User roles: admin, supplier, buyer, driver, salesman",
                                                     "type": "array",
                                                     "items": {
                                                         "type": "string"
@@ -3652,7 +4125,7 @@
                     "Orders"
                 ],
                 "summary": "Create order",
-                "description": "Create a new order for a **single supplier**. Only buyers can create orders. If unit_price is not provided, it will use the product's pharmacist_price with any applicable discounts applied (getFinalPharmacistPrice method). **Important:** This endpoint creates ONE order for ONE supplier. If you need to order from multiple suppliers, use the cart checkout endpoint (`POST /cart/checkout`) which automatically splits the cart into multiple orders (one per supplier).",
+                "description": "Create a new order for a **single supplier**. Only buyers and salesmen can create orders. If unit_price is not provided, PricingService resolves the correct price based on buyer type, supplier classification, quantity (wholesale eligibility), and custom price lists. **Important:** This endpoint creates ONE order for ONE supplier. If you need to order from multiple suppliers, use the cart checkout endpoint (`POST /cart/checkout`) which automatically splits the cart into multiple orders (one per supplier).",
                 "operationId": "fccc497d8bcac727afdc854cf0521698",
                 "requestBody": {
                     "required": true,
@@ -3685,7 +4158,7 @@
                                                     "example": 10
                                                 },
                                                 "unit_price": {
-                                                    "description": "Optional - will use product pharmacist_price with discounts applied (getFinalPharmacistPrice) if not provided",
+                                                    "description": "Optional - PricingService resolves the correct tier price (custom, wholesale, or retail) if not provided",
                                                     "type": "number",
                                                     "format": "float",
                                                     "example": 25.5,
@@ -4060,6 +4533,351 @@
                     },
                     "422": {
                         "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/price-lists": {
+            "get": {
+                "tags": [
+                    "Price Lists"
+                ],
+                "summary": "List price list entries",
+                "description": "Get price list entries. Suppliers see entries they created. Buyers see entries targeting them. Admins see all. Supports filtering by buyer, product, and active status.",
+                "operationId": "9c4a09af6469669a1378ff7b8521827b",
+                "parameters": [
+                    {
+                        "name": "buyer_company_id",
+                        "in": "query",
+                        "description": "Filter by buyer company",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "product_id",
+                        "in": "query",
+                        "description": "Filter by product",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "is_active",
+                        "in": "query",
+                        "description": "Filter by active status",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "currently_valid",
+                        "in": "query",
+                        "description": "Filter only entries that are currently valid (active + within date range)",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Price list entries retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Price Lists"
+                ],
+                "summary": "Create price list entry",
+                "description": "Create a custom price for a specific buyer and product. Only the product's supplier or admin can create. Duplicate entries (same buyer + product + min_qty) are prevented.",
+                "operationId": "7b37fc92114eb7d5484ca94dcfcc90f9",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "buyer_company_id",
+                                    "product_id",
+                                    "custom_price"
+                                ],
+                                "properties": {
+                                    "buyer_company_id": {
+                                        "type": "integer",
+                                        "example": 3
+                                    },
+                                    "product_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "custom_price": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 22.5
+                                    },
+                                    "min_qty": {
+                                        "type": "integer",
+                                        "example": 10,
+                                        "nullable": true
+                                    },
+                                    "valid_from": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-01-01",
+                                        "nullable": true
+                                    },
+                                    "valid_to": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-12-31",
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Special rate for VIP buyer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Price list entry created successfully"
+                    },
+                    "400": {
+                        "description": "Validation error or product does not belong to supplier"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "409": {
+                        "description": "Duplicate entry"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/price-lists/{id}": {
+            "get": {
+                "tags": [
+                    "Price Lists"
+                ],
+                "summary": "Get price list entry",
+                "description": "Get a specific price list entry with related buyer, supplier, and product details.",
+                "operationId": "bfc10bdcea9d4bda7ea61f6490fca1c0",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Price list entry retrieved successfully"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Price Lists"
+                ],
+                "summary": "Update price list entry",
+                "description": "Update a custom price entry. Only the owning supplier or admin can update.",
+                "operationId": "e07705bc30cc5de4b349849b910b5f8d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "custom_price": {
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "min_qty": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "valid_from": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "nullable": true
+                                    },
+                                    "valid_to": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "nullable": true
+                                    },
+                                    "is_active": {
+                                        "type": "boolean"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Price list entry updated successfully"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Price Lists"
+                ],
+                "summary": "Delete price list entry",
+                "description": "Delete a custom price entry. Only the owning supplier or admin can delete.",
+                "operationId": "a38db48f2a5718673e5eec597ccb8e9d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Price list entry deleted successfully"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/price-lists/for-buyer/{buyerCompanyId}": {
+            "get": {
+                "tags": [
+                    "Price Lists"
+                ],
+                "summary": "Get all prices for a specific buyer",
+                "description": "Get all currently valid price list entries for a specific buyer. Useful for showing a buyer their negotiated prices. Only the supplier, the buyer themselves, or admin can view.",
+                "operationId": "43613146d3e0d519b7c81efa6f0838f3",
+                "parameters": [
+                    {
+                        "name": "buyerCompanyId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Buyer price list retrieved successfully"
+                    },
+                    "403": {
+                        "description": "Forbidden"
                     }
                 },
                 "security": [
@@ -5198,6 +6016,545 @@
                 ]
             }
         },
+        "/salesmen": {
+            "get": {
+                "tags": [
+                    "Salesmen"
+                ],
+                "summary": "List salesmen",
+                "description": "List salesman users. Admins see all. Suppliers see their company salesmen. Salesmen see themselves.",
+                "operationId": "396e220d0a1a9f6eb92e05d7b46cde62",
+                "parameters": [
+                    {
+                        "name": "company_id",
+                        "in": "query",
+                        "description": "Filter by company",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search by name, email, or phone",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Salesmen retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/salesmen/{id}": {
+            "get": {
+                "tags": [
+                    "Salesmen"
+                ],
+                "summary": "Get salesman details",
+                "description": "Get salesman profile with company, regions, and client counts.",
+                "operationId": "cdfc0d4c6de2b89d002ef1359e9052b3",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Salesman retrieved successfully"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Salesman not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/salesmen/{id}/regions": {
+            "get": {
+                "tags": [
+                    "Salesmen"
+                ],
+                "summary": "Get salesman regions",
+                "description": "Get all regions assigned to a salesman.",
+                "operationId": "1750a1a4c45cf8673441f86a9ae20d59",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Regions retrieved successfully"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Salesman not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Salesmen"
+                ],
+                "summary": "Assign regions to salesman",
+                "description": "Assign regions to a salesman. Only suppliers (for their salesmen) and admins can assign regions. Syncs the region list (replaces existing assignments).",
+                "operationId": "dba98b4b4d6e109a4cd41c20ad352e90",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "region_ids"
+                                ],
+                                "properties": {
+                                    "region_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            1,
+                                            2,
+                                            3
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Regions assigned successfully"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Salesman not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/salesmen/{id}/regions/{regionId}": {
+            "delete": {
+                "tags": [
+                    "Salesmen"
+                ],
+                "summary": "Remove region from salesman",
+                "description": "Remove a specific region from a salesman.",
+                "operationId": "e53a99a2e4569891e2c6cc7b9f66d34e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "regionId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Region removed successfully"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Salesman or region not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/salesmen/{id}/clients": {
+            "get": {
+                "tags": [
+                    "Salesmen"
+                ],
+                "summary": "Get salesman clients (pharmacies)",
+                "description": "Get all pharmacy clients assigned to a salesman.",
+                "operationId": "24e1990faa0d9863fffa96ee4d68820c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "is_active",
+                        "in": "query",
+                        "description": "Filter by active status",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Clients retrieved successfully"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Salesman not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Salesmen"
+                ],
+                "summary": "Assign client (pharmacy) to salesman",
+                "description": "Assign a pharmacy company as a client of a salesman. The pharmacy must have buyer_classification = pharmacy. Prevents duplicate assignments.",
+                "operationId": "8628b8d4ecc9b5ba94c8ffeff63a2420",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "pharmacy_company_id"
+                                ],
+                                "properties": {
+                                    "pharmacy_company_id": {
+                                        "type": "integer",
+                                        "example": 5
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Client assigned successfully"
+                    },
+                    "400": {
+                        "description": "Company is not a pharmacy"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "409": {
+                        "description": "Client already assigned"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/salesmen/{id}/clients/{clientId}": {
+            "delete": {
+                "tags": [
+                    "Salesmen"
+                ],
+                "summary": "Remove client from salesman",
+                "description": "Deactivate a pharmacy client assignment. Does not delete the record, marks as inactive.",
+                "operationId": "4fc71498849a2be6ff068eef3ad68b5b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "clientId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Client removed successfully"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Salesman or client not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/salesmen/{id}/orders": {
+            "get": {
+                "tags": [
+                    "Salesmen"
+                ],
+                "summary": "Get orders placed by salesman",
+                "description": "Get all orders placed by a salesman on behalf of buyers.",
+                "operationId": "74cde8c77e389c406435508dd2b3955a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Orders retrieved successfully"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Salesman not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/salesmen/{id}/place-order": {
+            "post": {
+                "tags": [
+                    "Salesmen"
+                ],
+                "summary": "Place order on behalf of a buyer",
+                "description": "A supplier-associated salesman places an order on behalf of one of their client pharmacies. The salesman must have the pharmacy assigned as a client. Prices are resolved via PricingService using the buyer company context. The order records placed_by_salesman_id for tracking.",
+                "operationId": "f5a3627fb52a51c28e391770b0fb8291",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "buyer_company_id",
+                                    "supplier_company_id",
+                                    "items"
+                                ],
+                                "properties": {
+                                    "buyer_company_id": {
+                                        "description": "The pharmacy to place the order for",
+                                        "type": "integer",
+                                        "example": 5
+                                    },
+                                    "supplier_company_id": {
+                                        "description": "The supplier company",
+                                        "type": "integer",
+                                        "example": 2
+                                    },
+                                    "items": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "product_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "quantity": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "unit_price": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "nullable": true
+                                                },
+                                                "notes": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "tax_rate": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 0
+                                    },
+                                    "payment_method": {
+                                        "type": "string",
+                                        "enum": [
+                                            "cash",
+                                            "net_15",
+                                            "net_30",
+                                            "net_60"
+                                        ],
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Order placed on behalf of buyer successfully"
+                    },
+                    "400": {
+                        "description": "Pharmacy not assigned to this salesman"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Salesman not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/products/{id}/stock/movements": {
             "get": {
                 "tags": [
@@ -5548,6 +6905,10 @@
             "description": "User authentication endpoints"
         },
         {
+            "name": "Buyer-Supplier Relationships",
+            "description": "Manage buyer-supplier partnerships, payment terms, and credit limits. Suppliers can create relationships with buyers, set credit terms, and track outstanding balances."
+        },
+        {
             "name": "Cart",
             "description": "Shopping cart management. **Offer system**: Each cart item can have one offer applied. The system auto-selects the best offer (lowest total price) per product. Offer types: buy_x_get_y, percentage_discount, fixed_discount, bundle_percentage, bundle_fixed. Bundle offers require ALL products in the offer to be in cart with required quantities. Cart items include baseUnitPrice/baseTotalPrice (before offer) for displaying price changes."
         },
@@ -5588,6 +6949,10 @@
             "description": "Order management endpoints"
         },
         {
+            "name": "Price Lists",
+            "description": "Custom per-buyer pricing management. Suppliers can set negotiated prices for specific buyers and products. Custom prices have the highest priority in the pricing resolution engine (above wholesale and retail tiers)."
+        },
+        {
             "name": "Products",
             "description": "Product management endpoints"
         },
@@ -5598,6 +6963,10 @@
         {
             "name": "Regions",
             "description": "Region management endpoints (Admin only)"
+        },
+        {
+            "name": "Salesmen",
+            "description": "Salesman management: listing, region assignment, client (pharmacy) management, and on-behalf ordering. Supplier-associated salesmen belong to a supplier company. Independent salesmen have their own buyer company."
         },
         {
             "name": "Stock Management",

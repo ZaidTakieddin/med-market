@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Constants\OfferType;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Offers\CreateOfferRequest;
 use App\Http\Requests\Offers\UpdateOfferRequest;

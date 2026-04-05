@@ -33,7 +33,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // Orders
-        Route::apiResource('orders', App\Http\Controllers\Api\V1\OrderController::class);
+        Route::apiResource('orders', App\Http\Controllers\Api\V1\OrderController::class)->except(['update', 'destroy']);
         Route::post('orders/{order}/status', [App\Http\Controllers\Api\V1\OrderController::class, 'updateStatus']);
         Route::post('orders/{order}/cancel', [App\Http\Controllers\Api\V1\OrderController::class, 'cancel']);
 

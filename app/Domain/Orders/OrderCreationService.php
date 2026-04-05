@@ -121,7 +121,7 @@ class OrderCreationService
                 'quantity' => $item['quantity'],
                 'unit_price' => $item['unit_price'],
                 'total_price' => $item['quantity'] * $item['unit_price'],
-                'pricing_type' => $item['pricing_type'] ?? null,
+                'pricing_type' => $item['pricing_type'] ?? 'retail',
                 'notes' => $item['notes'] ?? null,
                 'applied_offer_id' => $item['applied_offer_id'] ?? null,
             ]);

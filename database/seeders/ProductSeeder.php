@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Constants\CompanyType;
 use App\Models\Category;
 use App\Models\Company;
 use App\Models\Manufacturer;
@@ -15,7 +16,7 @@ class ProductSeeder extends Seeder
      */
     public function run(): void
     {
-        $suppliers = Company::where('type', 'supplier')->get();
+        $suppliers = Company::where('type', CompanyType::SUPPLIER)->get();
 
         if ($suppliers->isEmpty()) {
             $this->command->warn('لا توجد شركات موردة. يرجى تشغيل CompanySeeder أولاً.');

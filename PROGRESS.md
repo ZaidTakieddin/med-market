@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-04-03 (Phase 1/2 comprehensive audit: 11 issues fixed across controllers, seeders, form requests, resources)
+> Last Updated: 2026-04-03 (Phase 6: Final polish — comprehensive audit, 8 issues fixed, Swagger regenerated)
 
 ### Related Documentation
 
@@ -298,14 +298,14 @@
 
 ### Supplier Classifications & Multi-Tier Pricing
 
-Phases 1–5 complete. Remaining phase:
+All 6 phases complete.
 
 - [x] **Phase 1**: Data model — migrations, constants, models, seeders ✅
 - [x] **Phase 2**: PricingService — central price resolution engine ✅
 - [x] **Phase 3**: Cart & order integration with PricingService + catalog visibility ✅
 - [x] **Phase 4**: Buyer-supplier relationship & credit management + price list endpoints ✅
 - [x] **Phase 5**: Salesman features (management, region assignment, client management, on-behalf ordering) ✅
-- [ ] **Phase 6**: Final polish — Swagger generation, seeders validation, documentation review
+- [x] **Phase 6**: Final polish — comprehensive audit, bug fixes, Swagger regeneration, documentation ✅
 
 ---
 
@@ -869,6 +869,20 @@ Phases 1–5 complete. Remaining phase:
     - **UpdateProductRequest**: Added `required_with:wholesale_price` to `wholesale_min_qty` (aligned with CreateProductRequest).
     - **OrderController**: Added `salesman` to eager-loaded relations in both `index()` and `show()` — `OrderResource` wraps salesman in `whenLoaded()`.
     - **EnumsController Swagger**: Added `supplierClassification`, `buyerClassification`, `pricingType`, `paymentTerms` to OpenAPI `type` query param enum.
+-   **Supplier Classifications & Multi-Tier Pricing — Phase 6: Final Polish (2026-04-03)**:
+    - **Comprehensive 4-way audit** across all controllers, models, resources, form requests, policies, and seeders
+    - **8 issues fixed**:
+      1. `Route::apiResource('orders')` exposed `update`/`destroy` methods that don't exist on `OrderController` — added `->except(['update', 'destroy'])`
+      2. Removed unused imports: `StockMovementType` from StockController, `OfferType` from OfferController, `UserRole` from OrderPolicy, `Response` from UserPolicy
+      3. `OrderController::store()` validated `payment_method`/`placed_by_salesman_id` but never used them — now wires them into order creation with auto `payment_due_date` from credit terms
+      4. `ProductResource` was missing the base `price` field — added to API response
+      5. `User::cart()` returned `HasMany` but `carts` table has unique constraint on `user_id` — changed to `HasOne`
+      6. `OrderCreationService` passed `pricing_type ?? null` but column is `NOT NULL DEFAULT 'retail'` — changed to `?? 'retail'`
+      7. Hardcoded IDs in `UserSeeder` (lines 138, 166) — replaced `firstWhere('id', N)` with `skip(N)->first()`
+      8. Magic strings in seeders — replaced `'supplier'`/`'buyer'`/`'pharmacy'`/`'salesman'`/`'driver'` with `CompanyType::SUPPLIER`, `CompanyType::BUYER`, `BuyerClassification::PHARMACY`, `BuyerClassification::SALESMAN`, `UserRole::DRIVER` constants
+    - **Swagger regenerated** (`php artisan l5-swagger:generate`) — all 113+ routes have OpenAPI annotations, zero generation errors
+    - **Route verification**: confirmed `orders.update`/`orders.destroy` no longer registered
+    - **Files modified**: `routes/api.php`, `OrderController`, `StockController`, `OfferController`, `OrderPolicy`, `UserPolicy`, `ProductResource`, `User` model, `OrderCreationService`, `UserSeeder`, `ProductSeeder`, `OrderSeeder`, `BuyerSupplierRelationshipSeeder`
 -   **Supplier Classifications & Multi-Tier Pricing — Phase 5: Salesman Features (2026-04-03)**:
     - Created `SalesmanController` with 10 endpoints:
       - `GET /salesmen` — list salesmen (admin sees all, supplier sees their salesmen, salesman sees self)
@@ -1409,11 +1423,11 @@ These features improve security, performance, and code quality.
 
 ## 📊 Statistics
 
--   **Total Endpoints**: 85+ routes (including cart, offers, drivers, profile, categories, manufacturers, cities, regions, invoices, buyer-supplier relationships, price lists endpoints)
+-   **Total Endpoints**: 113+ routes (including cart, offers, drivers, salesmen, profile, categories, manufacturers, cities, regions, invoices, buyer-supplier relationships, price lists endpoints)
 -   **Completed Features**: 110+ (including all new requirements and documentation updates)
 -   **Database Seeders**: 10 (CitySeeder, RegionSeeder, CompanySeeder, CategorySeeder, ManufacturerSeeder, UserSeeder, ProductSeeder, OfferSeeder, BuyerSupplierRelationshipSeeder, OrderSeeder)
 -   **Pending Tasks**: See "Missing Features & Requirements" section below
--   **Critical Missing Features**: 5 (Invoice API, Product Images, Export API, Notification Infrastructure, Testing Suite)
+-   **Critical Missing Features**: 4 (Product Images, Export API, Notification Infrastructure, Testing Suite)
 -   **High Priority Missing Features**: 5 (Driver Availability, Payment Integration, Analytics, Advanced Search, Real-Time)
 -   **Medium Priority Missing Features**: 5 (Order Templates, Wishlist, Reviews, Multi-Language, Inventory Enhancements)
 -   **Security & Quality Missing Features**: 4 (Security Enhancements, Performance Optimizations, User Management, Additional Features)
@@ -1422,7 +1436,7 @@ These features improve security, performance, and code quality.
 -   **Deployment Files**: 3 (Procfile, render.yaml, railway.json)
 -   **Observers**: 3 (OrderObserver, StockMovementObserver, ProductObserver)
 -   **Console Commands**: 1 (SyncSupplierCategoriesAndManufacturers)
--   **Domain Services**: 2 (CartOfferService - automatic and manual offer detection/application in cart; PricingService - central price resolution engine)
+-   **Domain Services**: 3 (CartOfferService - automatic and manual offer detection/application in cart; PricingService - central price resolution engine; OrderCreationService - order creation with pricing type tracking)
 -   **New Models**: 3 (PriceList, BuyerSupplierRelationship, SalesmanClient)
 -   **New Constants**: 4 (SupplierClassification, BuyerClassification, PricingType, PaymentTerms)
 -   **Invoice Management**: Full API with status tracking, payment management, and file downloads
@@ -1431,7 +1445,7 @@ These features improve security, performance, and code quality.
 -   **Middleware**: 1 (CleanupTransactions)
 -   **Database Connections**: 2 (pooled for API, unpooled for seeders)
 -   **Cache Driver**: File-based (Redis ready)
--   **Swagger Documentation**: Fully updated with all new fields, multi-supplier order handling, categories, manufacturers, cities, regions, driver-region management, date range filtering, invoice management, manual offer selection
+-   **Swagger Documentation**: Fully updated with all new fields, multi-supplier order handling, categories, manufacturers, cities, regions, driver-region management, date range filtering, invoice management, manual offer selection, buyer-supplier relationships, price lists, salesman management
 -   **Location Management**: Cities (8), Regions (20+), Driver-region assignments, Company coordinates
 
 ---

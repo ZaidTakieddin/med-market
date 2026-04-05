@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Constants\BuyerClassification;
+use App\Constants\CompanyType;
 use App\Constants\PaymentTerms;
 use App\Models\BuyerSupplierRelationship;
 use App\Models\Company;
@@ -18,9 +20,9 @@ class BuyerSupplierRelationshipSeeder extends Seeder
      */
     public function run(): void
     {
-        $suppliers = Company::where('type', 'supplier')->get();
-        $pharmacies = Company::where('type', 'buyer')->where('buyer_classification', 'pharmacy')->get();
-        $salesmanCompany = Company::where('type', 'buyer')->where('buyer_classification', 'salesman')->first();
+        $suppliers = Company::where('type', CompanyType::SUPPLIER)->get();
+        $pharmacies = Company::where('type', CompanyType::BUYER)->where('buyer_classification', BuyerClassification::PHARMACY)->get();
+        $salesmanCompany = Company::where('type', CompanyType::BUYER)->where('buyer_classification', BuyerClassification::SALESMAN)->first();
 
         if ($suppliers->isEmpty() || $pharmacies->isEmpty()) {
             $this->command->warn('لا توجد بيانات كافية. يرجى تشغيل CompanySeeder أولاً.');

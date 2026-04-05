@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Constants\CompanyType;
 use App\Constants\OrderStatus;
 use App\Constants\PaymentTerms;
 use App\Constants\PricingType;
@@ -27,8 +28,8 @@ class OrderSeeder extends Seeder
      */
     public function run(): void
     {
-        $buyers = Company::where('type', 'buyer')->get();
-        $suppliers = Company::where('type', 'supplier')->get();
+        $buyers = Company::where('type', CompanyType::BUYER)->get();
+        $suppliers = Company::where('type', CompanyType::SUPPLIER)->get();
         $buyerUsers = User::whereIn('role', UserRole::buyerRoles())->get();
         $salesmanUsers = User::where('role', UserRole::SALESMAN)->get();
 
@@ -235,7 +236,7 @@ class OrderSeeder extends Seeder
                     );
 
                     // Assign a driver from the supplier company to the order
-                    $driver = User::where('role', 'driver')
+                    $driver = User::where('role', UserRole::DRIVER)
                         ->where('company_id', $order->supplier_company_id)
                         ->first();
                     if ($driver) {

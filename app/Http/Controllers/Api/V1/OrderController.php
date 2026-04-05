@@ -258,6 +258,30 @@ class OrderController extends BaseApiController
             taxRate: $request->tax_rate ?? 0
         );
 
+        $updateData = [];
+        if ($request->payment_method) {
+            $updateData['payment_method'] = $request->payment_method;
+        }
+        if ($user->isSalesman() && $request->placed_by_salesman_id) {
+            $updateData['placed_by_salesman_id'] = $request->placed_by_salesman_id;
+        } elseif ($user->isSalesman()) {
+            $updateData['placed_by_salesman_id'] = $user->id;
+        }
+        if (!empty($updateData)) {
+            $order->update($updateData);
+
+            if (($updateData['payment_method'] ?? null) && $updateData['payment_method'] !== 'cash') {
+                $relationship = \App\Models\BuyerSupplierRelationship::where('buyer_company_id', $user->company_id)
+                    ->where('supplier_company_id', $request->supplier_company_id)
+                    ->where('is_approved', true)
+                    ->first();
+
+                if ($relationship) {
+                    $order->update(['payment_due_date' => $relationship->calculateDueDate(now())]);
+                }
+            }
+        }
+
         return $this->success(
             new OrderResource($order->load([
                 'buyerCompany.region.city',

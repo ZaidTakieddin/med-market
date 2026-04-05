@@ -53,6 +53,7 @@ class ProductResource extends JsonResource
             'sku' => $this->sku,
             'barcode' => $this->barcode,
             'unit' => $this->unit,
+            'price' => $this->price ? (float) $this->price : null,
             'wholesalePrice' => $this->wholesale_price ? (float) $this->wholesale_price : null,
             'wholesaleMinQty' => $this->wholesale_min_qty,
             'pharmacistPrice' => $pharmacistPrice,

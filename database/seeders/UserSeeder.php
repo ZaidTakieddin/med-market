@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Constants\BuyerClassification;
 use App\Constants\UserRole;
 use App\Models\Company;
 use App\Models\User;
@@ -135,7 +136,7 @@ class UserSeeder extends Seeder
                 ]
             );
 
-            $supplier2 = $suppliers->firstWhere('id', 2) ?? $suppliers->skip(1)->first();
+            $supplier2 = $suppliers->skip(1)->first();
             if ($supplier2) {
                 User::updateOrCreate(
                     ['email' => 'driver2@pharmadist.com'],
@@ -163,7 +164,7 @@ class UserSeeder extends Seeder
                 );
             }
 
-            $supplier4 = $suppliers->firstWhere('id', 4) ?? $suppliers->skip(3)->first();
+            $supplier4 = $suppliers->skip(3)->first();
             if ($supplier4) {
                 User::updateOrCreate(
                     ['email' => 'driver4@healthworld.com'],
@@ -210,7 +211,7 @@ class UserSeeder extends Seeder
         }
 
         // Create Independent Salesman User (has own buyer/salesman company)
-        $salesmanCompany = Company::where('buyer_classification', 'salesman')->first();
+        $salesmanCompany = Company::where('buyer_classification', BuyerClassification::SALESMAN)->first();
         if ($salesmanCompany) {
             User::updateOrCreate(
                 ['email' => 'rami@alamaldist.com'],

@@ -90,9 +90,9 @@ class User extends Authenticatable
     /**
      * Get cart for this user.
      */
-    public function cart(): HasMany
+    public function cart(): HasOne
     {
-        return $this->hasMany(Cart::class);
+        return $this->hasOne(Cart::class);
     }
 
     /**
