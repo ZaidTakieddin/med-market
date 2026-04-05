@@ -344,6 +344,13 @@ Orders can be placed by salesmen on behalf of pharmacists:
 - `Order::isPlacedBySalesman()` checks if a salesman placed the order
 - `Order::salesman()` relationship returns the salesman user
 
+### On-Behalf Ordering API (Phase 5)
+- `POST /salesmen/{id}/place-order` — full on-behalf ordering endpoint
+- Validates the pharmacy is an active client of the salesman
+- Pricing is resolved using `PricingService` from the **buyer company's perspective** (not the salesman's)
+- Payment terms: if `payment_method` is not `cash`, auto-sets `payment_due_date` from the buyer-supplier relationship
+- The order's `created_by` is set to the salesman user ID for audit trail
+
 ## Pricing Type Tracking
 
 Each `OrderItem` now records the pricing tier that was applied:

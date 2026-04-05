@@ -114,6 +114,18 @@ Route::prefix('v1')->group(function () {
         // Price Lists (Custom Per-Buyer Pricing)
         Route::get('price-lists/for-buyer/{buyerCompanyId}', [App\Http\Controllers\Api\V1\PriceListController::class, 'forBuyer']);
         Route::apiResource('price-lists', App\Http\Controllers\Api\V1\PriceListController::class);
+
+        // Salesmen
+        Route::get('salesmen', [App\Http\Controllers\Api\V1\SalesmanController::class, 'index']);
+        Route::get('salesmen/{id}', [App\Http\Controllers\Api\V1\SalesmanController::class, 'show']);
+        Route::get('salesmen/{id}/regions', [App\Http\Controllers\Api\V1\SalesmanController::class, 'regions']);
+        Route::post('salesmen/{id}/regions', [App\Http\Controllers\Api\V1\SalesmanController::class, 'assignRegions']);
+        Route::delete('salesmen/{id}/regions/{regionId}', [App\Http\Controllers\Api\V1\SalesmanController::class, 'removeRegion']);
+        Route::get('salesmen/{id}/clients', [App\Http\Controllers\Api\V1\SalesmanController::class, 'clients']);
+        Route::post('salesmen/{id}/clients', [App\Http\Controllers\Api\V1\SalesmanController::class, 'assignClient']);
+        Route::delete('salesmen/{id}/clients/{clientId}', [App\Http\Controllers\Api\V1\SalesmanController::class, 'removeClient']);
+        Route::get('salesmen/{id}/orders', [App\Http\Controllers\Api\V1\SalesmanController::class, 'orders']);
+        Route::post('salesmen/{id}/place-order', [App\Http\Controllers\Api\V1\SalesmanController::class, 'placeOrder']);
     });
 });
 

@@ -299,6 +299,37 @@ Suppliers can set negotiated per-buyer pricing via `PriceListController`:
 - Batch view of all currently valid prices for a buyer
 - Integrated with `PricingService` — custom prices have highest resolution priority
 
+## Salesman Management API (Phase 5 — Implemented)
+
+Full salesman lifecycle management via `SalesmanController`:
+
+### Listing & Profile
+- `GET /salesmen` — list with scope filtering (admin: all, supplier: own, salesman: self)
+- `GET /salesmen/{id}` — detailed profile with regions, clients, order counts, salesman type flags
+
+### Region Assignment
+- `GET /salesmen/{id}/regions` — list assigned regions
+- `POST /salesmen/{id}/regions` — assign/sync regions (replaces existing)
+- `DELETE /salesmen/{id}/regions/{regionId}` — remove a specific region
+
+### Client (Pharmacy) Management
+- `GET /salesmen/{id}/clients` — list assigned pharmacies (with active filter)
+- `POST /salesmen/{id}/clients` — assign pharmacy as client (validates buyer_classification, prevents duplicates)
+- `DELETE /salesmen/{id}/clients/{clientId}` — deactivate client (soft removal, not hard delete)
+
+### On-Behalf Ordering
+- `GET /salesmen/{id}/orders` — list orders placed by this salesman
+- `POST /salesmen/{id}/place-order` — place order on behalf of a client pharmacy
+  - Validates the pharmacy is assigned as a client
+  - Resolves prices via `PricingService` using the buyer company context
+  - Records `placed_by_salesman_id` on the order
+  - Auto-calculates `payment_due_date` from buyer-supplier relationship credit terms
+
+### Authorization
+- **View access**: Admin, the salesman themselves, or their supplier company
+- **Management access**: Admin, or the supplier company the salesman belongs to
+- Salesmen cannot manage other salesmen; suppliers manage their own salesmen
+
 ## Future Enhancements
 
 - Company verification and approval workflow

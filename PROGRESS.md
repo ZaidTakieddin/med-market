@@ -298,14 +298,14 @@
 
 ### Supplier Classifications & Multi-Tier Pricing
 
-Phases 1–4 complete. Remaining phases:
+Phases 1–5 complete. Remaining phase:
 
 - [x] **Phase 1**: Data model — migrations, constants, models, seeders ✅
 - [x] **Phase 2**: PricingService — central price resolution engine ✅
 - [x] **Phase 3**: Cart & order integration with PricingService + catalog visibility ✅
 - [x] **Phase 4**: Buyer-supplier relationship & credit management + price list endpoints ✅
-- [ ] **Phase 5**: Salesman features (management, region assignment, on-behalf ordering)
-- [ ] **Phase 6**: Seeders, documentation polish, Swagger updates
+- [x] **Phase 5**: Salesman features (management, region assignment, client management, on-behalf ordering) ✅
+- [ ] **Phase 6**: Final polish — Swagger generation, seeders validation, documentation review
 
 ---
 
@@ -869,6 +869,24 @@ Phases 1–4 complete. Remaining phases:
     - **UpdateProductRequest**: Added `required_with:wholesale_price` to `wholesale_min_qty` (aligned with CreateProductRequest).
     - **OrderController**: Added `salesman` to eager-loaded relations in both `index()` and `show()` — `OrderResource` wraps salesman in `whenLoaded()`.
     - **EnumsController Swagger**: Added `supplierClassification`, `buyerClassification`, `pricingType`, `paymentTerms` to OpenAPI `type` query param enum.
+-   **Supplier Classifications & Multi-Tier Pricing — Phase 5: Salesman Features (2026-04-03)**:
+    - Created `SalesmanController` with 10 endpoints:
+      - `GET /salesmen` — list salesmen (admin sees all, supplier sees their salesmen, salesman sees self)
+      - `GET /salesmen/{id}` — detailed profile with regions, clients, order counts, salesman type
+      - `GET /salesmen/{id}/regions` — list assigned regions
+      - `POST /salesmen/{id}/regions` — assign regions (sync, replaces existing)
+      - `DELETE /salesmen/{id}/regions/{regionId}` — remove specific region
+      - `GET /salesmen/{id}/clients` — list pharmacy clients with active/inactive filter
+      - `POST /salesmen/{id}/clients` — assign pharmacy as client (validates buyer_classification = pharmacy, prevents duplicates)
+      - `DELETE /salesmen/{id}/clients/{clientId}` — deactivate client assignment (soft removal)
+      - `GET /salesmen/{id}/orders` — list orders placed by salesman on behalf of buyers
+      - `POST /salesmen/{id}/place-order` — on-behalf ordering with PricingService integration, client validation, credit terms auto-calculation
+    - On-behalf ordering flow: validates client assignment → resolves pricing via PricingService for buyer context → creates order with `placed_by_salesman_id` → auto-sets `payment_due_date` from buyer-supplier relationship
+    - Created `SalesmanClientResource` API resource
+    - Created 3 Form Requests: `AssignSalesmanRegionsRequest`, `AssignSalesmanClientRequest`, `PlaceOrderOnBehalfRequest`
+    - Authorization: `canAccessSalesman()` (view) and `canManageSalesman()` (edit) helper methods — suppliers manage their salesmen, admin manages all
+    - **Files created**: 1 controller, 1 resource, 3 form requests
+    - **Files modified**: `routes/api.php`
 -   **Supplier Classifications & Multi-Tier Pricing — Phase 4: Buyer-Supplier Relationships & Price Lists API (2026-04-03)**:
     - Created `BuyerSupplierRelationshipController` — full CRUD + credit management:
       - `GET /buyer-supplier-relationships` — list with role-based filtering (admin/supplier/buyer/salesman)
