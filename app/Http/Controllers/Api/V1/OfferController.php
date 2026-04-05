@@ -53,8 +53,7 @@ class OfferController extends BaseApiController
             $user = auth()->user();
             $query = Offer::with('supplierCompany:id,name,type');
 
-            // Suppliers see only their offers
-            if ($user->isSupplier()) {
+            if ($user->isSupplier() || ($user->isSalesman() && $user->isSupplierSalesman())) {
                 $query->where('supplier_company_id', $user->company_id);
             } else {
                 // Buyers see only active offers (end_date null = no time limit)

@@ -172,7 +172,7 @@ class CartOfferService
         // Calculate how many times the offer applies
         $offerMultiplier = floor($quantity / $quantityRequired);
         $freeItems = $offerMultiplier * $quantityFree;
-        $paidItems = $quantity - $freeItems;
+        $paidItems = max(0, $quantity - $freeItems);
         
         $totalPrice = $paidItems * $basePrice;
         $unitPrice = $quantity > 0 ? $totalPrice / $quantity : $basePrice;

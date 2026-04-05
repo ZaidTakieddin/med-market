@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-04-03 (Phase 6: Final polish — comprehensive audit, 8 issues fixed, Swagger regenerated)
+> Last Updated: 2026-04-03 (Deep security & edge-case audit: 15 critical/high/medium issues fixed)
 
 ### Related Documentation
 
@@ -869,6 +869,27 @@ All 6 phases complete.
     - **UpdateProductRequest**: Added `required_with:wholesale_price` to `wholesale_min_qty` (aligned with CreateProductRequest).
     - **OrderController**: Added `salesman` to eager-loaded relations in both `index()` and `show()` — `OrderResource` wraps salesman in `whenLoaded()`.
     - **EnumsController Swagger**: Added `supplierClassification`, `buyerClassification`, `pricingType`, `paymentTerms` to OpenAPI `type` query param enum.
+-   **Deep Security & Edge-Case Audit (2026-04-03)**:
+    - Ran 4 parallel deep-audit agents across all controllers, models, services, policies
+    - **6 CRITICAL bugs fixed**:
+      1. **CartController: Supplier salesmen cart checkout** — `$user->company_id` was the supplier, not a buyer, causing wrong `buyer_company_id`, wrong pricing, and wrong catalog visibility. Fix: blocked supplier salesmen from cart (must use `SalesmanController@placeOrder`)
+      2. **OrderStateTransitionService: Stale stock data** — eager-loaded products used stale `stock_quantity` when the same product appeared in multiple order items, causing overwritten stock deductions. Fix: use `Product::find()` fresh query per item
+      3. **OrderCreationService: No product-supplier validation** — any product could be added to any supplier's order. Fix: validate each product belongs to the specified supplier
+      4. **CartOfferService: Negative paidItems** — Buy X Get Y offers where `freeItems > quantity` produced negative paid items and negative prices. Fix: `max(0, $quantity - $freeItems)`
+      5. **PricingService resolveMany: Missing orderBy** — custom price tiers were in arbitrary DB order, picking wrong (lower) tier. Fix: added `->orderBy('min_qty', 'desc')`
+      6. **Product discount double-application** — `getFinalWholesalePrice()` applied retail discounts to wholesale prices (double-discounting). Fix: wholesale prices are returned as-is, no retail discount. Also: percentage discount > 100% produced negative prices — capped with `max(0, ...)` and `min(discount, 100)`
+    - **4 HIGH security fixes**:
+      1. **Drivers saw ALL orders** — no filter branch in `OrderController::index()`. Fix: added `elseif (isDriver())` scoping to `driver_id` + catch-all `else return 403`
+      2. **Buyers/drivers could update/delete any driver** — `DriverController` only restricted suppliers. Fix: added role check `isSupplier() || isAdmin()` before company check
+      3. **Drivers could update any order status** — `OrderPolicy::update()` allowed anyone from the supplier company. Fix: drivers now return `false` from `update()`
+      4. **Stock movements leaked to buyers** — only suppliers were restricted from other suppliers. Fix: restricted to suppliers/admins only
+    - **5 MEDIUM fixes**:
+      1. `OrderPolicy`: replaced all raw string literals (`'pending'`, etc.) with `OrderStatus` constants
+      2. `PriceList::isCurrentlyValid()`: fixed string vs Carbon comparison for date boundaries (used `now()->startOfDay()` and `lt()`/`gt()`)
+      3. `OfferController::index()`: supplier salesmen now see their company's offers (added `isSupplierSalesman()` branch)
+      4. `PricingService::applyProductDiscount()`: added `max(0, ...)` guard on percentage discount branch
+      5. `Product::getEffectiveWholesalePrice()`: fixed misleading docblock (said "falls back to pharmacist_price" but returns null)
+    - **Files modified**: CartController, OrderController, DriverController, StockController, OfferController, OrderPolicy, OrderCreationService, OrderStateTransitionService, PricingService, CartOfferService, Product model, PriceList model
 -   **Supplier Classifications & Multi-Tier Pricing — Phase 6: Final Polish (2026-04-03)**:
     - **Comprehensive 4-way audit** across all controllers, models, resources, form requests, policies, and seeders
     - **8 issues fixed**:

@@ -100,7 +100,9 @@ class OrderController extends BaseApiController
                 'items.appliedOffer',
             ]);
 
-            if ($user->isBuyer() || ($user->isSalesman() && $user->isIndependentSalesman())) {
+            if ($user->isAdmin()) {
+                // Admin sees all orders
+            } elseif ($user->isBuyer() || ($user->isSalesman() && $user->isIndependentSalesman())) {
                 $query->where('buyer_company_id', $user->company_id);
             } elseif ($user->isSalesman() && $user->isSupplierSalesman()) {
                 $query->where(function ($q) use ($user) {
@@ -109,6 +111,10 @@ class OrderController extends BaseApiController
                 });
             } elseif ($user->isSupplier()) {
                 $query->where('supplier_company_id', $user->company_id);
+            } elseif ($user->isDriver()) {
+                $query->where('driver_id', $user->id);
+            } else {
+                return $this->error('Unauthorized', null, 403);
             }
 
             // Filter by status

@@ -8,6 +8,7 @@ use App\Jobs\GenerateInvoiceJob;
 use App\Jobs\SendOrderNotificationJob;
 use App\Models\Order;
 use App\Models\OrderStatusLog;
+use App\Models\Product;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -113,7 +114,7 @@ class OrderStateTransitionService
     private function deductStockForOrder(Order $order, ?int $userId): void
     {
         foreach ($order->items as $item) {
-            $product = $item->product;
+            $product = Product::find($item->product_id);
 
             if (!$product) {
                 Log::warning('Order item has no product', [

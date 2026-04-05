@@ -46,7 +46,10 @@ class StockController extends BaseApiController
     {
         $user = auth()->user();
 
-        // Suppliers can only see movements for their products
+        if (!$user->isSupplier() && !$user->isAdmin()) {
+            return $this->error('Only suppliers and admins can view stock movements', null, 403);
+        }
+
         if ($user->isSupplier() && $product->supplier_company_id !== $user->company_id) {
             return $this->error('You can only view stock movements for your own products', null, 403);
         }

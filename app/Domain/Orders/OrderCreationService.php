@@ -93,7 +93,15 @@ class OrderCreationService
         float $taxRate,
         string $orderNumber
     ): Order {
-        // Calculate totals
+        foreach ($items as $item) {
+            $product = \App\Models\Product::find($item['product_id']);
+            if (!$product || $product->supplier_company_id !== $supplierCompanyId) {
+                throw new \InvalidArgumentException(
+                    "Product {$item['product_id']} does not belong to supplier {$supplierCompanyId}"
+                );
+            }
+        }
+
         $subtotal = 0;
         foreach ($items as $item) {
             $subtotal += $item['quantity'] * $item['unit_price'];

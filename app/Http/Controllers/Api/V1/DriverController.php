@@ -207,8 +207,11 @@ class DriverController extends BaseApiController
             $user = auth()->user();
             $driver = User::where('role', 'driver')->findOrFail($id);
 
-            // Suppliers can only update their company drivers
-            if ($user->isSupplier() && !$user->isAdmin() && $driver->company_id !== $user->company_id) {
+            if (!$user->isSupplier() && !$user->isAdmin()) {
+                return $this->error('Only suppliers and admins can update drivers', null, 403);
+            }
+
+            if ($user->isSupplier() && $driver->company_id !== $user->company_id) {
                 return $this->error('You can only update drivers from your company', null, 403);
             }
 
@@ -252,8 +255,11 @@ class DriverController extends BaseApiController
             $user = auth()->user();
             $driver = User::where('role', 'driver')->findOrFail($id);
 
-            // Suppliers can only delete their company drivers
-            if ($user->isSupplier() && !$user->isAdmin() && $driver->company_id !== $user->company_id) {
+            if (!$user->isSupplier() && !$user->isAdmin()) {
+                return $this->error('Only suppliers and admins can delete drivers', null, 403);
+            }
+
+            if ($user->isSupplier() && $driver->company_id !== $user->company_id) {
                 return $this->error('You can only delete drivers from your company', null, 403);
             }
 

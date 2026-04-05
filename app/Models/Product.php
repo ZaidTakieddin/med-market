@@ -133,7 +133,7 @@ class Product extends Model
         
         if ($this->discount && $this->discount_type) {
             if ($this->discount_type === 'percentage') {
-                return $price * (1 - ($this->discount / 100));
+                return max(0, $price * (1 - (min($this->discount, 100) / 100)));
             } else {
                 return max(0, $price - $this->discount);
             }
@@ -153,7 +153,7 @@ class Product extends Model
 
     /**
      * Get the effective wholesale price.
-     * Returns wholesale_price if set, otherwise falls back to pharmacist_price.
+     * Returns wholesale_price if set, otherwise null (no wholesale available).
      */
     public function getEffectiveWholesalePrice(): ?float
     {
@@ -161,24 +161,12 @@ class Product extends Model
     }
 
     /**
-     * Calculate the final wholesale price after discount.
+     * Get the final wholesale price.
+     * Wholesale prices are pre-negotiated and do NOT receive product-level retail discounts.
      */
     public function getFinalWholesalePrice(): ?float
     {
-        $price = $this->getEffectiveWholesalePrice();
-        if ($price === null) {
-            return null;
-        }
-
-        if ($this->discount && $this->discount_type) {
-            if ($this->discount_type === 'percentage') {
-                return $price * (1 - ($this->discount / 100));
-            } else {
-                return max(0, $price - $this->discount);
-            }
-        }
-
-        return $price;
+        return $this->getEffectiveWholesalePrice();
     }
 
     /**

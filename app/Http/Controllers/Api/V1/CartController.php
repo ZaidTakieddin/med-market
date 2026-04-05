@@ -159,6 +159,10 @@ class CartController extends BaseApiController
                 return $this->error('Only buyers and salesmen can add items to cart', null, 403);
             }
 
+            if ($user->isSupplierSalesman()) {
+                return $this->error('Supplier-associated salesmen must use the salesman place-order endpoint instead of the cart', null, 403);
+            }
+
             $product = Product::findOrFail($request->product_id);
 
             if (!$product->is_active) {

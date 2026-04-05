@@ -54,13 +54,13 @@ class PriceList extends Model
             return false;
         }
 
-        $now = now()->toDateString();
+        $now = now()->startOfDay();
 
-        if ($this->valid_from && $now < $this->valid_from) {
+        if ($this->valid_from && $now->lt($this->valid_from)) {
             return false;
         }
 
-        if ($this->valid_to && $now > $this->valid_to) {
+        if ($this->valid_to && $now->gt($this->valid_to)) {
             return false;
         }
 

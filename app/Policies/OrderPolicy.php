@@ -2,106 +2,87 @@
 
 namespace App\Policies;
 
+use App\Constants\OrderStatus;
 use App\Models\Order;
 use App\Models\User;
 
 class OrderPolicy
 {
-    /**
-     * Determine if the user can view any orders.
-     */
     public function viewAny(User $user): bool
     {
-        return true; // All authenticated users can view orders
+        return true;
     }
 
-    /**
-     * Determine if the user can view the order.
-     */
     public function view(User $user, Order $order): bool
     {
-        // Users can view orders if:
-        // 1. They are admin
-        // 2. They belong to the buyer company
-        // 3. They belong to the supplier company
         if ($user->isAdmin()) {
             return true;
         }
 
-        return $user->company_id === $order->buyer_company_id 
+        if ($user->isDriver()) {
+            return $order->driver_id === $user->id;
+        }
+
+        return $user->company_id === $order->buyer_company_id
             || $user->company_id === $order->supplier_company_id;
     }
 
-    /**
-     * Determine if the user can create orders.
-     */
     public function create(User $user): bool
     {
         return $user->canBuy();
     }
 
     /**
-     * Determine if the user can update the order.
+     * Only suppliers and buyers (not drivers) can update orders.
+     * Drivers use dedicated delivery endpoints only.
      */
     public function update(User $user, Order $order): bool
     {
-        // Only admin or users from buyer/supplier company can update
         if ($user->isAdmin()) {
             return true;
         }
 
-        return $user->company_id === $order->buyer_company_id 
+        if ($user->isDriver()) {
+            return false;
+        }
+
+        return $user->company_id === $order->buyer_company_id
             || $user->company_id === $order->supplier_company_id;
     }
 
-    /**
-     * Determine if the user can accept the order.
-     */
     public function accept(User $user, Order $order): bool
     {
-        // Only supplier users can accept orders
         if (!$user->isSupplier()) {
             return false;
         }
 
-        // Must belong to the supplier company
         return $user->company_id === $order->supplier_company_id
-            && $order->status === 'pending';
+            && $order->status === OrderStatus::PENDING;
     }
 
-    /**
-     * Determine if the user can cancel the order.
-     */
     public function cancel(User $user, Order $order): bool
     {
         if ($user->isAdmin()) {
             return true;
         }
 
-        // Buyer or salesman who placed the order can cancel if pending or accepted
         if ($user->canBuy() && $user->company_id === $order->buyer_company_id) {
-            return in_array($order->status, ['pending', 'accepted'], true);
+            return in_array($order->status, [OrderStatus::PENDING, OrderStatus::ACCEPTED], true);
         }
 
-        // Supplier-associated salesman who placed the order can cancel
         if ($user->isSalesman() && $order->placed_by_salesman_id === $user->id) {
-            return in_array($order->status, ['pending', 'accepted'], true);
+            return in_array($order->status, [OrderStatus::PENDING, OrderStatus::ACCEPTED], true);
         }
 
-        // Supplier can cancel if order is pending, accepted, or prepared
         if ($user->isSupplier() && $user->company_id === $order->supplier_company_id) {
-            return in_array($order->status, ['pending', 'accepted', 'prepared'], true);
+            return in_array($order->status, [OrderStatus::PENDING, OrderStatus::ACCEPTED, OrderStatus::PREPARED], true);
         }
 
         return false;
     }
 
-    /**
-     * Determine if the user can delete the order.
-     */
     public function delete(User $user, Order $order): bool
     {
-        // Only admin can delete (soft delete)
         return $user->isAdmin();
     }
 }

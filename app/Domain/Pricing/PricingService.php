@@ -40,15 +40,13 @@ class PricingService
         }
 
         if ($wholesaleEligible && $minQtyMet && $product->getEffectiveWholesalePrice() !== null) {
-            $originalPrice = $product->getEffectiveWholesalePrice();
-            $finalPrice = $this->applyProductDiscount($product, $originalPrice);
-            $discountAmount = $originalPrice - $finalPrice;
+            $wholesalePrice = $product->getEffectiveWholesalePrice();
 
             return new PriceResult(
-                unitPrice: $finalPrice,
-                originalPrice: $originalPrice,
+                unitPrice: $wholesalePrice,
+                originalPrice: $wholesalePrice,
                 pricingType: PricingType::WHOLESALE,
-                discountAmount: $discountAmount,
+                discountAmount: 0,
                 wholesaleEligible: true,
                 minQtyMet: true,
             );
@@ -84,6 +82,7 @@ class PricingService
             ->where('buyer_company_id', $buyerCompany->id)
             ->whereIn('product_id', $productIds)
             ->whereIn('supplier_company_id', $supplierIds)
+            ->orderBy('min_qty', 'desc')
             ->get()
             ->groupBy('product_id');
 
@@ -253,7 +252,7 @@ class PricingService
         }
 
         if ($product->discount_type === 'percentage') {
-            return $price * (1 - ($product->discount / 100));
+            return max(0, $price * (1 - (min($product->discount, 100) / 100)));
         }
 
         return max(0, $price - $product->discount);
