@@ -79,12 +79,6 @@ parameters:
 			path: app/Domain/Pricing/PricingService.php
 
 		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#2 \$message \(string\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 2
-			path: app/Http/Controllers/Api/BaseApiController.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\CartItem\:\:\$pricing_type\.$#'
 			identifier: property.notFound
 			count: 2

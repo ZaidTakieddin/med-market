@@ -4093,7 +4093,7 @@
                                                         "type": "object"
                                                     }
                                                 },
-                                                "current_page": {
+                                                "currentPage": {
                                                     "type": "integer",
                                                     "example": 1
                                                 },

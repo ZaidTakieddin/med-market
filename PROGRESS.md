@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-19 (Dev tooling: Laravel Boost + Pint/Larastan quality gate)
+> Last Updated: 2026-06-19 (API response-format contract aligned to frontend integration doc)
 
 ### Related Documentation
 
@@ -798,6 +798,23 @@ All 6 phases complete.
 -   **Soft Deletes**: Critical data (orders, invoices, stock movements) use soft deletes
 -   **Transactional Operations**: All stock and order changes are transactional
 -   **Audit Trail**: All state changes are logged
+
+### API Response Format (2026-06-19)
+
+-   **Decision**: Aligned the backend response contract to the frontend integration
+    doc (doc is the source of truth). Audit found points 1–13 of the doc already matched
+    the code; only point 14 (response format) diverged.
+-   **Error shape**: now nested — `error: { title, message }` (was flat `error: "<title>"`
+    plus a separate top-level `message`). `errors` (validation) unchanged. Applied in both
+    `BaseApiController::error()` and every branch of `app/Exceptions/Handler.php` (new
+    `errorResponse()` helper keeps the shape in one place).
+-   **Pagination**: now camelCase — `{ currentPage, lastPage, perPage, total, from, to }`
+    (was snake_case). Applied in `BaseApiController::paginated()` and `paginateOrAll()`.
+    `per_page`/`paginate` remain snake_case as they are *request* query params, not response keys.
+-   **Follow-ups done**: regenerated Swagger; fixed the OrderController OpenAPI example
+    (`current_page` → `currentPage`); updated README "Response Format" section; removed the
+    now-stale `parameter.implicitlyNullable` baseline entry for BaseApiController (Pint made
+    the `?string` params explicit, resolving the deprecation).
 
 ### Database Decisions
 

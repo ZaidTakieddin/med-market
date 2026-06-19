@@ -72,10 +72,10 @@ class OrderController extends BaseApiController
                                         description: 'Order object with buyerCompany, supplierCompany, items.product relationships'
                                     )
                                 ),
-                                new OA\Property(property: 'current_page', type: 'integer', example: 1),
+                                new OA\Property(property: 'currentPage', type: 'integer', example: 1),
                                 new OA\Property(property: 'total', type: 'integer', example: 15),
                             ]
-                        )
+                        ),
                     ]
                 )
             ),
@@ -107,7 +107,7 @@ class OrderController extends BaseApiController
             } elseif ($user->isSalesman() && $user->isSupplierSalesman()) {
                 $query->where(function ($q) use ($user) {
                     $q->where('supplier_company_id', $user->company_id)
-                      ->orWhere('placed_by_salesman_id', $user->id);
+                        ->orWhere('placed_by_salesman_id', $user->id);
                 });
             } elseif ($user->isSupplier()) {
                 $query->where('supplier_company_id', $user->company_id);
@@ -159,9 +159,10 @@ class OrderController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Order list error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to retrieve orders: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve orders: '.$e->getMessage(), null, 500);
         }
     }
 
@@ -213,9 +214,9 @@ class OrderController extends BaseApiController
                                     property: 'order',
                                     type: 'object',
                                     description: 'Single order object with buyerCompany, supplierCompany, and items.product relationships'
-                                )
+                                ),
                             ]
-                        )
+                        ),
                     ]
                 )
             ),
@@ -228,7 +229,7 @@ class OrderController extends BaseApiController
     {
         $user = auth()->user();
 
-        if (!$user->canBuy()) {
+        if (! $user->canBuy()) {
             return $this->error('Only buyers and salesmen can create orders', null, 403);
         }
 
@@ -236,7 +237,7 @@ class OrderController extends BaseApiController
         $items = [];
         foreach ($request->items as $item) {
             $product = \App\Models\Product::findOrFail($item['product_id']);
-            
+
             if ($item['unit_price'] ?? null) {
                 $unitPrice = $item['unit_price'];
                 $pricingType = $item['pricing_type'] ?? null;
@@ -245,7 +246,7 @@ class OrderController extends BaseApiController
                 $unitPrice = $priceResult->unitPrice;
                 $pricingType = $priceResult->pricingType;
             }
-            
+
             $items[] = [
                 'product_id' => $item['product_id'],
                 'quantity' => $item['quantity'],
@@ -273,7 +274,7 @@ class OrderController extends BaseApiController
         } elseif ($user->isSalesman()) {
             $updateData['placed_by_salesman_id'] = $user->id;
         }
-        if (!empty($updateData)) {
+        if (! empty($updateData)) {
             $order->update($updateData);
 
             if (($updateData['payment_method'] ?? null) && $updateData['payment_method'] !== 'cash') {
@@ -332,9 +333,9 @@ class OrderController extends BaseApiController
                                     property: 'order',
                                     type: 'object',
                                     description: 'Order object with buyerCompany (buyer info), supplierCompany (supplier info), creator, items.product, statusLogs.user, and driver relationships'
-                                )
+                                ),
                             ]
-                        )
+                        ),
                     ]
                 )
             ),
@@ -359,7 +360,7 @@ class OrderController extends BaseApiController
             'items.product.manufacturer',
             'items.product.supplierCompany',
             'items.appliedOffer',
-            'statusLogs.user'
+            'statusLogs.user',
         ]);
 
         return $this->success(new OrderResource($order));
@@ -408,9 +409,9 @@ class OrderController extends BaseApiController
                                     property: 'order',
                                     type: 'object',
                                     description: 'Updated order object'
-                                )
+                                ),
                             ]
-                        )
+                        ),
                     ]
                 )
             ),
@@ -487,9 +488,9 @@ class OrderController extends BaseApiController
                                     property: 'order',
                                     type: 'object',
                                     description: 'Cancelled order object with status set to cancelled and cancellation_reason populated'
-                                )
+                                ),
                             ]
-                        )
+                        ),
                     ]
                 )
             ),
@@ -537,9 +538,10 @@ class OrderController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Cancel order error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to cancel order: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to cancel order: '.$e->getMessage(), null, 500);
         }
     }
 
@@ -578,12 +580,12 @@ class OrderController extends BaseApiController
             $user = auth()->user();
 
             // Only suppliers can assign drivers to their orders
-            if (!$user->isSupplier() && !$user->isAdmin()) {
+            if (! $user->isSupplier() && ! $user->isAdmin()) {
                 return $this->error('Only suppliers can assign drivers', null, 403);
             }
 
             // Verify order belongs to supplier's company
-            if ($order->supplier_company_id !== $user->company_id && !$user->isAdmin()) {
+            if ($order->supplier_company_id !== $user->company_id && ! $user->isAdmin()) {
                 return $this->error('You can only assign drivers to your own orders', null, 403);
             }
 
@@ -598,14 +600,14 @@ class OrderController extends BaseApiController
                 return $this->error('User is not a driver', null, 400);
             }
 
-            if ($driver->company_id !== $user->company_id && !$user->isAdmin()) {
+            if ($driver->company_id !== $user->company_id && ! $user->isAdmin()) {
                 return $this->error('Driver must belong to your company', null, 403);
             }
 
             // Check if driver serves the pharmacy's region (optional warning, not blocking)
             $buyerCompany = $order->buyerCompany;
             if ($buyerCompany && $buyerCompany->region_id) {
-                if (!$driver->servesRegion($buyerCompany->region_id)) {
+                if (! $driver->servesRegion($buyerCompany->region_id)) {
                     // Log warning but don't block assignment
                     Log::warning('Driver assigned to order outside their region', [
                         'driver_id' => $driver->id,
@@ -636,9 +638,10 @@ class OrderController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Assign driver error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to assign driver: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to assign driver: '.$e->getMessage(), null, 500);
         }
     }
 }

@@ -333,10 +333,17 @@ Tokens are obtained via `/api/v1/auth/login` or `/api/v1/auth/register`.
 ```json
 {
     "success": false,
-    "error": "Error message",
+    "error": {
+        "title": "Bad request",
+        "message": "Human-readable error message"
+    },
     "errors": {...}
 }
 ```
+
+The `error.title` is a short status label derived from the HTTP status code;
+`error.message` is the human-readable detail. `errors` is present only for
+validation failures (422), keyed by field name.
 
 **Paginated Response:**
 
@@ -345,10 +352,10 @@ Tokens are obtained via `/api/v1/auth/login` or `/api/v1/auth/register`.
     "success": true,
     "data": [...],
     "pagination": {
-        "current_page": 1,
-        "per_page": 15,
+        "currentPage": 1,
+        "lastPage": 7,
+        "perPage": 15,
         "total": 100,
-        "last_page": 7,
         "from": 1,
         "to": 15
     }

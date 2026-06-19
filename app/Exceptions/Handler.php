@@ -40,8 +40,6 @@ class Handler extends ExceptionHandler
      * Render an exception into an HTTP response.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  \Throwable  $e
-     * @return \Symfony\Component\HttpFoundation\Response
      *
      * @throws \Throwable
      */
@@ -105,6 +103,23 @@ class Handler extends ExceptionHandler
     }
 
     /**
+     * Build a standardized error JSON response with a nested error object.
+     *
+     * @param  array<string, mixed>  $extra
+     */
+    protected function errorResponse(string $title, string $message, int $statusCode, array $extra = []): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'error' => [
+                'title' => $title,
+                'message' => $message,
+            ],
+            ...$extra,
+        ], $statusCode);
+    }
+
+    /**
      * Handle validation exceptions with improved error messages.
      */
     protected function handleValidationException(ValidationException $e): JsonResponse
@@ -117,12 +132,9 @@ class Handler extends ExceptionHandler
             $errors[$field] = is_array($fieldErrors) ? $fieldErrors : [$fieldErrors];
         }
 
-        return response()->json([
-            'success' => false,
-            'error' => 'Validation failed',
-            'message' => 'The given data was invalid.',
+        return $this->errorResponse('Validation failed', 'The given data was invalid.', 422, [
             'errors' => $errors,
-        ], 422);
+        ]);
     }
 
     /**
@@ -130,11 +142,7 @@ class Handler extends ExceptionHandler
      */
     protected function handleAuthenticationException(AuthenticationException $e): JsonResponse
     {
-        return response()->json([
-            'success' => false,
-            'error' => 'Unauthenticated',
-            'message' => 'Authentication required. Please provide a valid token.',
-        ], 401);
+        return $this->errorResponse('Unauthenticated', 'Authentication required. Please provide a valid token.', 401);
     }
 
     /**
@@ -142,11 +150,7 @@ class Handler extends ExceptionHandler
      */
     protected function handleAuthorizationException(AccessDeniedHttpException $e): JsonResponse
     {
-        return response()->json([
-            'success' => false,
-            'error' => 'Forbidden',
-            'message' => $e->getMessage() ?: 'You do not have permission to perform this action.',
-        ], 403);
+        return $this->errorResponse('Forbidden', $e->getMessage() ?: 'You do not have permission to perform this action.', 403);
     }
 
     /**
@@ -155,12 +159,8 @@ class Handler extends ExceptionHandler
     protected function handleModelNotFoundException(ModelNotFoundException $e): JsonResponse
     {
         $model = class_basename($e->getModel());
-        
-        return response()->json([
-            'success' => false,
-            'error' => 'Resource not found',
-            'message' => "{$model} not found.",
-        ], 404);
+
+        return $this->errorResponse('Resource not found', "{$model} not found.", 404);
     }
 
     /**
@@ -168,11 +168,7 @@ class Handler extends ExceptionHandler
      */
     protected function handleNotFoundException(NotFoundHttpException $e): JsonResponse
     {
-        return response()->json([
-            'success' => false,
-            'error' => 'Not found',
-            'message' => $e->getMessage() ?: 'The requested resource was not found.',
-        ], 404);
+        return $this->errorResponse('Not found', $e->getMessage() ?: 'The requested resource was not found.', 404);
     }
 
     /**
@@ -182,18 +178,10 @@ class Handler extends ExceptionHandler
     {
         // Check if it's an authentication issue
         if (str_contains($e->getMessage(), 'login') || str_contains($e->getMessage(), 'auth')) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Unauthenticated',
-                'message' => 'Authentication required. Please provide a valid token.',
-            ], 401);
+            return $this->errorResponse('Unauthenticated', 'Authentication required. Please provide a valid token.', 401);
         }
 
-        return response()->json([
-            'success' => false,
-            'error' => 'Route not found',
-            'message' => 'The requested route was not found.',
-        ], 404);
+        return $this->errorResponse('Route not found', 'The requested route was not found.', 404);
     }
 
     /**
@@ -201,11 +189,7 @@ class Handler extends ExceptionHandler
      */
     protected function handleInvalidArgumentException(\InvalidArgumentException $e): JsonResponse
     {
-        return response()->json([
-            'success' => false,
-            'error' => 'Invalid request',
-            'message' => $e->getMessage(),
-        ], 400);
+        return $this->errorResponse('Invalid request', $e->getMessage(), 400);
     }
 
     /**
@@ -225,44 +209,32 @@ class Handler extends ExceptionHandler
         $errorMessage = $e->getMessage();
 
         // Handle unique constraint violations
-        if (str_contains($errorMessage, 'unique constraint') || 
+        if (str_contains($errorMessage, 'unique constraint') ||
             str_contains($errorMessage, 'duplicate key') ||
             $errorCode === '23505') {
-            return response()->json([
-                'success' => false,
-                'error' => 'Duplicate entry',
-                'message' => 'A record with this information already exists.',
-            ], 409);
+            return $this->errorResponse('Duplicate entry', 'A record with this information already exists.', 409);
         }
 
         // Handle foreign key constraint violations
         if (str_contains($errorMessage, 'foreign key constraint') ||
             str_contains($errorMessage, 'violates foreign key') ||
             $errorCode === '23503') {
-            return response()->json([
-                'success' => false,
-                'error' => 'Invalid reference',
-                'message' => 'The operation violates a foreign key constraint. Please check related records.',
-            ], 422);
+            return $this->errorResponse('Invalid reference', 'The operation violates a foreign key constraint. Please check related records.', 422);
         }
 
         // Handle transaction errors
         if (str_contains($errorMessage, 'transaction') && str_contains($errorMessage, 'aborted')) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Transaction error',
-                'message' => 'A database transaction error occurred. Please try again.',
-            ], 500);
+            return $this->errorResponse('Transaction error', 'A database transaction error occurred. Please try again.', 500);
         }
 
         // Generic database error
-        return response()->json([
-            'success' => false,
-            'error' => 'Database error',
-            'message' => config('app.debug') 
-                ? $e->getMessage() 
+        return $this->errorResponse(
+            'Database error',
+            config('app.debug')
+                ? $e->getMessage()
                 : 'A database error occurred. Please try again later.',
-        ], 500);
+            500
+        );
     }
 
     /**
@@ -278,21 +250,20 @@ class Handler extends ExceptionHandler
             'trace' => $e->getTraceAsString(),
         ]);
 
-        $statusCode = method_exists($e, 'getStatusCode') 
-            ? $e->getStatusCode() 
+        $statusCode = method_exists($e, 'getStatusCode')
+            ? $e->getStatusCode()
             : 500;
 
-        return response()->json([
-            'success' => false,
-            'error' => 'Server error',
-            'message' => config('app.debug') 
-                ? $e->getMessage() 
+        return $this->errorResponse(
+            'Server error',
+            config('app.debug')
+                ? $e->getMessage()
                 : 'An unexpected error occurred. Please try again later.',
-            ...(config('app.debug') ? [
+            $statusCode,
+            config('app.debug') ? [
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-            ] : []),
-        ], $statusCode);
+            ] : []
+        );
     }
 }
-

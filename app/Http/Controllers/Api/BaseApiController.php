@@ -26,9 +26,6 @@ class BaseApiController extends Controller
      * Use per_page=all or paginate=false to get all results without pagination.
      * Returns [items, pagination|null] - pagination is null when unpaginated.
      *
-     * @param Builder $query
-     * @param Request $request
-     * @param int $defaultPerPage
      * @return array{0: \Illuminate\Support\Collection, 1: array|null}
      */
     protected function paginateOrAll(Builder $query, Request $request, int $defaultPerPage = 15): array
@@ -44,18 +41,19 @@ class BaseApiController extends Controller
         $items = $paginator->getCollection();
 
         return [$items, [
-            'current_page' => $paginator->currentPage(),
-            'per_page' => $paginator->perPage(),
+            'currentPage' => $paginator->currentPage(),
+            'lastPage' => $paginator->lastPage(),
+            'perPage' => $paginator->perPage(),
             'total' => $paginator->total(),
-            'last_page' => $paginator->lastPage(),
             'from' => $paginator->firstItem(),
             'to' => $paginator->lastItem(),
         ]];
     }
+
     /**
      * Return a successful JSON response.
      */
-    protected function success($data = null, string $message = null, int $statusCode = 200): JsonResponse
+    protected function success($data = null, ?string $message = null, int $statusCode = 200): JsonResponse
     {
         $response = [
             'success' => true,
@@ -74,18 +72,19 @@ class BaseApiController extends Controller
 
     /**
      * Return an error JSON response.
-     * 
-     * @param string $message Error message
-     * @param array|string|null $errors Validation errors or additional error details
-     * @param int $statusCode HTTP status code
-     * @return JsonResponse
+     *
+     * @param  string  $message  Error message
+     * @param  array|string|null  $errors  Validation errors or additional error details
+     * @param  int  $statusCode  HTTP status code
      */
     protected function error(string $message, $errors = null, int $statusCode = 400): JsonResponse
     {
         $response = [
             'success' => false,
-            'error' => $this->getErrorTitle($statusCode),
-            'message' => $message,
+            'error' => [
+                'title' => $this->getErrorTitle($statusCode),
+                'message' => $message,
+            ],
         ];
 
         // Handle validation errors (array format)
@@ -122,16 +121,16 @@ class BaseApiController extends Controller
     /**
      * Return a paginated JSON response.
      */
-    protected function paginated($data, string $message = null): JsonResponse
+    protected function paginated($data, ?string $message = null): JsonResponse
     {
         $response = [
             'success' => true,
             'data' => $data->items(),
             'pagination' => [
-                'current_page' => $data->currentPage(),
-                'per_page' => $data->perPage(),
+                'currentPage' => $data->currentPage(),
+                'lastPage' => $data->lastPage(),
+                'perPage' => $data->perPage(),
                 'total' => $data->total(),
-                'last_page' => $data->lastPage(),
                 'from' => $data->firstItem(),
                 'to' => $data->lastItem(),
             ],
@@ -144,4 +143,3 @@ class BaseApiController extends Controller
         return response()->json($response);
     }
 }
-
