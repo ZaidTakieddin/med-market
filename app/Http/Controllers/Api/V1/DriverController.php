@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Constants\DriverStatus;
+use App\Constants\OrderStatus;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Drivers\CreateDriverRequest;
 use App\Http\Requests\Drivers\UpdateDriverRequest;
@@ -11,6 +13,7 @@ use App\Http\Resources\UserResource;
 use App\Models\Order;
 use App\Models\Region;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -45,19 +48,19 @@ class DriverController extends BaseApiController
         try {
             $user = auth()->user();
 
-            if (!$user->isSupplier() && !$user->isAdmin()) {
+            if (! $user->isSupplier() && ! $user->isAdmin()) {
                 return $this->error('Only suppliers and admins can view drivers', null, 403);
             }
 
             $query = User::where('role', 'driver');
 
             // Suppliers see only their company drivers
-            if ($user->isSupplier() && !$user->isAdmin()) {
+            if ($user->isSupplier() && ! $user->isAdmin()) {
                 $query->where('company_id', $user->company_id);
             }
 
             [$drivers, $pagination] = $this->paginateOrAll(
-                $query->with('company')->latest(),
+                $this->withOrderCounts($query->with('company'))->latest(),
                 $request
             );
 
@@ -75,9 +78,10 @@ class DriverController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Driver list error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to retrieve drivers: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve drivers: '.$e->getMessage(), null, 500);
         }
     }
 
@@ -99,6 +103,11 @@ class DriverController extends BaseApiController
                     new OA\Property(property: 'email', type: 'string', format: 'email', example: 'ahmed@example.com'),
                     new OA\Property(property: 'phone', type: 'string', example: '+966501234567', description: 'Optional phone number'),
                     new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password123'),
+                    new OA\Property(property: 'work_start_time', type: 'string', example: '08:00', description: 'Daily shift start time (HH:MM)'),
+                    new OA\Property(property: 'work_end_time', type: 'string', example: '17:00', description: 'Daily shift end time (HH:MM)'),
+                    new OA\Property(property: 'employment_start_date', type: 'string', format: 'date', example: '2026-01-01', description: 'Date the driver started working'),
+                    new OA\Property(property: 'employment_end_date', type: 'string', format: 'date', example: '2026-12-31', description: 'Driver\'s last day at work'),
+                    new OA\Property(property: 'driver_status', type: 'string', enum: ['available', 'on_delivery', 'off'], example: 'available', description: 'Driver availability status'),
                 ]
             )
         ),
@@ -113,7 +122,7 @@ class DriverController extends BaseApiController
         try {
             $user = auth()->user();
 
-            if (!$user->isSupplier() && !$user->isAdmin()) {
+            if (! $user->isSupplier() && ! $user->isAdmin()) {
                 return $this->error('Only suppliers and admins can create drivers', null, 403);
             }
 
@@ -124,19 +133,25 @@ class DriverController extends BaseApiController
                 'password' => Hash::make($request->password),
                 'company_id' => $user->company_id,
                 'role' => 'driver',
+                'work_start_time' => $request->work_start_time,
+                'work_end_time' => $request->work_end_time,
+                'employment_start_date' => $request->employment_start_date,
+                'employment_end_date' => $request->employment_end_date,
+                'driver_status' => $request->driver_status ?? DriverStatus::AVAILABLE,
             ]);
 
             return $this->success(
-                new UserResource($driver->load('company')),
+                new UserResource($this->withOrderCounts(User::whereKey($driver->id))->with('company')->first()),
                 'Driver created successfully',
                 201
             );
         } catch (\Exception $e) {
             Log::error('Create driver error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to create driver: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to create driver: '.$e->getMessage(), null, 500);
         }
     }
 
@@ -166,19 +181,20 @@ class DriverController extends BaseApiController
             $driver = User::where('role', 'driver')->findOrFail($id);
 
             // Suppliers can only see their company drivers
-            if ($user->isSupplier() && !$user->isAdmin() && $driver->company_id !== $user->company_id) {
+            if ($user->isSupplier() && ! $user->isAdmin() && $driver->company_id !== $user->company_id) {
                 return $this->error('Unauthorized', null, 403);
             }
 
-            $driver->load('company');
+            $driver->load('company')->loadCount($this->orderCountRelations());
 
             return $this->success(new UserResource($driver));
         } catch (\Exception $e) {
             Log::error('Get driver error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to retrieve driver: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve driver: '.$e->getMessage(), null, 500);
         }
     }
 
@@ -207,7 +223,7 @@ class DriverController extends BaseApiController
             $user = auth()->user();
             $driver = User::where('role', 'driver')->findOrFail($id);
 
-            if (!$user->isSupplier() && !$user->isAdmin()) {
+            if (! $user->isSupplier() && ! $user->isAdmin()) {
                 return $this->error('Only suppliers and admins can update drivers', null, 403);
             }
 
@@ -217,16 +233,19 @@ class DriverController extends BaseApiController
 
             $driver->update($request->validated());
 
+            $driver->load('company')->loadCount($this->orderCountRelations());
+
             return $this->success(
-                new UserResource($driver->load('company')),
+                new UserResource($driver),
                 'Driver updated successfully'
             );
         } catch (\Exception $e) {
             Log::error('Update driver error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to update driver: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to update driver: '.$e->getMessage(), null, 500);
         }
     }
 
@@ -255,7 +274,7 @@ class DriverController extends BaseApiController
             $user = auth()->user();
             $driver = User::where('role', 'driver')->findOrFail($id);
 
-            if (!$user->isSupplier() && !$user->isAdmin()) {
+            if (! $user->isSupplier() && ! $user->isAdmin()) {
                 return $this->error('Only suppliers and admins can delete drivers', null, 403);
             }
 
@@ -269,9 +288,10 @@ class DriverController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Delete driver error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to delete driver: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to delete driver: '.$e->getMessage(), null, 500);
         }
     }
 
@@ -305,7 +325,7 @@ class DriverController extends BaseApiController
             $driver = User::where('role', 'driver')->findOrFail($id);
 
             // Suppliers can only see orders for their company drivers
-            if ($user->isSupplier() && !$user->isAdmin() && $driver->company_id !== $user->company_id) {
+            if ($user->isSupplier() && ! $user->isAdmin() && $driver->company_id !== $user->company_id) {
                 return $this->error('Unauthorized', null, 403);
             }
 
@@ -340,9 +360,10 @@ class DriverController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Get driver orders error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to retrieve driver orders: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve driver orders: '.$e->getMessage(), null, 500);
         }
     }
 
@@ -372,7 +393,7 @@ class DriverController extends BaseApiController
             $driver = User::where('role', 'driver')->findOrFail($id);
 
             // Suppliers can only see regions for their company drivers
-            if ($user->isSupplier() && !$user->isAdmin() && $driver->company_id !== $user->company_id) {
+            if ($user->isSupplier() && ! $user->isAdmin() && $driver->company_id !== $user->company_id) {
                 return $this->error('Unauthorized', null, 403);
             }
 
@@ -385,9 +406,10 @@ class DriverController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Get driver regions error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to retrieve driver regions: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve driver regions: '.$e->getMessage(), null, 500);
         }
     }
 
@@ -433,12 +455,12 @@ class DriverController extends BaseApiController
             $driver = User::where('role', 'driver')->findOrFail($id);
 
             // Only suppliers can assign regions to their drivers
-            if (!$user->isSupplier() && !$user->isAdmin()) {
+            if (! $user->isSupplier() && ! $user->isAdmin()) {
                 return $this->error('Only suppliers can assign regions to drivers', null, 403);
             }
 
             // Verify driver belongs to supplier's company
-            if ($driver->company_id !== $user->company_id && !$user->isAdmin()) {
+            if ($driver->company_id !== $user->company_id && ! $user->isAdmin()) {
                 return $this->error('You can only assign regions to your own drivers', null, 403);
             }
 
@@ -459,9 +481,10 @@ class DriverController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Assign driver regions error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to assign regions: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to assign regions: '.$e->getMessage(), null, 500);
         }
     }
 
@@ -492,12 +515,12 @@ class DriverController extends BaseApiController
             $driver = User::where('role', 'driver')->findOrFail($id);
 
             // Only suppliers can remove regions from their drivers
-            if (!$user->isSupplier() && !$user->isAdmin()) {
+            if (! $user->isSupplier() && ! $user->isAdmin()) {
                 return $this->error('Only suppliers can remove regions from drivers', null, 403);
             }
 
             // Verify driver belongs to supplier's company
-            if ($driver->company_id !== $user->company_id && !$user->isAdmin()) {
+            if ($driver->company_id !== $user->company_id && ! $user->isAdmin()) {
                 return $this->error('You can only remove regions from your own drivers', null, 403);
             }
 
@@ -510,10 +533,34 @@ class DriverController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Remove driver region error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to remove region: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to remove region: '.$e->getMessage(), null, 500);
         }
     }
-}
 
+    /**
+     * Eager-load delivered and total assigned order counts onto a driver query.
+     *
+     * @param  Builder<User>  $query
+     * @return Builder<User>
+     */
+    private function withOrderCounts(Builder $query): Builder
+    {
+        return $query->withCount($this->orderCountRelations());
+    }
+
+    /**
+     * Count relations exposing delivered vs total assigned orders for a driver.
+     *
+     * @return array<int|string, string|\Closure>
+     */
+    private function orderCountRelations(): array
+    {
+        return [
+            'driverOrders as total_orders_count',
+            'driverOrders as delivered_orders_count' => fn (Builder $query): Builder => $query->where('status', OrderStatus::DELIVERED),
+        ];
+    }
+}

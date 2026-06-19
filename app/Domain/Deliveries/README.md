@@ -53,6 +53,26 @@ Salesmen (supplier-associated) can also be assigned to regions, similar to drive
 - Salesmen can serve specific geographic areas
 - Helps with territory management and client assignment
 
+### Driver Work & Employment Fields
+
+Drivers carry additional profile fields on the `users` table:
+
+- `work_start_time` / `work_end_time` — daily shift hours (TIME, nullable)
+- `employment_start_date` — date the driver started working (DATE, nullable)
+- `employment_end_date` — driver's last day at work (DATE, nullable)
+- `driver_status` — availability status, one of `App\Constants\DriverStatus`
+  (`available`, `on_delivery`, `off`); defaults to `available`
+
+Two delivery counts are **computed live** (never stored) and surfaced on
+`UserResource` for drivers via `withCount`/`loadCount` in `DriverController`:
+
+- `deliveredOrdersCount` — assigned orders with status `delivered`
+- `totalOrdersCount` — all orders assigned to the driver
+
+> Migrations touching `users` must run on the unpooled `pgsql_seeder` connection
+> (`php artisan migrate --database=pgsql_seeder`); Neon's pooled endpoint aborts DDL
+> transactions.
+
 ### Models
 
 - `App\Models\User` - Drivers are users with `driver` role, Salesmen are users with `salesman` role

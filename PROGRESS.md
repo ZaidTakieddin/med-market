@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-19 (Added dashboard analytics overview endpoint)
+> Last Updated: 2026-06-19 (Added driver work/employment fields and delivery counts)
 
 ### Related Documentation
 
@@ -481,6 +481,14 @@ All 6 phases complete.
 -   [x] Drivers can serve multiple regions
 -   [x] Order assignment checks if driver serves pharmacy's region
 -   [x] Swagger documentation for driver-region endpoints
+
+#### 13b. Driver Work & Employment Fields
+-   [x] Migration `add_driver_work_fields_to_users_table` (run via unpooled `pgsql_seeder` connection — pooled endpoint aborts DDL)
+-   [x] New columns: `work_start_time`, `work_end_time` (daily shift times), `employment_start_date`, `employment_end_date` (last day at work), `driver_status` (default `available`)
+-   [x] `DriverStatus` constant (`available`, `on_delivery`, `off`)
+-   [x] `UserResource` exposes driver fields plus `deliveredOrdersCount` (status=delivered) and `totalOrdersCount` (all assigned), computed live via `withCount`/`loadCount`
+-   [x] Create/Update driver requests validate the new fields; Swagger create-driver body updated
+-   [x] Larastan: typed `UserResource` with `@mixin User`, documented count aliases on model, removed now-obsolete UserResource baseline entries
 
 #### 14. Cart Items Grouped by Supplier
 -   [x] CartResource updated to include itemsBySupplier array

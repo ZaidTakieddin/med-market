@@ -1519,48 +1519,6 @@ parameters:
 			path: app/Http/Resources/StockMovementResource.php
 
 		-
-			message: '#^Access to an undefined property App\\Http\\Resources\\UserResource\:\:\$created_at\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/UserResource.php
-
-		-
-			message: '#^Access to an undefined property App\\Http\\Resources\\UserResource\:\:\$email\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/UserResource.php
-
-		-
-			message: '#^Access to an undefined property App\\Http\\Resources\\UserResource\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/UserResource.php
-
-		-
-			message: '#^Access to an undefined property App\\Http\\Resources\\UserResource\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/UserResource.php
-
-		-
-			message: '#^Access to an undefined property App\\Http\\Resources\\UserResource\:\:\$phone\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/UserResource.php
-
-		-
-			message: '#^Access to an undefined property App\\Http\\Resources\\UserResource\:\:\$role\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Resources/UserResource.php
-
-		-
-			message: '#^Access to an undefined property App\\Http\\Resources\\UserResource\:\:\$updated_at\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/UserResource.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$address\.$#'
 			identifier: property.notFound
 			count: 2

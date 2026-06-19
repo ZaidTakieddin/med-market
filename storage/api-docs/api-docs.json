@@ -2694,6 +2694,38 @@
                                         "type": "string",
                                         "format": "password",
                                         "example": "password123"
+                                    },
+                                    "work_start_time": {
+                                        "description": "Daily shift start time (HH:MM)",
+                                        "type": "string",
+                                        "example": "08:00"
+                                    },
+                                    "work_end_time": {
+                                        "description": "Daily shift end time (HH:MM)",
+                                        "type": "string",
+                                        "example": "17:00"
+                                    },
+                                    "employment_start_date": {
+                                        "description": "Date the driver started working",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-01-01"
+                                    },
+                                    "employment_end_date": {
+                                        "description": "Driver's last day at work",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-12-31"
+                                    },
+                                    "driver_status": {
+                                        "description": "Driver availability status",
+                                        "type": "string",
+                                        "enum": [
+                                            "available",
+                                            "on_delivery",
+                                            "off"
+                                        ],
+                                        "example": "available"
                                     }
                                 },
                                 "type": "object"

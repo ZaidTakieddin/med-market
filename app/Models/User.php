@@ -13,6 +13,12 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+/**
+ * @property \Illuminate\Support\Carbon|null $employment_start_date
+ * @property \Illuminate\Support\Carbon|null $employment_end_date
+ * @property-read int|null $delivered_orders_count
+ * @property-read int|null $total_orders_count
+ */
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
@@ -30,6 +36,11 @@ class User extends Authenticatable
         'password',
         'company_id',
         'role',
+        'work_start_time',
+        'work_end_time',
+        'employment_start_date',
+        'employment_end_date',
+        'driver_status',
     ];
 
     /**
@@ -52,6 +63,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'employment_start_date' => 'date',
+            'employment_end_date' => 'date',
         ];
     }
 
@@ -164,7 +177,7 @@ class User extends Authenticatable
      */
     public function isSupplierSalesman(): bool
     {
-        if (!$this->isSalesman()) {
+        if (! $this->isSalesman()) {
             return false;
         }
 
@@ -176,7 +189,7 @@ class User extends Authenticatable
      */
     public function isIndependentSalesman(): bool
     {
-        if (!$this->isSalesman()) {
+        if (! $this->isSalesman()) {
             return false;
         }
 
@@ -205,7 +218,7 @@ class User extends Authenticatable
      */
     public function servesRegion(int $regionId): bool
     {
-        if (!$this->isDriver()) {
+        if (! $this->isDriver()) {
             return false;
         }
 
