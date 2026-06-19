@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-04-03 (Deep security & edge-case audit: 15 critical/high/medium issues fixed)
+> Last Updated: 2026-06-19 (Dev tooling: Laravel Boost + Pint/Larastan quality gate)
 
 ### Related Documentation
 
@@ -857,6 +857,21 @@ All 6 phases complete.
 
 ### Recent Improvements
 
+-   **Dev tooling & code-quality gate (2026-06-19)**:
+    - Installed **Laravel Boost** (`laravel/boost` v1.8) — MCP server (`.mcp.json`) + AI
+      guidelines appended to `CLAUDE.md`. Provides `search-docs`, `tinker`,
+      `database-query`, `list-routes`, etc. (requires Claude Code restart to activate).
+    - Installed **Larastan** (`larastan/larastan` v3.10, PHPStan 2.2) at **level 5** with a
+      committed baseline (`phpstan-baseline.neon`) grandfathering 379 pre-existing findings;
+      config in `phpstan.neon`. Only newly introduced errors fail.
+    - **Pint** (already present) wired for changed-files-only formatting (`--dirty`); the
+      legacy repo is intentionally not bulk-reformatted.
+    - Added composer scripts: `lint`, `lint:dirty`, `lint:test`, `analyse`, `quality`.
+    - Added a **Stop hook** (`.claude/hooks/code-quality.php`, registered in
+      `.claude/settings.json`, `shell: powershell` for Herd PHP) that auto-runs the gate
+      when a turn finishes: skips when no PHP changed, auto-formats with Pint, blocks (exit 2)
+      on new PHPStan errors, with a `stop_hook_active` loop-safety valve. All three paths
+      pipe-tested (clean → 0, new error → 2, looping → 0).
 -   **Phase 1/2 Comprehensive Audit — 11 Issues Fixed (2026-04-03)**:
     - **InvoiceController** (HIGH): Fixed supplier-associated salesman access — was checking `buyer_company_id === company_id` but supplier salesmen have supplier `company_id`. Added `canAccessInvoice()` and `canAccessOrder()` helpers with proper branch logic for independent vs supplier-associated salesmen.
     - **CompanyController::store** (HIGH): Added missing `$this->authorize('create', Company::class)` — previously any authenticated user could create companies despite admin-only policy.

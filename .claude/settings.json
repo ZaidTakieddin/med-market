@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "php .claude/hooks/code-quality.php",
+            "shell": "powershell",
+            "timeout": 180,
+            "statusMessage": "Running Pint + PHPStan quality gate..."
+          }
+        ]
+      }
+    ]
+  }
+}
