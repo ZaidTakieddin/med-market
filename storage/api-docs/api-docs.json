@@ -2396,6 +2396,212 @@
                 ]
             }
         },
+        "/dashboard": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "Dashboard overview",
+                "description": "Aggregated analytics for the supplier dashboard home page: KPI cards (pending orders, active shipments, total products, total orders with trend), a daily sales series, best-selling products, and top buyers. Revenue-based metrics (sales series, top products, top buyers) only count fulfilled (delivered) orders. Suppliers see metrics scoped to their own company. Admins see global metrics, or a single supplier when `supplier_company_id` is provided. Other roles are forbidden.",
+                "operationId": "07d2d0f81b9051bfc2a937097221e0ce",
+                "parameters": [
+                    {
+                        "name": "days",
+                        "in": "query",
+                        "description": "Number of trailing days for the sales overview series",
+                        "schema": {
+                            "type": "integer",
+                            "default": 7,
+                            "maximum": 90,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Number of rows for top products and top buyers",
+                        "schema": {
+                            "type": "integer",
+                            "default": 5,
+                            "maximum": 20,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "supplier_company_id",
+                        "in": "query",
+                        "description": "Admin only. Scope metrics to a single supplier company.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Dashboard data retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "kpis": {
+                                                    "description": "KPI cards. `trend` is present only for metrics with a period-over-period comparison; `trend.tone` is one of positive/warning/danger/neutral.",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string",
+                                                                "example": "total_orders"
+                                                            },
+                                                            "title": {
+                                                                "type": "string",
+                                                                "example": "إجمالي الطلبات"
+                                                            },
+                                                            "value": {
+                                                                "type": "string",
+                                                                "example": "450"
+                                                            },
+                                                            "description": {
+                                                                "type": "string",
+                                                                "example": "منذ الشهر الماضي"
+                                                            },
+                                                            "trend": {
+                                                                "properties": {
+                                                                    "value": {
+                                                                        "type": "string",
+                                                                        "example": "+12%"
+                                                                    },
+                                                                    "direction": {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                            "up",
+                                                                            "down",
+                                                                            "flat"
+                                                                        ],
+                                                                        "example": "up"
+                                                                    },
+                                                                    "tone": {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                            "positive",
+                                                                            "warning",
+                                                                            "danger",
+                                                                            "neutral"
+                                                                        ],
+                                                                        "example": "positive"
+                                                                    }
+                                                                },
+                                                                "type": "object",
+                                                                "nullable": true
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "salesSeries": {
+                                                    "description": "Number of fulfilled (delivered) orders per day, oldest first, zero-filled.",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "day": {
+                                                                "type": "string",
+                                                                "example": "Fri"
+                                                            },
+                                                            "sales": {
+                                                                "type": "integer",
+                                                                "example": 8
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "topProducts": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "Paracetamol 500mg"
+                                                            },
+                                                            "stock": {
+                                                                "type": "integer",
+                                                                "example": 120
+                                                            },
+                                                            "price": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 10
+                                                            },
+                                                            "totalSold": {
+                                                                "type": "integer",
+                                                                "example": 340
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "topBuyers": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 7
+                                                            },
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "Al Noor Pharmacy"
+                                                            },
+                                                            "region": {
+                                                                "type": "string",
+                                                                "example": "Central Region",
+                                                                "nullable": true
+                                                            },
+                                                            "ordersCount": {
+                                                                "type": "integer",
+                                                                "example": 42
+                                                            },
+                                                            "totalSpent": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 5200
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - only suppliers and admins can access the dashboard"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/drivers": {
             "get": {
                 "tags": [
@@ -6936,6 +7142,10 @@
         {
             "name": "Companies",
             "description": "Company management endpoints"
+        },
+        {
+            "name": "Dashboard",
+            "description": "Aggregated analytics for the dashboard home page"
         },
         {
             "name": "Drivers",

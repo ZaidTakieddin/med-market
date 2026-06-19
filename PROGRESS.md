@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-19 (Added capability-based supplier_classification filter to companies list endpoint)
+> Last Updated: 2026-06-19 (Added dashboard analytics overview endpoint)
 
 ### Related Documentation
 
@@ -114,6 +114,13 @@
 
 -   [x] Get all enums (`GET /api/v1/enums`) - Returns offerType, orderStatus, userRole, companyType, stockMovementType, discountType
 -   [x] Optional filter (`?type=offerType`) - Return single enum type
+
+### Dashboard API
+
+-   [x] Dashboard overview (`GET /api/v1/dashboard`) - Aggregated supplier home-page analytics: stat cards (pending orders, active shipments, total products, total orders with week/month trend), daily sales series, best-selling products, top buyers
+-   [x] Role-scoped: suppliers see their own company; admins see global (or a single supplier via `?supplier_company_id`); other roles 403
+-   [x] Tunable via `?days` (sales window, max 90) and `?limit` (top-N rows, max 20)
+-   [x] Logic in `App\Domain\Dashboard\DashboardService`; thin controller `DashboardController`
 
 ### Order Management API
 
@@ -875,6 +882,29 @@ All 6 phases complete.
 
 ### Recent Improvements
 
+-   **Dashboard analytics endpoint (2026-06-19)**:
+    - Added `GET /api/v1/dashboard` for the supplier home-page dashboard. New domain
+      context `App\Domain\Dashboard\DashboardService` holds all aggregation; controller
+      stays thin (validate role → delegate → standardized response).
+    - Response shaped to the agreed frontend contract: `kpis` (array of `DashboardKpi`:
+      `id`, `title`, `value` as display string, `description`, optional `trend` with
+      `value`/`direction`/`tone`), `salesSeries` (`{ day, sales }` where `sales` is the
+      count of delivered orders that day, zero-filled, oldest first), plus `topProducts`
+      and `topBuyers`.
+    - **Fulfilled-only**: `salesSeries` (delivered-order count per day, keyed by
+      `delivered_at`), `topProducts` (units sold), and `topBuyers` (spend) count only
+      `delivered` orders. Operational KPI counts reflect live states (pending, shipped,
+      active catalog, total orders).
+    - Role-scoped: supplier → own company; admin → global or `?supplier_company_id`;
+      others → 403. Tunable via `?days` (≤90) and `?limit` (≤20).
+    - Swagger annotations added + regenerated; Pint clean; PHPStan level-5 clean (no new
+      baseline entries). Verified against Neon via tinker (full payload) and a read-only
+      aggregate check.
+    - Open contract notes raised with frontend: `value` is a pre-formatted string (raw
+      numbers dropped — matters for Arabic digit/currency localization); `title`/
+      `description` are Arabic UI copy baked into the API (i18n coupling); `tone` lives
+      inside `trend` so a trend-less card (e.g. pending = warning) can't carry a status
+      colour — suggested hoisting `tone` to the KPI level.
 -   **Dev tooling & code-quality gate (2026-06-19)**:
     - Installed **Laravel Boost** (`laravel/boost` v1.8) — MCP server (`.mcp.json`) + AI
       guidelines appended to `CLAUDE.md`. Provides `search-docs`, `tinker`,

@@ -26,6 +26,9 @@ Route::prefix('v1')->group(function () {
         // Enums (system constants for dropdowns, forms)
         Route::get('enums', [App\Http\Controllers\Api\V1\EnumsController::class, 'index']);
 
+        // Dashboard analytics
+        Route::get('dashboard', [App\Http\Controllers\Api\V1\DashboardController::class, 'index']);
+
         // Auth routes
         Route::prefix('auth')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
@@ -128,4 +131,3 @@ Route::prefix('v1')->group(function () {
         Route::post('salesmen/{id}/place-order', [App\Http\Controllers\Api\V1\SalesmanController::class, 'placeOrder']);
     });
 });
-
