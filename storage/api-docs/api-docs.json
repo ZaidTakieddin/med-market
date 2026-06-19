@@ -2010,6 +2010,19 @@
                         }
                     },
                     {
+                        "name": "supplier_classification",
+                        "in": "query",
+                        "description": "Filter suppliers by pricing capability. \"wholesale\" returns wholesale + hybrid suppliers; \"retail\" returns retail + hybrid suppliers; \"hybrid\" returns only hybrid suppliers.",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "wholesale",
+                                "retail",
+                                "hybrid"
+                            ]
+                        }
+                    },
+                    {
                         "name": "is_active",
                         "in": "query",
                         "schema": {

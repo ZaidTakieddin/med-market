@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-19 (API response-format contract aligned to frontend integration doc)
+> Last Updated: 2026-06-19 (Added capability-based supplier_classification filter to companies list endpoint)
 
 ### Related Documentation
 
@@ -149,6 +149,7 @@
 -   [x] Form request validation (CreateCompanyRequest, UpdateCompanyRequest)
 -   [x] Filter suppliers by category_id (`?category_id=1`)
 -   [x] Filter suppliers by manufacturer_id (`?manufacturer_id=1`)
+-   [x] Filter suppliers by pricing capability (`?supplier_classification=wholesale|retail|hybrid`) — capability-based: `wholesale` returns wholesale + hybrid, `retail` returns retail + hybrid, `hybrid` returns hybrid only (uses `SupplierClassification::wholesaleCapable()`/`retailCapable()`)
 -   [x] Search suppliers by category/manufacturer names
 -   [x] Companies include categories and manufacturers arrays (auto-synced from products)
 -   [x] Companies include address, coordinates (latitude, longitude), region_id, address_line
