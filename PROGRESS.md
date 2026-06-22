@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-23 (Driver region plans (fixed/daily) + holidays; seed delivered/shipped orders to populate dashboard)
+> Last Updated: 2026-06-23 (Supplier/buyer reach visibility rules; dashboard trend tone positive/warning/danger only)
 
 ### Related Documentation
 
@@ -889,6 +889,21 @@ All 6 phases complete.
 -   `App\Domain\Users\UserRole` duplicates `App\Constants\UserRole` — should consolidate to single source
 
 ### Recent Improvements
+
+-   **Supplier/buyer reach authorization + dashboard tweaks (2026-06-23)**:
+    - **Visibility matrix** enforced in listings, cart, and orders: pharmacy buyers reach
+      retail + hybrid suppliers (wholesale-only hidden); salesman buyers reach wholesale +
+      hybrid suppliers (pure-retail hidden); a pure-retail supplier cannot reach other
+      pure-retail suppliers. Single source of truth: `Company::visibleSupplierClassificationsFor()`
+      + `Company::scopeVisibleTo()` (drives `GET /companies` and `GET /products`), with
+      `PricingService::canBuyerSeeSupplier()` covering cart (`CartController`) and order
+      creation (`OrderController::store` now 403s when the buyer can't reach the supplier).
+    - **Dashboard**: `kpi.trend.tone` no longer emits `neutral` — it is always one of
+      `positive`/`warning`/`danger` (flat/no-change → `warning`). `topBuyers` already returns
+      `ordersCount` + `totalSpent` per buyer.
+    - Added `@property` annotations to `Company` and relation generics to `User::company()`
+      / `Product::supplierCompany()`; this resolved ~36 pre-existing Larastan findings, so the
+      baseline shrank from 379 to 343 (no new entries added).
 
 -   **Driver region plans, holidays & dashboard seed data (2026-06-23)**:
     - Drivers now have a **region plan**: `fixed` (one or more regions covered every day)

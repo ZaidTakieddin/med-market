@@ -1995,7 +1995,7 @@
                     "Companies"
                 ],
                 "summary": "List companies",
-                "description": "Get a paginated list of companies",
+                "description": "Get a paginated list of companies, scoped to those the authenticated user may reach: pharmacy buyers see retail + hybrid suppliers; salesman buyers see wholesale + hybrid suppliers; a pure-retail supplier does not see other pure-retail suppliers. Buyer companies and the user's own company are always visible; admins see everything.",
                 "operationId": "3b8c8a787fa3cd0d0c1b296889d73daf",
                 "parameters": [
                     {
@@ -2450,7 +2450,7 @@
                                         "data": {
                                             "properties": {
                                                 "kpis": {
-                                                    "description": "KPI cards. `trend` is present only for metrics with a period-over-period comparison; `trend.tone` is one of positive/warning/danger/neutral.",
+                                                    "description": "KPI cards. `trend` is present only for metrics with a period-over-period comparison; `trend.tone` is one of positive/warning/danger.",
                                                     "type": "array",
                                                     "items": {
                                                         "properties": {
@@ -2490,8 +2490,7 @@
                                                                         "enum": [
                                                                             "positive",
                                                                             "warning",
-                                                                            "danger",
-                                                                            "neutral"
+                                                                            "danger"
                                                                         ],
                                                                         "example": "positive"
                                                                     }

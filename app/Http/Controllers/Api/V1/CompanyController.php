@@ -22,7 +22,7 @@ class CompanyController extends BaseApiController
     #[OA\Get(
         path: '/companies',
         summary: 'List companies',
-        description: 'Get a paginated list of companies',
+        description: 'Get a paginated list of companies, scoped to those the authenticated user may reach: pharmacy buyers see retail + hybrid suppliers; salesman buyers see wholesale + hybrid suppliers; a pure-retail supplier does not see other pure-retail suppliers. Buyer companies and the user\'s own company are always visible; admins see everything.',
         tags: ['Companies'],
         security: [['sanctum' => []]],
         parameters: [
@@ -44,7 +44,8 @@ class CompanyController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = Company::with(['categories', 'manufacturers']);
+            $query = Company::with(['categories', 'manufacturers'])
+                ->visibleTo(auth()->user());
 
             if ($request->has('type')) {
                 $query->where('type', $request->type);

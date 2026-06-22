@@ -2,6 +2,10 @@
 
 namespace App\Models;
 
+use App\Constants\BuyerClassification;
+use App\Constants\CompanyType;
+use App\Constants\SupplierClassification;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +13,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property int $id
+ * @property string $type
+ * @property string|null $supplier_classification
+ * @property string|null $buyer_classification
+ */
 class Company extends Model
 {
     use HasFactory, SoftDeletes;
@@ -128,11 +138,66 @@ class Company extends Model
     }
 
     /**
+     * Supplier classifications a viewer company is allowed to reach, or null when the
+     * viewer has no supplier-visibility restriction (unclassified companies and
+     * wholesale/hybrid suppliers).
+     *
+     * Rules: pharmacy buyers reach retail + hybrid; salesman buyers reach wholesale +
+     * hybrid; a pure-retail supplier cannot reach other pure-retail suppliers.
+     *
+     * @return list<string>|null
+     */
+    public static function visibleSupplierClassificationsFor(?Company $viewer): ?array
+    {
+        if ($viewer === null) {
+            return null;
+        }
+
+        return match (true) {
+            $viewer->buyer_classification === BuyerClassification::PHARMACY => SupplierClassification::retailCapable(),
+            $viewer->buyer_classification === BuyerClassification::SALESMAN => SupplierClassification::wholesaleCapable(),
+            $viewer->supplier_classification === SupplierClassification::RETAIL => [SupplierClassification::WHOLESALE, SupplierClassification::HYBRID],
+            default => null,
+        };
+    }
+
+    /**
+     * Scope companies to those visible to the given viewer. Buyer companies are always
+     * visible; supplier companies are filtered by the viewer's allowed classifications,
+     * and a company can always see itself. Admins and users without a company see all.
+     *
+     * @param  Builder<Company>  $query
+     * @return Builder<Company>
+     */
+    public function scopeVisibleTo(Builder $query, ?User $viewer): Builder
+    {
+        if ($viewer === null || $viewer->isAdmin()) {
+            return $query;
+        }
+
+        $viewerCompany = $viewer->company;
+        if ($viewerCompany === null) {
+            return $query;
+        }
+
+        $allowed = self::visibleSupplierClassificationsFor($viewerCompany);
+        if ($allowed === null) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $sub) use ($allowed, $viewerCompany) {
+            $sub->where('type', '!=', CompanyType::SUPPLIER)
+                ->orWhere('id', $viewerCompany->id)
+                ->orWhereIn('supplier_classification', $allowed);
+        });
+    }
+
+    /**
      * Check if this supplier can offer wholesale pricing to a given buyer.
      */
     public function canOfferWholesaleTo(Company $buyer): bool
     {
-        if (!$this->isSupplier() || !$this->isWholesale()) {
+        if (! $this->isSupplier() || ! $this->isWholesale()) {
             return false;
         }
 
@@ -221,4 +286,3 @@ class Company extends Model
         return $this->hasMany(SalesmanClient::class, 'pharmacy_company_id');
     }
 }
-

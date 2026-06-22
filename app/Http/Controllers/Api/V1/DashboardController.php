@@ -43,7 +43,7 @@ class DashboardController extends BaseApiController
                                 new OA\Property(
                                     property: 'kpis',
                                     type: 'array',
-                                    description: 'KPI cards. `trend` is present only for metrics with a period-over-period comparison; `trend.tone` is one of positive/warning/danger/neutral.',
+                                    description: 'KPI cards. `trend` is present only for metrics with a period-over-period comparison; `trend.tone` is one of positive/warning/danger.',
                                     items: new OA\Items(type: 'object', properties: [
                                         new OA\Property(property: 'id', type: 'string', example: 'total_orders'),
                                         new OA\Property(property: 'title', type: 'string', example: 'إجمالي الطلبات'),
@@ -52,7 +52,7 @@ class DashboardController extends BaseApiController
                                         new OA\Property(property: 'trend', type: 'object', nullable: true, properties: [
                                             new OA\Property(property: 'value', type: 'string', example: '+12%'),
                                             new OA\Property(property: 'direction', type: 'string', enum: ['up', 'down', 'flat'], example: 'up'),
-                                            new OA\Property(property: 'tone', type: 'string', enum: ['positive', 'warning', 'danger', 'neutral'], example: 'positive'),
+                                            new OA\Property(property: 'tone', type: 'string', enum: ['positive', 'warning', 'danger'], example: 'positive'),
                                         ]),
                                     ])
                                 ),

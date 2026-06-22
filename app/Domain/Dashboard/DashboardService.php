@@ -135,12 +135,14 @@ class DashboardService
     }
 
     /**
-     * Resolve a trend tone: a move in the "good" direction is positive, otherwise danger.
+     * Resolve a trend tone: a move in the "good" direction is positive, a move against
+     * it is danger, and no change is warning. Tone is always one of
+     * positive/warning/danger.
      */
     private function tone(string $direction, bool $goodWhenUp): string
     {
         if ($direction === 'flat') {
-            return 'neutral';
+            return 'warning';
         }
 
         return (($direction === 'up') === $goodWhenUp) ? 'positive' : 'danger';

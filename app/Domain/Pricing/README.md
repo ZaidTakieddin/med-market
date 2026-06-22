@@ -89,7 +89,7 @@ This is stored in `cart_items.pricing_type` and `order_items.pricing_type` for a
 - `resolve(Product, Company $buyer, int $qty)` — Returns a `PriceResult` with the resolved price, tier, discount info
 - `resolveMany(array $items, Company $buyer)` — Batch resolution with preloaded custom price lists for performance
 - `isWholesaleEligible(Company $supplier, Company $buyer)` — Check wholesale eligibility based on classifications
-- `canBuyerSeeSupplier(Company $supplier, Company $buyer)` — Catalog visibility (wholesale-only hidden from pharmacies)
+- `canBuyerSeeSupplier(Company $supplier, Company $buyer)` — Catalog visibility: pharmacy buyers reach retail + hybrid suppliers (wholesale-only hidden); salesman buyers reach wholesale + hybrid suppliers (pure-retail hidden). See also `Company::scopeVisibleTo()` / `Company::visibleSupplierClassificationsFor()` which drive the company & product listings (and additionally hide other pure-retail suppliers from a pure-retail supplier viewer).
 - `getDisplayPrice(Product, Company $buyer, int $qty)` — Returns a formatted array for API display with pricing breakdown
 
 ### PriceResult DTO (Implemented)

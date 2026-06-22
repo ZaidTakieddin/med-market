@@ -50,6 +50,8 @@ class Product extends Model
 
     /**
      * Get the supplier company that owns this product.
+     *
+     * @return BelongsTo<Company, $this>
      */
     public function supplierCompany(): BelongsTo
     {
@@ -130,7 +132,7 @@ class Product extends Model
     public function getFinalPharmacistPrice(): float
     {
         $price = $this->getEffectivePharmacistPrice();
-        
+
         if ($this->discount && $this->discount_type) {
             if ($this->discount_type === 'percentage') {
                 return max(0, $price * (1 - (min($this->discount, 100) / 100)));
@@ -138,7 +140,7 @@ class Product extends Model
                 return max(0, $price - $this->discount);
             }
         }
-        
+
         return $price;
     }
 

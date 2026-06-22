@@ -49,32 +49,8 @@ parameters:
 			path: app/Domain/Orders/OrderStateTransitionService.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\Company\:\:\$buyer_classification\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Domain/Pricing/PricingService.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Company\:\:\$supplier_classification\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Domain/Pricing/PricingService.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\Product\:\:\$wholesale_min_qty\.$#'
 			identifier: property.notFound
-			count: 1
-			path: app/Domain/Pricing/PricingService.php
-
-		-
-			message: '#^Parameter \#1 \$supplierCompany of method App\\Domain\\Pricing\\PricingService\:\:isWholesaleEligible\(\) expects App\\Models\\Company, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
-			identifier: argument.type
-			count: 2
-			path: app/Domain/Pricing/PricingService.php
-
-		-
-			message: '#^Parameter \#2 \$supplierCompany of method App\\Domain\\Pricing\\PricingService\:\:checkCustomPriceList\(\) expects App\\Models\\Company, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
-			identifier: argument.type
 			count: 1
 			path: app/Domain/Pricing/PricingService.php
 
@@ -181,30 +157,6 @@ parameters:
 			path: app/Http/Controllers/Api/V1/CartController.php
 
 		-
-			message: '#^Parameter \#1 \$supplierCompany of method App\\Domain\\Pricing\\PricingService\:\:canBuyerSeeSupplier\(\) expects App\\Models\\Company, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Api/V1/CartController.php
-
-		-
-			message: '#^Parameter \#2 \$buyerCompany of method App\\Domain\\Pricing\\PricingService\:\:canBuyerSeeSupplier\(\) expects App\\Models\\Company, Illuminate\\Database\\Eloquent\\Model given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Api/V1/CartController.php
-
-		-
-			message: '#^Parameter \#2 \$buyerCompany of method App\\Domain\\Pricing\\PricingService\:\:resolve\(\) expects App\\Models\\Company, Illuminate\\Database\\Eloquent\\Model given\.$#'
-			identifier: argument.type
-			count: 2
-			path: app/Http/Controllers/Api/V1/CartController.php
-
-		-
-			message: '#^Parameter \#2 \$buyerCompany of method App\\Domain\\Pricing\\PricingService\:\:resolve\(\) expects App\\Models\\Company, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
-			identifier: argument.type
-			count: 5
-			path: app/Http/Controllers/Api/V1/CartController.php
-
-		-
 			message: '#^Parameter \#2 \$product of method App\\Domain\\Cart\\Services\\CartOfferService\:\:applyOffer\(\) expects App\\Models\\Product, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -233,24 +185,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Controllers/Api/V1/OrderController.php
-
-		-
-			message: '#^Parameter \#2 \$buyerCompany of method App\\Domain\\Pricing\\PricingService\:\:resolve\(\) expects App\\Models\\Company, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Api/V1/OrderController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$buyer_classification\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/V1/ProductController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Company\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Company\>\:\:\$buyer_classification\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/V1/SalesmanController.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
@@ -1597,18 +1531,6 @@ parameters:
 			path: app/Models/Cart.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\Company\:\:\$buyer_classification\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Models/Company.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Company\:\:\$supplier_classification\.$#'
-			identifier: property.notFound
-			count: 3
-			path: app/Models/Company.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\Order\:\:\$placed_by_salesman_id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -1625,18 +1547,6 @@ parameters:
 			identifier: property.notFound
 			count: 2
 			path: app/Models/Product.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:isBuyer\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Models/User.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:isSupplier\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Models/User.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'

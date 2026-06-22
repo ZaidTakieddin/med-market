@@ -234,6 +234,12 @@ class OrderController extends BaseApiController
         }
 
         $buyerCompany = $user->company;
+
+        $supplierCompany = \App\Models\Company::find($request->supplier_company_id);
+        if ($buyerCompany && $supplierCompany && ! $this->pricingService->canBuyerSeeSupplier($supplierCompany, $buyerCompany)) {
+            return $this->error('This supplier is not available to your account', null, 403);
+        }
+
         $items = [];
         foreach ($request->items as $item) {
             $product = \App\Models\Product::findOrFail($item['product_id']);

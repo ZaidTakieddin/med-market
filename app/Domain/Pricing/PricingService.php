@@ -70,7 +70,7 @@ class PricingService
      * Resolve prices for multiple products at once (batch).
      * Optimizes by preloading price lists.
      *
-     * @param array<array{product: Product, quantity: int}> $items
+     * @param  array<array{product: Product, quantity: int}>  $items
      * @return array<int, PriceResult> Keyed by product ID
      */
     public function resolveMany(array $items, Company $buyerCompany): array
@@ -107,6 +107,7 @@ class PricingService
                     minQtyMet: $minQtyMet,
                     customPriceNote: $customResult['note'],
                 );
+
                 continue;
             }
 
@@ -122,6 +123,7 @@ class PricingService
                     wholesaleEligible: true,
                     minQtyMet: true,
                 );
+
                 continue;
             }
 
@@ -162,16 +164,23 @@ class PricingService
     }
 
     /**
-     * Check if a buyer can see this supplier's catalog.
-     * Wholesale-only suppliers are hidden from pharmacy buyers.
+     * Check if a buyer can see this supplier's catalog. Pharmacy buyers reach only
+     * retail + hybrid suppliers (wholesale-only hidden); salesman buyers reach only
+     * wholesale + hybrid suppliers (pure-retail hidden). Other buyers are unrestricted.
      */
     public function canBuyerSeeSupplier(Company $supplierCompany, Company $buyerCompany): bool
     {
-        if ($supplierCompany->supplier_classification === SupplierClassification::WHOLESALE) {
-            return $buyerCompany->buyer_classification !== BuyerClassification::PHARMACY;
+        $allowed = match ($buyerCompany->buyer_classification) {
+            BuyerClassification::PHARMACY => SupplierClassification::retailCapable(),
+            BuyerClassification::SALESMAN => SupplierClassification::wholesaleCapable(),
+            default => null,
+        };
+
+        if ($allowed === null) {
+            return true;
         }
 
-        return true;
+        return in_array($supplierCompany->supplier_classification, $allowed, true);
     }
 
     /**
@@ -247,7 +256,7 @@ class PricingService
      */
     private function applyProductDiscount(Product $product, float $price): float
     {
-        if (!$product->discount || !$product->discount_type) {
+        if (! $product->discount || ! $product->discount_type) {
             return $price;
         }
 
