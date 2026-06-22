@@ -20,7 +20,7 @@ class DashboardService
      *
      * @return array{
      *     kpis: list<array<string, mixed>>,
-     *     salesSeries: list<array{day: string, sales: int}>,
+     *     salesSeries: list<array{date: string, sales: int}>,
      *     topProducts: list<array{id: int, name: string, stock: int, price: float, totalSold: int}>,
      *     topBuyers: list<array{id: int, name: string, region: string|null, ordersCount: int, totalSpent: float}>
      * }
@@ -148,9 +148,10 @@ class DashboardService
 
     /**
      * Number of fulfilled (delivered) orders per day for the trailing $days window
-     * (zero-filled), oldest first.
+     * (zero-filled), oldest first. Each entry is keyed by its ISO date (Y-m-d) so
+     * the frontend can render a continuous date-ranged chart.
      *
-     * @return list<array{day: string, sales: int}>
+     * @return list<array{date: string, sales: int}>
      */
     private function salesSeries(?int $supplierCompanyId, int $days): array
     {
@@ -168,7 +169,7 @@ class DashboardService
             $date = $start->copy()->addDays($offset);
 
             $series[] = [
-                'day' => $date->format('D'),
+                'date' => $date->toDateString(),
                 'sales' => (int) ($countsByDay[$date->toDateString()] ?? 0),
             ];
         }

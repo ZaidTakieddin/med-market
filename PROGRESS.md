@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-19 (Added driver work/employment fields and delivery counts)
+> Last Updated: 2026-06-23 (Dashboard salesSeries now keyed by ISO date instead of weekday)
 
 ### Related Documentation
 
@@ -896,9 +896,9 @@ All 6 phases complete.
       stays thin (validate role → delegate → standardized response).
     - Response shaped to the agreed frontend contract: `kpis` (array of `DashboardKpi`:
       `id`, `title`, `value` as display string, `description`, optional `trend` with
-      `value`/`direction`/`tone`), `salesSeries` (`{ day, sales }` where `sales` is the
-      count of delivered orders that day, zero-filled, oldest first), plus `topProducts`
-      and `topBuyers`.
+      `value`/`direction`/`tone`), `salesSeries` (`{ date, sales }` where `date` is an
+      ISO date `Y-m-d` and `sales` is the count of delivered orders that day, zero-filled
+      across the full `days` range, oldest first), plus `topProducts` and `topBuyers`.
     - **Fulfilled-only**: `salesSeries` (delivered-order count per day, keyed by
       `delivered_at`), `topProducts` (units sold), and `topBuyers` (spend) count only
       `delivered` orders. Operational KPI counts reflect live states (pending, shipped,

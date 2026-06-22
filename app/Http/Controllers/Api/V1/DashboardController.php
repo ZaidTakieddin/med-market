@@ -59,9 +59,9 @@ class DashboardController extends BaseApiController
                                 new OA\Property(
                                     property: 'salesSeries',
                                     type: 'array',
-                                    description: 'Number of fulfilled (delivered) orders per day, oldest first, zero-filled.',
+                                    description: 'Number of fulfilled (delivered) orders per day for the trailing `days` window, oldest first, zero-filled. `date` is an ISO date (Y-m-d).',
                                     items: new OA\Items(type: 'object', properties: [
-                                        new OA\Property(property: 'day', type: 'string', example: 'Fri'),
+                                        new OA\Property(property: 'date', type: 'string', format: 'date', example: '2026-06-23'),
                                         new OA\Property(property: 'sales', type: 'integer', example: 8),
                                     ])
                                 ),

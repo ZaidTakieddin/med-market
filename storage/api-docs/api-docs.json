@@ -2504,13 +2504,14 @@
                                                     }
                                                 },
                                                 "salesSeries": {
-                                                    "description": "Number of fulfilled (delivered) orders per day, oldest first, zero-filled.",
+                                                    "description": "Number of fulfilled (delivered) orders per day for the trailing `days` window, oldest first, zero-filled. `date` is an ISO date (Y-m-d).",
                                                     "type": "array",
                                                     "items": {
                                                         "properties": {
-                                                            "day": {
+                                                            "date": {
                                                                 "type": "string",
-                                                                "example": "Fri"
+                                                                "format": "date",
+                                                                "example": "2026-06-23"
                                                             },
                                                             "sales": {
                                                                 "type": "integer",
