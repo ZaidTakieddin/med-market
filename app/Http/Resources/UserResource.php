@@ -30,6 +30,8 @@ class UserResource extends JsonResource
                 'employmentStartDate' => $this->employment_start_date?->toDateString(),
                 'employmentEndDate' => $this->employment_end_date?->toDateString(),
                 'driverStatus' => $this->driver_status,
+                'regionPlanType' => $this->region_plan_type,
+                'holidays' => $this->holidayWeekdays(),
                 'deliveredOrdersCount' => $this->when(
                     $this->delivered_orders_count !== null,
                     fn (): int => (int) $this->delivered_orders_count

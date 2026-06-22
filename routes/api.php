@@ -94,6 +94,8 @@ Route::prefix('v1')->group(function () {
         Route::get('drivers/{id}/orders', [App\Http\Controllers\Api\V1\DriverController::class, 'orders']);
         Route::get('drivers/{id}/regions', [App\Http\Controllers\Api\V1\DriverController::class, 'regions']);
         Route::post('drivers/{id}/regions', [App\Http\Controllers\Api\V1\DriverController::class, 'assignRegions']);
+        Route::post('drivers/{id}/region-plan', [App\Http\Controllers\Api\V1\DriverController::class, 'setRegionPlan']);
+        Route::put('drivers/{id}/holidays', [App\Http\Controllers\Api\V1\DriverController::class, 'setHolidays']);
         Route::delete('drivers/{id}/regions/{region_id}', [App\Http\Controllers\Api\V1\DriverController::class, 'removeRegion']);
 
         // Profile

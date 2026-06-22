@@ -16,6 +16,8 @@ use Laravel\Sanctum\HasApiTokens;
 /**
  * @property \Illuminate\Support\Carbon|null $employment_start_date
  * @property \Illuminate\Support\Carbon|null $employment_end_date
+ * @property string|null $region_plan_type
+ * @property list<string>|null $holidays
  * @property-read int|null $delivered_orders_count
  * @property-read int|null $total_orders_count
  */
@@ -41,6 +43,8 @@ class User extends Authenticatable
         'employment_start_date',
         'employment_end_date',
         'driver_status',
+        'region_plan_type',
+        'holidays',
     ];
 
     /**
@@ -65,6 +69,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'employment_start_date' => 'date',
             'employment_end_date' => 'date',
+            'holidays' => 'array',
         ];
     }
 
@@ -206,10 +211,14 @@ class User extends Authenticatable
 
     /**
      * Get regions assigned to this driver.
+     *
+     * The `day_of_week` pivot is null for fixed-plan rows (covered every day) and a
+     * weekday for daily-plan rows (one region per weekday).
      */
     public function driverRegions(): BelongsToMany
     {
         return $this->belongsToMany(Region::class, 'driver_regions', 'driver_id', 'region_id')
+            ->withPivot('day_of_week')
             ->withTimestamps();
     }
 
@@ -223,6 +232,24 @@ class User extends Authenticatable
         }
 
         return $this->driverRegions()->where('region_id', $regionId)->exists();
+    }
+
+    /**
+     * The weekdays this driver is off (from App\Constants\DayOfWeek).
+     *
+     * @return list<string>
+     */
+    public function holidayWeekdays(): array
+    {
+        return $this->holidays ?? [];
+    }
+
+    /**
+     * Check if a given weekday is one of the driver's holidays.
+     */
+    public function isHoliday(string $weekday): bool
+    {
+        return in_array($weekday, $this->holidayWeekdays(), true);
     }
 
     /**

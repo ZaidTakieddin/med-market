@@ -35,6 +35,7 @@ class OrderSeeder extends Seeder
 
         if ($buyers->isEmpty() || $suppliers->isEmpty() || $buyerUsers->isEmpty()) {
             $this->command->warn('لا توجد بيانات كافية. يرجى تشغيل CompanySeeder و UserSeeder أولاً.');
+
             return;
         }
 
@@ -54,25 +55,26 @@ class OrderSeeder extends Seeder
             ->where('is_active', true)
             ->limit(3)
             ->get()
-            ->map(fn($product) => $product->fresh());
+            ->map(fn ($product) => $product->fresh());
         $productsSupplier2 = Product::where('supplier_company_id', $supplier2->id)
             ->where('is_active', true)
             ->limit(2)
             ->get()
-            ->map(fn($product) => $product->fresh());
+            ->map(fn ($product) => $product->fresh());
         $productsSupplier3 = Product::where('supplier_company_id', $supplier3->id)
             ->where('is_active', true)
             ->limit(2)
             ->get()
-            ->map(fn($product) => $product->fresh());
+            ->map(fn ($product) => $product->fresh());
         $productsSupplier4 = Product::where('supplier_company_id', $supplier4->id)
             ->where('is_active', true)
             ->limit(2)
             ->get()
-            ->map(fn($product) => $product->fresh());
+            ->map(fn ($product) => $product->fresh());
 
         if ($productsSupplier1->isEmpty()) {
             $this->command->warn('لا توجد منتجات. يرجى تشغيل ProductSeeder أولاً.');
+
             return;
         }
 
@@ -218,7 +220,7 @@ class OrderSeeder extends Seeder
                         $extraFields['payment_due_date'] = now()->addDays(PaymentTerms::getDays($paymentMethod));
                     }
                 }
-                if (!empty($extraFields)) {
+                if (! empty($extraFields)) {
                     $order->update($extraFields);
                 }
 
@@ -259,10 +261,156 @@ class OrderSeeder extends Seeder
                 $this->command->info("تم إنشاء الطلب #{$orderNum} بنجاح: {$order->order_number}{$invoiceInfo}");
             } catch (\Exception $e) {
                 $orderNum = $index + 1;
-                $this->command->error("فشل إنشاء الطلب #{$orderNum}: " . $e->getMessage());
+                $this->command->error("فشل إنشاء الطلب #{$orderNum}: ".$e->getMessage());
             }
         }
 
+        $this->seedDashboardOrders($buyers, $suppliers, $buyerUsers);
+
         $this->command->info('تم إنشاء الطلبات بنجاح.');
+    }
+
+    /**
+     * Seed fulfilled (delivered) and in-transit (shipped) orders spread across the
+     * trailing week so the supplier dashboard (sales series, top products, top buyers,
+     * active shipments) has real numbers to display.
+     *
+     * @param  \Illuminate\Support\Collection<int, Company>  $buyers
+     * @param  \Illuminate\Support\Collection<int, Company>  $suppliers
+     * @param  \Illuminate\Support\Collection<int, User>  $buyerUsers
+     */
+    private function seedDashboardOrders($buyers, $suppliers, $buyerUsers): void
+    {
+        $buyerList = $buyers->values();
+        $pharmacistUsers = $buyerUsers->where('role', UserRole::BUYER)->values();
+
+        if ($buyerList->isEmpty() || $pharmacistUsers->isEmpty()) {
+            return;
+        }
+
+        // One representative active product per supplier (skip suppliers without stock).
+        $supplierProducts = [];
+        foreach ($suppliers as $supplier) {
+            $product = Product::where('supplier_company_id', $supplier->id)
+                ->where('is_active', true)
+                ->where('stock_quantity', '>', 0)
+                ->first();
+            if ($product) {
+                $supplierProducts[] = ['supplier' => $supplier, 'product' => $product];
+            }
+        }
+
+        if (empty($supplierProducts)) {
+            return;
+        }
+
+        $combo = count($supplierProducts);
+        $delivered = 0;
+
+        // Delivered orders: one or two per day across the last 7 days.
+        for ($daysAgo = 6; $daysAgo >= 0; $daysAgo--) {
+            $ordersToday = ($daysAgo % 2 === 0) ? 2 : 1;
+
+            for ($n = 0; $n < $ordersToday; $n++) {
+                $sp = $supplierProducts[($daysAgo + $n) % $combo];
+                $buyer = $buyerList[($daysAgo + $n) % $buyerList->count()];
+                $user = $pharmacistUsers[($daysAgo + $n) % $pharmacistUsers->count()];
+
+                $this->createTrackedOrder(
+                    buyer: $buyer,
+                    supplier: $sp['supplier'],
+                    user: $user,
+                    product: $sp['product'],
+                    quantity: 2 + (($daysAgo + $n) % 5),
+                    finalStatus: OrderStatus::DELIVERED,
+                    timestampDaysAgo: $daysAgo
+                );
+                $delivered++;
+            }
+        }
+
+        // A few active shipments (shipped, not yet delivered) within this week.
+        $shipped = 0;
+        for ($i = 0; $i < min(3, $combo); $i++) {
+            $sp = $supplierProducts[$i];
+            $this->createTrackedOrder(
+                buyer: $buyerList[$i % $buyerList->count()],
+                supplier: $sp['supplier'],
+                user: $pharmacistUsers[$i % $pharmacistUsers->count()],
+                product: $sp['product'],
+                quantity: 3,
+                finalStatus: OrderStatus::SHIPPED,
+                timestampDaysAgo: $i
+            );
+            $shipped++;
+        }
+
+        $this->command->info("تم إنشاء {$delivered} طلب مكتمل و {$shipped} شحنة نشطة للوحة التحكم.");
+    }
+
+    /**
+     * Create an order, advance it through the state machine to a target status, assign
+     * a driver, and backdate the relevant timestamp so it lands on a chosen day.
+     */
+    private function createTrackedOrder(
+        Company $buyer,
+        Company $supplier,
+        User $user,
+        Product $product,
+        int $quantity,
+        string $finalStatus,
+        int $timestampDaysAgo
+    ): void {
+        try {
+            $order = $this->orderCreationService->create(
+                buyerCompanyId: $buyer->id,
+                supplierCompanyId: $supplier->id,
+                createdBy: $user->id,
+                items: [[
+                    'product_id' => $product->id,
+                    'quantity' => $quantity,
+                    'unit_price' => (float) $product->price,
+                ]],
+                notes: 'طلب تجريبي للوحة التحكم',
+                taxRate: 15
+            );
+
+            $chain = [
+                OrderStatus::ACCEPTED,
+                OrderStatus::PREPARED,
+                OrderStatus::SHIPPED,
+                OrderStatus::DELIVERED,
+            ];
+
+            foreach ($chain as $status) {
+                $this->orderStateTransitionService->transition(
+                    order: $order,
+                    newStatus: $status,
+                    userId: $user->id,
+                    notes: 'Seeded transition'
+                );
+
+                if ($status === $finalStatus) {
+                    break;
+                }
+            }
+
+            $driver = User::where('role', UserRole::DRIVER)
+                ->where('company_id', $supplier->id)
+                ->first();
+
+            $when = now()->subDays($timestampDaysAgo)->setTime(12, 0);
+            $updates = ['driver_id' => $driver?->id];
+
+            if ($finalStatus === OrderStatus::DELIVERED) {
+                $updates['delivered_at'] = $when;
+            } elseif ($finalStatus === OrderStatus::SHIPPED) {
+                $updates['shipped_at'] = $when;
+            }
+
+            Order::where('id', $order->id)->update($updates);
+        } catch (\Throwable $e) {
+            $this->command->warn('تخطّي طلب لوحة التحكم: '.$e->getMessage());
+        }
     }
 }

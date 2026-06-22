@@ -2945,8 +2945,8 @@
                 "tags": [
                     "Drivers"
                 ],
-                "summary": "Get driver regions",
-                "description": "Get all regions assigned to a specific driver",
+                "summary": "Get driver region plan",
+                "description": "Get a driver's region plan: the plan type (fixed or daily), holiday weekdays, and either the fixed regions covered every day or the per-weekday schedule.",
                 "operationId": "50a573a817ba0e1aa05af573b9bf7032",
                 "parameters": [
                     {
@@ -2960,7 +2960,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Regions retrieved successfully"
+                        "description": "Region plan retrieved successfully"
                     },
                     "401": {
                         "description": "Unauthenticated"
@@ -2982,8 +2982,8 @@
                 "tags": [
                     "Drivers"
                 ],
-                "summary": "Assign regions to driver",
-                "description": "Assign regions to a driver. This replaces all existing region assignments. Only suppliers can assign regions to their own drivers.",
+                "summary": "Assign regions to driver (fixed plan)",
+                "description": "Assign regions to a driver as a fixed plan (covered every day). This replaces all existing region assignments and sets the plan type to fixed. Prefer POST /drivers/{id}/region-plan for daily plans. Only suppliers can assign regions to their own drivers.",
                 "operationId": "8bbe35967b255004dc487519ebf07238",
                 "parameters": [
                     {
@@ -3025,6 +3025,171 @@
                 "responses": {
                     "200": {
                         "description": "Regions assigned successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Driver not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/drivers/{id}/region-plan": {
+            "post": {
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "Set driver region plan",
+                "description": "Set a driver's region plan. For a `fixed` plan provide `region_ids` (one or more regions covered every day). For a `daily` plan provide `schedule`, a map of weekday to region id (one region per weekday). Weekdays marked as the driver's holidays cannot be assigned a region. Replaces any existing assignment. Only suppliers can manage their own drivers.",
+                "operationId": "fdfa28ddb68e6c463eb4213dd5694c48",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "plan_type"
+                                ],
+                                "properties": {
+                                    "plan_type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "fixed",
+                                            "daily"
+                                        ],
+                                        "example": "daily"
+                                    },
+                                    "region_ids": {
+                                        "description": "Required for a fixed plan. Regions covered every day.",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            1,
+                                            2,
+                                            3
+                                        ]
+                                    },
+                                    "schedule": {
+                                        "description": "Required for a daily plan. Map of weekday (saturday..friday) to region id.",
+                                        "type": "object",
+                                        "example": {
+                                            "saturday": 1,
+                                            "sunday": 2,
+                                            "monday": 3
+                                        },
+                                        "additionalProperties": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Region plan saved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Driver not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/drivers/{id}/holidays": {
+            "put": {
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "Set driver holidays",
+                "description": "Set the weekdays a driver is off. A holiday weekday cannot be assigned a region in a daily plan; any region already assigned to a newly added holiday weekday is removed automatically. Pass an empty array to clear all holidays. Only suppliers can manage their own drivers.",
+                "operationId": "d7524df7d6d7defb1d60adbeeffb903c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "holidays"
+                                ],
+                                "properties": {
+                                    "holidays": {
+                                        "description": "Weekdays the driver is off.",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "enum": [
+                                                "saturday",
+                                                "sunday",
+                                                "monday",
+                                                "tuesday",
+                                                "wednesday",
+                                                "thursday",
+                                                "friday"
+                                            ]
+                                        },
+                                        "example": [
+                                            "friday"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Holidays saved successfully"
                     },
                     "401": {
                         "description": "Unauthenticated"

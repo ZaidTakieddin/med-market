@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-23 (Dashboard salesSeries now keyed by ISO date instead of weekday)
+> Last Updated: 2026-06-23 (Driver region plans (fixed/daily) + holidays; seed delivered/shipped orders to populate dashboard)
 
 ### Related Documentation
 
@@ -889,6 +889,30 @@ All 6 phases complete.
 -   `App\Domain\Users\UserRole` duplicates `App\Constants\UserRole` — should consolidate to single source
 
 ### Recent Improvements
+
+-   **Driver region plans, holidays & dashboard seed data (2026-06-23)**:
+    - Drivers now have a **region plan**: `fixed` (one or more regions covered every day)
+      or `daily` (one region per weekday — a weekly schedule). New constants
+      `App\Constants\RegionPlanType` and `App\Constants\DayOfWeek`. New columns
+      `users.region_plan_type` (default `fixed`) and `users.holidays` (JSON weekday array).
+    - The `driver_regions` pivot gained a nullable `day_of_week`; unique constraint changed
+      from `(driver_id, region_id)` to `(driver_id, day_of_week)` so each weekday holds one
+      region while fixed rows (null weekday) stay unconstrained.
+    - **Holidays** are weekdays the driver is off. A holiday weekday cannot be assigned a
+      region in a daily plan; adding a holiday auto-removes any region on that weekday. All
+      plan/holiday logic lives in `App\Domain\Deliveries\DriverRegionPlanService` (thin
+      controller). New endpoints: `POST /drivers/{id}/region-plan`, `PUT /drivers/{id}/holidays`;
+      `GET /drivers/{id}/regions` now returns the structured plan; `POST /drivers/{id}/regions`
+      kept as a fixed-plan shortcut. `UserResource` exposes `regionPlanType` + `holidays`.
+    - **Migrations** for `users` use `$withinTransaction = false` (Neon's pooled endpoint
+      aborts DDL inside a transaction with SQLSTATE 25P02). With the unpooled host blocked
+      (VPN), the pooled connection works once DDL is un-transacted.
+    - **Seeders**: `UserSeeder` now fills every driver's work/employment fields and assigns
+      sample region plans (fixed + daily) with holidays. `OrderSeeder` seeds **delivered**
+      orders spread across the trailing 7 days plus a few **shipped** orders — this fixes the
+      previously empty dashboard, whose sales series / top products / top buyers / active
+      shipments only count `delivered`/`shipped` orders (the old seeder created only
+      pending/accepted orders, so every metric was zero).
 
 -   **Dashboard analytics endpoint (2026-06-19)**:
     - Added `GET /api/v1/dashboard` for the supplier home-page dashboard. New domain

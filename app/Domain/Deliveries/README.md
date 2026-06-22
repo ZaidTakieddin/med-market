@@ -62,6 +62,41 @@ Drivers carry additional profile fields on the `users` table:
 - `employment_end_date` — driver's last day at work (DATE, nullable)
 - `driver_status` — availability status, one of `App\Constants\DriverStatus`
   (`available`, `on_delivery`, `off`); defaults to `available`
+- `region_plan_type` — `App\Constants\RegionPlanType` (`fixed` | `daily`); defaults to `fixed`
+- `holidays` — JSON array of weekday names (`App\Constants\DayOfWeek`) the driver is off
+
+### Driver Region Plans (fixed vs daily) & Holidays
+
+A driver's region coverage is a **plan**, managed by
+`App\Domain\Deliveries\DriverRegionPlanService` (controllers stay thin and delegate):
+
+- **Fixed plan** (`region_plan_type = fixed`): the driver covers one or more regions
+  **every working day**. Stored in `driver_regions` with `day_of_week = null`.
+- **Daily plan** (`region_plan_type = daily`): the driver covers a **different region per
+  weekday** (a weekly schedule). Stored in `driver_regions`, one row per weekday with
+  `day_of_week` set. At most one region per weekday (`unique(driver_id, day_of_week)`).
+- **Holidays** are weekdays the driver is off (`users.holidays`). A holiday weekday
+  **cannot be assigned a region** in a daily plan; setting a weekday as a holiday
+  automatically removes any region already assigned to it. Setting holidays uses the
+  service so this invariant always holds.
+
+The `driver_regions` pivot gained a nullable `day_of_week` column. The old
+`unique(driver_id, region_id)` was replaced with `unique(driver_id, day_of_week)`
+(Postgres treats NULLs as distinct, so fixed-plan rows stay unconstrained).
+
+**Endpoints** (suppliers manage their own drivers; admins manage all):
+
+- `GET /drivers/{id}/regions` — returns the plan: `{ planType, holidays, regions }`
+  (fixed) or `{ planType, holidays, schedule }` (daily; `schedule` maps each weekday to
+  a region or null).
+- `POST /drivers/{id}/region-plan` — set the plan. Fixed: `{ plan_type: "fixed",
+  region_ids: [...] }`. Daily: `{ plan_type: "daily", schedule: { saturday: 1, ... } }`.
+  Assigning a holiday weekday is rejected (422).
+- `PUT /drivers/{id}/holidays` — set holiday weekdays (`{ holidays: ["friday"] }`; empty
+  array clears them).
+- `POST /drivers/{id}/regions` — backward-compatible shortcut that sets a **fixed** plan
+  from `region_ids`.
+- `DELETE /drivers/{id}/regions/{region_id}` — detach a single region.
 
 Two delivery counts are **computed live** (never stored) and surfaced on
 `UserResource` for drivers via `withCount`/`loadCount` in `DriverController`:

@@ -8,6 +8,14 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Indicate if the migration should be run within a transaction.
+     *
+     * Neon's pooled endpoint aborts DDL issued inside a transaction (SQLSTATE 25P02),
+     * so each statement must run un-transacted.
+     */
+    public $withinTransaction = false;
+
+    /**
      * Run the migrations.
      */
     public function up(): void

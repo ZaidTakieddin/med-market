@@ -4,8 +4,12 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Constants\DriverStatus;
 use App\Constants\OrderStatus;
+use App\Constants\RegionPlanType;
+use App\Domain\Deliveries\DriverRegionPlanService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Drivers\CreateDriverRequest;
+use App\Http\Requests\Drivers\SetDriverHolidaysRequest;
+use App\Http\Requests\Drivers\SetDriverRegionPlanRequest;
 use App\Http\Requests\Drivers\UpdateDriverRequest;
 use App\Http\Resources\OrderResource;
 use App\Http\Resources\RegionResource;
@@ -23,6 +27,10 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Drivers', description: 'Driver management endpoints')]
 class DriverController extends BaseApiController
 {
+    public function __construct(
+        private DriverRegionPlanService $regionPlanService
+    ) {}
+
     /**
      * List drivers.
      */
@@ -368,19 +376,19 @@ class DriverController extends BaseApiController
     }
 
     /**
-     * Get driver's assigned regions.
+     * Get driver's region plan.
      */
     #[OA\Get(
         path: '/drivers/{id}/regions',
-        summary: 'Get driver regions',
-        description: 'Get all regions assigned to a specific driver',
+        summary: 'Get driver region plan',
+        description: 'Get a driver\'s region plan: the plan type (fixed or daily), holiday weekdays, and either the fixed regions covered every day or the per-weekday schedule.',
         tags: ['Drivers'],
         security: [['sanctum' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Regions retrieved successfully'),
+            new OA\Response(response: 200, description: 'Region plan retrieved successfully'),
             new OA\Response(response: 401, description: 'Unauthenticated'),
             new OA\Response(response: 403, description: 'Forbidden'),
             new OA\Response(response: 404, description: 'Driver not found'),
@@ -397,11 +405,9 @@ class DriverController extends BaseApiController
                 return $this->error('Unauthorized', null, 403);
             }
 
-            $regions = $driver->driverRegions()->with('city')->get();
-
             return $this->success(
-                RegionResource::collection($regions),
-                'Driver regions retrieved successfully'
+                $this->buildPlanResponse($driver),
+                'Driver region plan retrieved successfully'
             );
         } catch (\Exception $e) {
             Log::error('Get driver regions error', [
@@ -409,17 +415,157 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve driver regions: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve driver region plan: '.$e->getMessage(), null, 500);
         }
     }
 
     /**
-     * Assign regions to driver.
+     * Set a driver's region plan (fixed or daily).
+     */
+    #[OA\Post(
+        path: '/drivers/{id}/region-plan',
+        summary: 'Set driver region plan',
+        description: 'Set a driver\'s region plan. For a `fixed` plan provide `region_ids` (one or more regions covered every day). For a `daily` plan provide `schedule`, a map of weekday to region id (one region per weekday). Weekdays marked as the driver\'s holidays cannot be assigned a region. Replaces any existing assignment. Only suppliers can manage their own drivers.',
+        tags: ['Drivers'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['plan_type'],
+                properties: [
+                    new OA\Property(property: 'plan_type', type: 'string', enum: ['fixed', 'daily'], example: 'daily'),
+                    new OA\Property(
+                        property: 'region_ids',
+                        type: 'array',
+                        items: new OA\Items(type: 'integer'),
+                        example: [1, 2, 3],
+                        description: 'Required for a fixed plan. Regions covered every day.'
+                    ),
+                    new OA\Property(
+                        property: 'schedule',
+                        type: 'object',
+                        example: ['saturday' => 1, 'sunday' => 2, 'monday' => 3],
+                        description: 'Required for a daily plan. Map of weekday (saturday..friday) to region id.',
+                        additionalProperties: new OA\AdditionalProperties(type: 'integer')
+                    ),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Region plan saved successfully'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 404, description: 'Driver not found'),
+            new OA\Response(response: 422, description: 'Validation error'),
+        ]
+    )]
+    public function setRegionPlan(SetDriverRegionPlanRequest $request, int $id): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            $driver = User::where('role', 'driver')->findOrFail($id);
+
+            if ($denied = $this->denyUnlessManages($user, $driver, 'manage region plans for')) {
+                return $denied;
+            }
+
+            $validated = $request->validated();
+
+            if ($validated['plan_type'] === RegionPlanType::FIXED) {
+                $driver = $this->regionPlanService->setFixedPlan($driver, $validated['region_ids']);
+            } else {
+                $driver = $this->regionPlanService->setDailyPlan($driver, $validated['schedule']);
+            }
+
+            return $this->success(
+                $this->buildPlanResponse($driver),
+                'Region plan saved successfully'
+            );
+        } catch (\InvalidArgumentException $e) {
+            return $this->error($e->getMessage(), null, 422);
+        } catch (\Exception $e) {
+            Log::error('Set driver region plan error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return $this->error('Failed to save region plan: '.$e->getMessage(), null, 500);
+        }
+    }
+
+    /**
+     * Set a driver's holiday weekdays.
+     */
+    #[OA\Put(
+        path: '/drivers/{id}/holidays',
+        summary: 'Set driver holidays',
+        description: 'Set the weekdays a driver is off. A holiday weekday cannot be assigned a region in a daily plan; any region already assigned to a newly added holiday weekday is removed automatically. Pass an empty array to clear all holidays. Only suppliers can manage their own drivers.',
+        tags: ['Drivers'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['holidays'],
+                properties: [
+                    new OA\Property(
+                        property: 'holidays',
+                        type: 'array',
+                        items: new OA\Items(type: 'string', enum: ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday']),
+                        example: ['friday'],
+                        description: 'Weekdays the driver is off.'
+                    ),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Holidays saved successfully'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 404, description: 'Driver not found'),
+            new OA\Response(response: 422, description: 'Validation error'),
+        ]
+    )]
+    public function setHolidays(SetDriverHolidaysRequest $request, int $id): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            $driver = User::where('role', 'driver')->findOrFail($id);
+
+            if ($denied = $this->denyUnlessManages($user, $driver, 'manage holidays for')) {
+                return $denied;
+            }
+
+            $driver = $this->regionPlanService->setHolidays($driver, $request->validated()['holidays']);
+
+            return $this->success(
+                $this->buildPlanResponse($driver),
+                'Holidays saved successfully'
+            );
+        } catch (\InvalidArgumentException $e) {
+            return $this->error($e->getMessage(), null, 422);
+        } catch (\Exception $e) {
+            Log::error('Set driver holidays error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return $this->error('Failed to save holidays: '.$e->getMessage(), null, 500);
+        }
+    }
+
+    /**
+     * Assign a fixed region plan to a driver (backward-compatible shortcut).
      */
     #[OA\Post(
         path: '/drivers/{id}/regions',
-        summary: 'Assign regions to driver',
-        description: 'Assign regions to a driver. This replaces all existing region assignments. Only suppliers can assign regions to their own drivers.',
+        summary: 'Assign regions to driver (fixed plan)',
+        description: 'Assign regions to a driver as a fixed plan (covered every day). This replaces all existing region assignments and sets the plan type to fixed. Prefer POST /drivers/{id}/region-plan for daily plans. Only suppliers can assign regions to their own drivers.',
         tags: ['Drivers'],
         security: [['sanctum' => []]],
         parameters: [
@@ -454,28 +600,19 @@ class DriverController extends BaseApiController
             $user = auth()->user();
             $driver = User::where('role', 'driver')->findOrFail($id);
 
-            // Only suppliers can assign regions to their drivers
-            if (! $user->isSupplier() && ! $user->isAdmin()) {
-                return $this->error('Only suppliers can assign regions to drivers', null, 403);
+            if ($denied = $this->denyUnlessManages($user, $driver, 'assign regions to')) {
+                return $denied;
             }
 
-            // Verify driver belongs to supplier's company
-            if ($driver->company_id !== $user->company_id && ! $user->isAdmin()) {
-                return $this->error('You can only assign regions to your own drivers', null, 403);
-            }
-
-            $request->validate([
+            $validated = $request->validate([
                 'region_ids' => ['required', 'array'],
                 'region_ids.*' => ['integer', 'exists:regions,id'],
             ]);
 
-            // Sync regions (replace all existing assignments)
-            $driver->driverRegions()->sync($request->region_ids);
-
-            $regions = $driver->driverRegions()->with('city')->get();
+            $driver = $this->regionPlanService->setFixedPlan($driver, $validated['region_ids']);
 
             return $this->success(
-                RegionResource::collection($regions),
+                $this->buildPlanResponse($driver),
                 'Regions assigned successfully'
             );
         } catch (\Exception $e) {
@@ -562,5 +699,49 @@ class DriverController extends BaseApiController
             'driverOrders as total_orders_count',
             'driverOrders as delivered_orders_count' => fn (Builder $query): Builder => $query->where('status', OrderStatus::DELIVERED),
         ];
+    }
+
+    /**
+     * Guard a driver-management action: only suppliers (for their own drivers) and
+     * admins may proceed. Returns an error response when denied, otherwise null.
+     */
+    private function denyUnlessManages(User $user, User $driver, string $verb): ?JsonResponse
+    {
+        if (! $user->isSupplier() && ! $user->isAdmin()) {
+            return $this->error("Only suppliers can {$verb} drivers", null, 403);
+        }
+
+        if (! $user->isAdmin() && $driver->company_id !== $user->company_id) {
+            return $this->error("You can only {$verb} your own drivers", null, 403);
+        }
+
+        return null;
+    }
+
+    /**
+     * Shape a driver's region plan for the API: plan type, holidays, and either the
+     * fixed regions or the per-weekday schedule.
+     *
+     * @return array<string, mixed>
+     */
+    private function buildPlanResponse(User $driver): array
+    {
+        $plan = $this->regionPlanService->getPlan($driver);
+
+        $response = [
+            'planType' => $plan['planType'],
+            'holidays' => $plan['holidays'],
+        ];
+
+        if ($plan['planType'] === RegionPlanType::DAILY) {
+            $response['schedule'] = array_map(
+                fn ($region) => $region !== null ? new RegionResource($region) : null,
+                $plan['schedule']
+            );
+        } else {
+            $response['regions'] = RegionResource::collection($plan['regions']);
+        }
+
+        return $response;
     }
 }
