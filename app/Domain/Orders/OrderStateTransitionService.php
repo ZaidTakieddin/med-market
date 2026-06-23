@@ -3,6 +3,8 @@
 namespace App\Domain\Orders;
 
 use App\Constants\OrderStatus;
+use App\Constants\PaymentTerms;
+use App\Domain\Companies\CreditService;
 use App\Domain\Inventory\StockMovementService;
 use App\Jobs\GenerateInvoiceJob;
 use App\Jobs\SendOrderNotificationJob;
@@ -15,7 +17,8 @@ use Illuminate\Support\Facades\Log;
 class OrderStateTransitionService
 {
     public function __construct(
-        private StockMovementService $stockMovementService
+        private StockMovementService $stockMovementService,
+        private CreditService $creditService
     ) {}
 
     /**
@@ -25,11 +28,11 @@ class OrderStateTransitionService
      */
     public function transition(Order $order, string $newStatus, ?int $userId = null, ?string $notes = null): Order
     {
-        if (!OrderStatus::isValid($newStatus)) {
+        if (! OrderStatus::isValid($newStatus)) {
             throw new \InvalidArgumentException("Invalid order state: {$newStatus}");
         }
 
-        if (!$order->canTransitionTo($newStatus)) {
+        if (! $order->canTransitionTo($newStatus)) {
             throw new \InvalidArgumentException(
                 "Cannot transition order from {$order->status} to {$newStatus}"
             );
@@ -40,6 +43,9 @@ class OrderStateTransitionService
 
             // Handle stock operations based on status transitions
             $this->handleStockOperations($order, $oldStatus, $newStatus, $userId);
+
+            // Release reserved trade credit when a net-term order is cancelled.
+            $this->handleCreditRelease($order, $newStatus);
 
             // Update order status and timestamp
             $order->status = $newStatus;
@@ -82,7 +88,7 @@ class OrderStateTransitionService
     private function handleStockOperations(Order $order, string $oldStatus, string $newStatus, ?int $userId): void
     {
         // Load order items with products if not already loaded
-        if (!$order->relationLoaded('items')) {
+        if (! $order->relationLoaded('items')) {
             $order->load('items.product');
         }
 
@@ -116,12 +122,13 @@ class OrderStateTransitionService
         foreach ($order->items as $item) {
             $product = Product::find($item->product_id);
 
-            if (!$product) {
+            if (! $product) {
                 Log::warning('Order item has no product', [
                     'order_id' => $order->id,
                     'order_item_id' => $item->id,
                     'product_id' => $item->product_id,
                 ]);
+
                 continue;
             }
 
@@ -153,7 +160,7 @@ class OrderStateTransitionService
         foreach ($order->items as $item) {
             $product = $item->product;
 
-            if (!$product) {
+            if (! $product) {
                 continue;
             }
 
@@ -178,6 +185,26 @@ class OrderStateTransitionService
     }
 
     /**
+     * Release reserved buyer-supplier credit when a net-term order is cancelled.
+     */
+    private function handleCreditRelease(Order $order, string $newStatus): void
+    {
+        if ($newStatus !== OrderStatus::CANCELLED) {
+            return;
+        }
+
+        if (! $order->payment_method || $order->payment_method === PaymentTerms::CASH) {
+            return;
+        }
+
+        $this->creditService->release(
+            $order->buyer_company_id,
+            $order->supplier_company_id,
+            (float) $order->total_amount,
+        );
+    }
+
+    /**
      * Update the appropriate timestamp field based on status.
      */
     private function updateStatusTimestamp(Order $order, string $status): void
@@ -192,4 +219,3 @@ class OrderStateTransitionService
         };
     }
 }
-

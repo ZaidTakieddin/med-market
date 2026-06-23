@@ -44,7 +44,7 @@ class BuyerSupplierRelationship extends Model
      */
     public function hasCreditAvailable(float $amount): bool
     {
-        if (!$this->is_approved) {
+        if (! $this->is_approved) {
             return false;
         }
 
@@ -66,7 +66,7 @@ class BuyerSupplierRelationship extends Model
     /**
      * Calculate the payment due date from a given order date.
      */
-    public function calculateDueDate(\DateTimeInterface $orderDate): ?\DateTimeInterface
+    public function calculateDueDate(\DateTimeInterface $orderDate): ?\Carbon\Carbon
     {
         $days = $this->getPaymentDays();
         if ($days === 0) {

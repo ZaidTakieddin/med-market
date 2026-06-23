@@ -268,31 +268,15 @@ class OrderController extends BaseApiController
             createdBy: $user->id,
             items: $items,
             notes: $request->notes,
-            taxRate: $request->tax_rate ?? 0
+            taxRate: $request->tax_rate ?? 0,
+            paymentMethod: $request->payment_method,
         );
 
-        $updateData = [];
-        if ($request->payment_method) {
-            $updateData['payment_method'] = $request->payment_method;
-        }
-        if ($user->isSalesman() && $request->placed_by_salesman_id) {
-            $updateData['placed_by_salesman_id'] = $request->placed_by_salesman_id;
-        } elseif ($user->isSalesman()) {
-            $updateData['placed_by_salesman_id'] = $user->id;
-        }
-        if (! empty($updateData)) {
-            $order->update($updateData);
-
-            if (($updateData['payment_method'] ?? null) && $updateData['payment_method'] !== 'cash') {
-                $relationship = \App\Models\BuyerSupplierRelationship::where('buyer_company_id', $user->company_id)
-                    ->where('supplier_company_id', $request->supplier_company_id)
-                    ->where('is_approved', true)
-                    ->first();
-
-                if ($relationship) {
-                    $order->update(['payment_due_date' => $relationship->calculateDueDate(now())]);
-                }
-            }
+        // Salesman attribution. Payment terms + credit reservation are handled inside
+        // OrderCreationService (transactional, with credit-limit enforcement).
+        if ($user->isSalesman()) {
+            $order->placed_by_salesman_id = $request->placed_by_salesman_id ?: $user->id;
+            $order->save();
         }
 
         return $this->success(
