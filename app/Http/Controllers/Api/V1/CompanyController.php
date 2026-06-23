@@ -10,7 +10,6 @@ use App\Http\Resources\CompanyResource;
 use App\Models\Company;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Companies', description: 'Company management endpoints')]
@@ -43,85 +42,76 @@ class CompanyController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
-        try {
-            $query = Company::with(['categories', 'manufacturers'])
-                ->visibleTo(auth()->user());
+        $query = Company::with(['categories', 'manufacturers'])
+            ->visibleTo(auth()->user());
 
-            if ($request->has('type')) {
-                $query->where('type', $request->type);
-            }
-
-            if ($request->has('is_active')) {
-                $query->where('is_active', $request->boolean('is_active'));
-            }
-
-            // Filter suppliers by pricing capability (capability-based, not exact match):
-            // "wholesale" => wholesale + hybrid, "retail" => retail + hybrid, "hybrid" => hybrid only.
-            if ($request->filled('supplier_classification')) {
-                $classification = $request->supplier_classification;
-
-                if ($classification === SupplierClassification::WHOLESALE) {
-                    $query->whereIn('supplier_classification', SupplierClassification::wholesaleCapable());
-                } elseif ($classification === SupplierClassification::RETAIL) {
-                    $query->whereIn('supplier_classification', SupplierClassification::retailCapable());
-                } else {
-                    $query->where('supplier_classification', $classification);
-                }
-            }
-
-            // Filter by category_id (for suppliers)
-            if ($request->has('category_id')) {
-                $query->whereHas('categories', function ($q) use ($request) {
-                    $q->where('categories.id', $request->category_id);
-                });
-            }
-
-            // Filter by manufacturer_id (for suppliers)
-            if ($request->has('manufacturer_id')) {
-                $query->whereHas('manufacturers', function ($q) use ($request) {
-                    $q->where('manufacturers.id', $request->manufacturer_id);
-                });
-            }
-
-            // Search functionality
-            if ($request->has('search')) {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'ilike', "%{$search}%")
-                        ->orWhere('email', 'ilike', "%{$search}%")
-                        ->orWhereHas('categories', function ($categoryQuery) use ($search) {
-                            $categoryQuery->where('categories.name', 'ilike', "%{$search}%");
-                        })
-                        ->orWhereHas('manufacturers', function ($manufacturerQuery) use ($search) {
-                            $manufacturerQuery->where('manufacturers.name', 'ilike', "%{$search}%");
-                        });
-                });
-            }
-
-            [$companies, $pagination] = $this->paginateOrAll($query->latest(), $request);
-
-            // Ensure relationships are loaded even after whereHas filters
-            $companies->load(['categories', 'manufacturers']);
-
-            $additional = [
-                'success' => true,
-                'message' => 'Companies retrieved successfully',
-            ];
-            if ($pagination !== null) {
-                $additional['pagination'] = $pagination;
-            }
-
-            return CompanyResource::collection($companies)
-                ->additional($additional)
-                ->response();
-        } catch (\Exception $e) {
-            Log::error('Company list error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to retrieve companies: '.$e->getMessage(), null, 500);
+        if ($request->has('type')) {
+            $query->where('type', $request->type);
         }
+
+        if ($request->has('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        // Filter suppliers by pricing capability (capability-based, not exact match):
+        // "wholesale" => wholesale + hybrid, "retail" => retail + hybrid, "hybrid" => hybrid only.
+        if ($request->filled('supplier_classification')) {
+            $classification = $request->supplier_classification;
+
+            if ($classification === SupplierClassification::WHOLESALE) {
+                $query->whereIn('supplier_classification', SupplierClassification::wholesaleCapable());
+            } elseif ($classification === SupplierClassification::RETAIL) {
+                $query->whereIn('supplier_classification', SupplierClassification::retailCapable());
+            } else {
+                $query->where('supplier_classification', $classification);
+            }
+        }
+
+        // Filter by category_id (for suppliers)
+        if ($request->has('category_id')) {
+            $query->whereHas('categories', function ($q) use ($request) {
+                $q->where('categories.id', $request->category_id);
+            });
+        }
+
+        // Filter by manufacturer_id (for suppliers)
+        if ($request->has('manufacturer_id')) {
+            $query->whereHas('manufacturers', function ($q) use ($request) {
+                $q->where('manufacturers.id', $request->manufacturer_id);
+            });
+        }
+
+        // Search functionality
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'ilike', "%{$search}%")
+                    ->orWhere('email', 'ilike', "%{$search}%")
+                    ->orWhereHas('categories', function ($categoryQuery) use ($search) {
+                        $categoryQuery->where('categories.name', 'ilike', "%{$search}%");
+                    })
+                    ->orWhereHas('manufacturers', function ($manufacturerQuery) use ($search) {
+                        $manufacturerQuery->where('manufacturers.name', 'ilike', "%{$search}%");
+                    });
+            });
+        }
+
+        [$companies, $pagination] = $this->paginateOrAll($query->latest(), $request);
+
+        // Ensure relationships are loaded even after whereHas filters
+        $companies->load(['categories', 'manufacturers']);
+
+        $additional = [
+            'success' => true,
+            'message' => 'Companies retrieved successfully',
+        ];
+        if ($pagination !== null) {
+            $additional['pagination'] = $pagination;
+        }
+
+        return CompanyResource::collection($companies)
+            ->additional($additional)
+            ->response();
     }
 
     /**
