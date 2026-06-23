@@ -24,46 +24,9 @@ class PricingService
     {
         $supplierCompany = $product->supplierCompany ?? Company::find($product->supplier_company_id);
         $wholesaleEligible = $this->isWholesaleEligible($supplierCompany, $buyerCompany);
-        $minQtyMet = $product->qualifiesForWholesale($quantity);
-
         $customResult = $this->checkCustomPriceList($product, $supplierCompany, $buyerCompany, $quantity);
-        if ($customResult !== null) {
-            return new PriceResult(
-                unitPrice: $customResult['price'],
-                originalPrice: $customResult['price'],
-                pricingType: PricingType::CUSTOM,
-                discountAmount: 0,
-                wholesaleEligible: $wholesaleEligible,
-                minQtyMet: $minQtyMet,
-                customPriceNote: $customResult['note'],
-            );
-        }
 
-        if ($wholesaleEligible && $minQtyMet && $product->getEffectiveWholesalePrice() !== null) {
-            $wholesalePrice = $product->getEffectiveWholesalePrice();
-
-            return new PriceResult(
-                unitPrice: $wholesalePrice,
-                originalPrice: $wholesalePrice,
-                pricingType: PricingType::WHOLESALE,
-                discountAmount: 0,
-                wholesaleEligible: true,
-                minQtyMet: true,
-            );
-        }
-
-        $originalPrice = $product->getEffectivePharmacistPrice();
-        $finalPrice = $this->applyProductDiscount($product, $originalPrice);
-        $discountAmount = $originalPrice - $finalPrice;
-
-        return new PriceResult(
-            unitPrice: $finalPrice,
-            originalPrice: $originalPrice,
-            pricingType: PricingType::RETAIL,
-            discountAmount: $discountAmount,
-            wholesaleEligible: $wholesaleEligible,
-            minQtyMet: $minQtyMet,
-        );
+        return $this->buildPriceResult($product, $quantity, $wholesaleEligible, $customResult);
     }
 
     /**
@@ -93,54 +56,62 @@ class PricingService
             $quantity = $item['quantity'];
             $supplierCompany = $product->supplierCompany ?? Company::find($product->supplier_company_id);
             $wholesaleEligible = $this->isWholesaleEligible($supplierCompany, $buyerCompany);
-            $minQtyMet = $product->qualifiesForWholesale($quantity);
+            $customResult = $this->findBestCustomPrice($customPrices->get($product->id), $quantity);
 
-            $productCustomPrices = $customPrices->get($product->id);
-            $customResult = $this->findBestCustomPrice($productCustomPrices, $quantity);
-            if ($customResult !== null) {
-                $results[$product->id] = new PriceResult(
-                    unitPrice: $customResult['price'],
-                    originalPrice: $customResult['price'],
-                    pricingType: PricingType::CUSTOM,
-                    discountAmount: 0,
-                    wholesaleEligible: $wholesaleEligible,
-                    minQtyMet: $minQtyMet,
-                    customPriceNote: $customResult['note'],
-                );
-
-                continue;
-            }
-
-            if ($wholesaleEligible && $minQtyMet && $product->getEffectiveWholesalePrice() !== null) {
-                $originalPrice = $product->getEffectiveWholesalePrice();
-                $finalPrice = $this->applyProductDiscount($product, $originalPrice);
-
-                $results[$product->id] = new PriceResult(
-                    unitPrice: $finalPrice,
-                    originalPrice: $originalPrice,
-                    pricingType: PricingType::WHOLESALE,
-                    discountAmount: $originalPrice - $finalPrice,
-                    wholesaleEligible: true,
-                    minQtyMet: true,
-                );
-
-                continue;
-            }
-
-            $originalPrice = $product->getEffectivePharmacistPrice();
-            $finalPrice = $this->applyProductDiscount($product, $originalPrice);
-
-            $results[$product->id] = new PriceResult(
-                unitPrice: $finalPrice,
-                originalPrice: $originalPrice,
-                pricingType: PricingType::RETAIL,
-                discountAmount: $originalPrice - $finalPrice,
-                wholesaleEligible: $wholesaleEligible,
-                minQtyMet: $minQtyMet,
-            );
+            $results[$product->id] = $this->buildPriceResult($product, $quantity, $wholesaleEligible, $customResult);
         }
 
         return $results;
+    }
+
+    /**
+     * Build the PriceResult for a product given precomputed buyer context. Resolution
+     * order: custom price list -> wholesale tier (NO product discount) -> retail
+     * (pharmacist price with product discount). Shared by resolve() and resolveMany()
+     * so single-item and batch pricing are always identical.
+     *
+     * @param  array{price: float, note: string|null}|null  $customResult
+     */
+    private function buildPriceResult(Product $product, int $quantity, bool $wholesaleEligible, ?array $customResult): PriceResult
+    {
+        $minQtyMet = $product->qualifiesForWholesale($quantity);
+
+        if ($customResult !== null) {
+            return new PriceResult(
+                unitPrice: $customResult['price'],
+                originalPrice: $customResult['price'],
+                pricingType: PricingType::CUSTOM,
+                discountAmount: 0,
+                wholesaleEligible: $wholesaleEligible,
+                minQtyMet: $minQtyMet,
+                customPriceNote: $customResult['note'],
+            );
+        }
+
+        if ($wholesaleEligible && $minQtyMet && $product->getEffectiveWholesalePrice() !== null) {
+            $wholesalePrice = $product->getEffectiveWholesalePrice();
+
+            return new PriceResult(
+                unitPrice: $wholesalePrice,
+                originalPrice: $wholesalePrice,
+                pricingType: PricingType::WHOLESALE,
+                discountAmount: 0,
+                wholesaleEligible: true,
+                minQtyMet: true,
+            );
+        }
+
+        $originalPrice = $product->getEffectivePharmacistPrice();
+        $finalPrice = $this->applyProductDiscount($product, $originalPrice);
+
+        return new PriceResult(
+            unitPrice: $finalPrice,
+            originalPrice: $originalPrice,
+            pricingType: PricingType::RETAIL,
+            discountAmount: $originalPrice - $finalPrice,
+            wholesaleEligible: $wholesaleEligible,
+            minQtyMet: $minQtyMet,
+        );
     }
 
     /**
