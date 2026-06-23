@@ -7,6 +7,8 @@ use App\Domain\Orders\OrderCreationService;
 use App\Domain\Orders\OrderStateTransitionService;
 use App\Domain\Pricing\PricingService;
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Requests\Orders\AssignDriverRequest;
+use App\Http\Requests\Orders\CancelOrderRequest;
 use App\Http\Requests\Orders\CreateOrderRequest;
 use App\Http\Requests\Orders\UpdateOrderStatusRequest;
 use App\Http\Resources\OrderResource;
@@ -490,13 +492,9 @@ class OrderController extends BaseApiController
             new OA\Response(response: 404, description: 'Order not found'),
         ]
     )]
-    public function cancel(Request $request, Order $order): JsonResponse
+    public function cancel(CancelOrderRequest $request, Order $order): JsonResponse
     {
         $this->authorize('cancel', $order);
-
-        $request->validate([
-            'reason' => ['required', 'string', 'max:500'],
-        ]);
 
         try {
             $order->cancellation_reason = $request->reason;
@@ -564,7 +562,7 @@ class OrderController extends BaseApiController
             new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
-    public function assignDriver(Request $request, Order $order): JsonResponse
+    public function assignDriver(AssignDriverRequest $request, Order $order): JsonResponse
     {
         try {
             $user = auth()->user();
@@ -578,10 +576,6 @@ class OrderController extends BaseApiController
             if ($order->supplier_company_id !== $user->company_id && ! $user->isAdmin()) {
                 return $this->error('You can only assign drivers to your own orders', null, 403);
             }
-
-            $request->validate([
-                'driver_id' => ['required', 'integer', 'exists:users,id'],
-            ]);
 
             $driver = \App\Models\User::findOrFail($request->driver_id);
 

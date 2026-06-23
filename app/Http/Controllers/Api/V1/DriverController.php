@@ -7,6 +7,7 @@ use App\Constants\OrderStatus;
 use App\Constants\RegionPlanType;
 use App\Domain\Deliveries\DriverRegionPlanService;
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Requests\Drivers\AssignDriverRegionsRequest;
 use App\Http\Requests\Drivers\CreateDriverRequest;
 use App\Http\Requests\Drivers\SetDriverHolidaysRequest;
 use App\Http\Requests\Drivers\SetDriverRegionPlanRequest;
@@ -594,7 +595,7 @@ class DriverController extends BaseApiController
             new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
-    public function assignRegions(Request $request, int $id): JsonResponse
+    public function assignRegions(AssignDriverRegionsRequest $request, int $id): JsonResponse
     {
         try {
             $user = auth()->user();
@@ -604,12 +605,7 @@ class DriverController extends BaseApiController
                 return $denied;
             }
 
-            $validated = $request->validate([
-                'region_ids' => ['required', 'array'],
-                'region_ids.*' => ['integer', 'exists:regions,id'],
-            ]);
-
-            $driver = $this->regionPlanService->setFixedPlan($driver, $validated['region_ids']);
+            $driver = $this->regionPlanService->setFixedPlan($driver, $request->validated()['region_ids']);
 
             return $this->success(
                 $this->buildPlanResponse($driver),

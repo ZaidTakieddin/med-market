@@ -7,6 +7,8 @@ use App\Domain\Orders\OrderCreationService;
 use App\Domain\Pricing\PricingService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Cart\AddCartItemRequest;
+use App\Http\Requests\Cart\ApplyOfferRequest;
+use App\Http\Requests\Cart\CheckoutSupplierRequest;
 use App\Http\Requests\Cart\UpdateCartItemRequest;
 use App\Http\Resources\CartResource;
 use App\Http\Resources\OrderResource;
@@ -497,7 +499,7 @@ class CartController extends BaseApiController
             new OA\Response(response: 400, description: 'Offer cannot be applied (quantity requirement not met, etc.)'),
         ]
     )]
-    public function applyOffer(Request $request, int $id): JsonResponse
+    public function applyOffer(ApplyOfferRequest $request, int $id): JsonResponse
     {
         try {
             $user = auth()->user();
@@ -507,10 +509,6 @@ class CartController extends BaseApiController
             if ($cartItem->cart->user_id !== $user->id) {
                 return $this->error('Unauthorized', null, 403);
             }
-
-            $request->validate([
-                'offer_id' => ['required', 'integer', 'exists:offers,id'],
-            ]);
 
             $product = $cartItem->product;
             $offer = \App\Models\Offer::findOrFail($request->offer_id);
@@ -920,7 +918,7 @@ class CartController extends BaseApiController
             new OA\Response(response: 404, description: 'Supplier not found'),
         ]
     )]
-    public function checkoutSupplier(Request $request): JsonResponse
+    public function checkoutSupplier(CheckoutSupplierRequest $request): JsonResponse
     {
         try {
             $user = auth()->user();
@@ -928,12 +926,6 @@ class CartController extends BaseApiController
             if (! $user->canBuy()) {
                 return $this->error('Only buyers and salesmen can checkout', null, 403);
             }
-
-            $request->validate([
-                'supplier_id' => ['required', 'integer', 'exists:companies,id'],
-                'notes' => ['nullable', 'string', 'max:1000'],
-                'tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            ]);
 
             // Verify supplier is actually a supplier company
             $supplier = \App\Models\Company::findOrFail($request->supplier_id);

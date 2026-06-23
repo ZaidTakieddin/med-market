@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Constants\PaymentTerms;
 use App\Domain\Companies\CreditService;
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Requests\Invoices\MarkInvoicePaidRequest;
 use App\Http\Resources\InvoiceResource;
 use App\Models\Invoice;
 use App\Models\Order;
@@ -293,18 +294,13 @@ class InvoiceController extends BaseApiController
             new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
-    public function markAsPaid(Request $request, Invoice $invoice): JsonResponse
+    public function markAsPaid(MarkInvoicePaidRequest $request, Invoice $invoice): JsonResponse
     {
         $user = auth()->user();
 
         if (! $this->canAccessInvoice($user, $invoice)) {
             return $this->error('Unauthorized', null, 403);
         }
-
-        $request->validate([
-            'amount' => ['nullable', 'numeric', 'min:0', 'max:'.$invoice->total_amount],
-            'notes' => ['nullable', 'string', 'max:1000'],
-        ]);
 
         $amount = $request->amount ?? $invoice->total_amount;
 
