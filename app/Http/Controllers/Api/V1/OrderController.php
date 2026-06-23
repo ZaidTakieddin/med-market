@@ -274,10 +274,12 @@ class OrderController extends BaseApiController
             paymentMethod: $request->payment_method,
         );
 
-        // Salesman attribution. Payment terms + credit reservation are handled inside
-        // OrderCreationService (transactional, with credit-limit enforcement).
+        // Salesman attribution: always the authenticated salesman (never a client-supplied
+        // id — that was a spoofing vector). On-behalf ordering uses the dedicated
+        // /salesmen/{id}/place-order endpoint. Payment terms + credit reservation are
+        // handled inside OrderCreationService (transactional, credit-limit enforced).
         if ($user->isSalesman()) {
-            $order->placed_by_salesman_id = $request->placed_by_salesman_id ?: $user->id;
+            $order->placed_by_salesman_id = $user->id;
             $order->save();
         }
 
