@@ -55,6 +55,7 @@ class SendOrderNotificationJob implements ShouldQueue
                     'order_id' => $this->order->id,
                     'order_number' => $this->order->order_number,
                 ]);
+
                 return;
             }
 
@@ -132,7 +133,7 @@ class SendOrderNotificationJob implements ShouldQueue
         }
 
         // Add order creator if not already included
-        if ($order->creator && !collect($recipients)->contains('email', $order->creator->email)) {
+        if ($order->creator && ! collect($recipients)->contains('email', $order->creator->email)) {
             $recipients[] = [
                 'email' => $order->creator->email,
                 'name' => $order->creator->name,
@@ -153,7 +154,7 @@ class SendOrderNotificationJob implements ShouldQueue
         $content .= "Status Changed: {$oldStatus} → {$newStatus}\n";
         $content .= "Buyer: {$order->buyerCompany->name}\n";
         $content .= "Supplier: {$order->supplierCompany->name}\n";
-        $content .= "Total Amount: " . number_format($order->total_amount, 2) . " SAR\n";
+        $content .= 'Total Amount: '.number_format($order->total_amount, 2)." SAR\n";
         $content .= "Items: {$order->items->count()}\n\n";
 
         if ($order->notes) {
@@ -197,4 +198,3 @@ class SendOrderNotificationJob implements ShouldQueue
         ]);
     }
 }
-

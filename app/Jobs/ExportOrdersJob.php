@@ -102,7 +102,7 @@ class ExportOrdersJob implements ShouldQueue
      */
     private function generateExportFile($orders, string $format): string
     {
-        $directory = 'exports/orders/' . now()->format('Y/m');
+        $directory = 'exports/orders/'.now()->format('Y/m');
         $timestamp = now()->format('Ymd_His');
         $filename = "orders_export_{$timestamp}.{$format}";
         $path = "{$directory}/{$filename}";
@@ -164,8 +164,8 @@ class ExportOrdersJob implements ShouldQueue
         $csv = '';
         foreach ($lines as $line) {
             $csv .= implode(',', array_map(function ($field) {
-                return '"' . str_replace('"', '""', $field) . '"';
-            }, $line)) . "\n";
+                return '"'.str_replace('"', '""', $field).'"';
+            }, $line))."\n";
         }
 
         return $csv;
@@ -214,4 +214,3 @@ class ExportOrdersJob implements ShouldQueue
         ]);
     }
 }
-

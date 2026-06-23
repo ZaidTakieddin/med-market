@@ -27,14 +27,14 @@ class UpdateOfferRequest extends BaseFormRequest
         ];
         $merge = [];
         foreach ($map as $camel => $snake) {
-            if ($this->has($camel) && !$this->has($snake)) {
+            if ($this->has($camel) && ! $this->has($snake)) {
                 $merge[$snake] = $this->input($camel);
             }
         }
         if ($this->input('end_date') === '' || $this->input('endDate') === '') {
             $merge['end_date'] = null;
         }
-        if (!empty($merge)) {
+        if (! empty($merge)) {
             $this->merge($merge);
         }
     }
@@ -56,7 +56,7 @@ class UpdateOfferRequest extends BaseFormRequest
                 'sometimes',
                 'nullable',
                 'date',
-                $startDate ? 'after:' . $startDate : null,
+                $startDate ? 'after:'.$startDate : null,
             ]),
             'is_active' => ['sometimes', 'boolean'],
             'product_ids' => ['sometimes', 'nullable', 'array', 'min:1'],
@@ -67,4 +67,3 @@ class UpdateOfferRequest extends BaseFormRequest
         ];
     }
 }
-

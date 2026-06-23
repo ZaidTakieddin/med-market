@@ -25,7 +25,7 @@ class UserPolicy
             return true;
         }
 
-        return $user->id === $model->id 
+        return $user->id === $model->id
             || ($user->company_id && $user->company_id === $model->company_id);
     }
 

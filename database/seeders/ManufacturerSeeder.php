@@ -52,6 +52,6 @@ class ManufacturerSeeder extends Seeder
             );
         }
 
-        $this->command->info('تم تحديث/إنشاء ' . count($manufacturers) . ' شركة مصنعة بنجاح.');
+        $this->command->info('تم تحديث/إنشاء '.count($manufacturers).' شركة مصنعة بنجاح.');
     }
 }

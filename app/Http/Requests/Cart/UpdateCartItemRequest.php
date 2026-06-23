@@ -29,4 +29,3 @@ class UpdateCartItemRequest extends BaseFormRequest
         ];
     }
 }
-

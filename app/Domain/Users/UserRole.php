@@ -5,9 +5,13 @@ namespace App\Domain\Users;
 class UserRole
 {
     public const ADMIN = 'admin';
+
     public const SUPPLIER = 'supplier';
+
     public const BUYER = 'buyer';
+
     public const DRIVER = 'driver';
+
     public const SALESMAN = 'salesman';
 
     /**
@@ -55,4 +59,3 @@ class UserRole
         return in_array($role, self::all(), true);
     }
 }
-

@@ -5,7 +5,9 @@ namespace App\Constants;
 class PricingType
 {
     public const WHOLESALE = 'wholesale';
+
     public const RETAIL = 'retail';
+
     public const CUSTOM = 'custom';
 
     /**

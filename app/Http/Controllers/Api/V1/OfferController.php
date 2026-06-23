@@ -58,11 +58,11 @@ class OfferController extends BaseApiController
             } else {
                 // Buyers see only active offers (end_date null = no time limit)
                 $query->where('is_active', true)
-                      ->where('start_date', '<=', now())
-                      ->where(function ($q) {
-                          $q->whereNull('end_date')
+                    ->where('start_date', '<=', now())
+                    ->where(function ($q) {
+                        $q->whereNull('end_date')
                             ->orWhere('end_date', '>=', now());
-                      });
+                    });
             }
 
             // Filter by supplier
@@ -103,7 +103,8 @@ class OfferController extends BaseApiController
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
             ]);
-            return $this->error('Failed to retrieve offers: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve offers: '.$e->getMessage(), null, 500);
         }
     }
 
@@ -116,7 +117,7 @@ class OfferController extends BaseApiController
         description: 'Create a new product offer or promotion (suppliers only). Request body accepts snake_case or camelCase (e.g. offer_type or offerType) matching OfferResource.',
         tags: ['Offers'],
         security: [['sanctum' => []]],
-            requestBody: new OA\RequestBody(
+        requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
                 required: ['name', 'offer_type', 'start_date'],
@@ -152,7 +153,7 @@ class OfferController extends BaseApiController
         try {
             $user = auth()->user();
 
-            if (!$user->isSupplier()) {
+            if (! $user->isSupplier()) {
                 return $this->error('Only suppliers can create offers', null, 403);
             }
 
@@ -182,9 +183,10 @@ class OfferController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Create offer error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to create offer: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to create offer: '.$e->getMessage(), null, 500);
         }
     }
 
@@ -196,7 +198,7 @@ class OfferController extends BaseApiController
         $products = $request->input('products');
         $productIds = $request->input('product_ids');
 
-        if (!empty($products)) {
+        if (! empty($products)) {
             $syncData = [];
             foreach ($products as $item) {
                 $productId = $item['product_id'] ?? $item['id'] ?? null;
@@ -206,7 +208,7 @@ class OfferController extends BaseApiController
                 }
             }
             $offer->products()->sync($syncData);
-        } elseif (!empty($productIds)) {
+        } elseif (! empty($productIds)) {
             $quantityRequired = $offer->quantity_required ?? 1;
             $syncData = array_fill_keys($productIds, ['quantity_required' => $quantityRequired]);
             $offer->products()->sync($syncData);
@@ -240,9 +242,10 @@ class OfferController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Get offer error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to retrieve offer: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve offer: '.$e->getMessage(), null, 500);
         }
     }
 
@@ -293,11 +296,11 @@ class OfferController extends BaseApiController
         try {
             $user = auth()->user();
 
-            if (!$user->isSupplier() && !$user->isAdmin()) {
+            if (! $user->isSupplier() && ! $user->isAdmin()) {
                 return $this->error('Only suppliers can update offers', null, 403);
             }
 
-            if ($offer->supplier_company_id !== $user->company_id && !$user->isAdmin()) {
+            if ($offer->supplier_company_id !== $user->company_id && ! $user->isAdmin()) {
                 return $this->error('You can only update your own offers', null, 403);
             }
 
@@ -317,9 +320,10 @@ class OfferController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Update offer error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to update offer: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to update offer: '.$e->getMessage(), null, 500);
         }
     }
 
@@ -347,11 +351,11 @@ class OfferController extends BaseApiController
         try {
             $user = auth()->user();
 
-            if (!$user->isSupplier() && !$user->isAdmin()) {
+            if (! $user->isSupplier() && ! $user->isAdmin()) {
                 return $this->error('Only suppliers can delete offers', null, 403);
             }
 
-            if ($offer->supplier_company_id !== $user->company_id && !$user->isAdmin()) {
+            if ($offer->supplier_company_id !== $user->company_id && ! $user->isAdmin()) {
                 return $this->error('You can only delete your own offers', null, 403);
             }
 
@@ -361,10 +365,10 @@ class OfferController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Delete offer error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to delete offer: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to delete offer: '.$e->getMessage(), null, 500);
         }
     }
 }
-

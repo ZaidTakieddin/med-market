@@ -41,7 +41,7 @@ class ProductPolicy
             return true;
         }
 
-        return $user->isSupplier() 
+        return $user->isSupplier()
             && $user->company_id === $product->supplier_company_id;
     }
 
@@ -55,8 +55,7 @@ class ProductPolicy
             return true;
         }
 
-        return $user->isSupplier() 
+        return $user->isSupplier()
             && $user->company_id === $product->supplier_company_id;
     }
 }
-

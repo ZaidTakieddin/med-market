@@ -16,18 +16,18 @@ class CartResource extends JsonResource
     {
         $items = $this->relationLoaded('items') ? $this->items : collect();
         $itemsBySupplier = [];
-        
+
         // Group items by supplier
         if ($this->relationLoaded('items') && $items->isNotEmpty()) {
             foreach ($items as $item) {
                 // Product and supplierCompany should be loaded by controller
                 $product = $item->product ?? null;
                 $supplierId = $product->supplier_company_id ?? null;
-                
+
                 if ($supplierId) {
-                    if (!isset($itemsBySupplier[$supplierId])) {
+                    if (! isset($itemsBySupplier[$supplierId])) {
                         $supplierCompany = $product->supplierCompany ?? null;
-                        
+
                         $itemsBySupplier[$supplierId] = [
                             'supplier' => $supplierCompany ? new CompanyResource($supplierCompany) : null,
                             'items' => [],
@@ -38,7 +38,7 @@ class CartResource extends JsonResource
                     $itemsBySupplier[$supplierId]['subtotal'] += (float) $item->total_price;
                 }
             }
-            
+
             // Convert to indexed array and calculate totals for each supplier group
             $itemsBySupplier = array_values(array_map(function ($group) {
                 return [
@@ -66,4 +66,3 @@ class CartResource extends JsonResource
         ];
     }
 }
-

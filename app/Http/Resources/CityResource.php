@@ -23,7 +23,7 @@ class CityResource extends JsonResource
             'sortOrder' => $this->sort_order,
             'regions' => $this->when(
                 $this->relationLoaded('regions'),
-                fn() => RegionResource::collection($this->regions)
+                fn () => RegionResource::collection($this->regions)
             ),
             'createdAt' => $this->created_at->toISOString(),
             'updatedAt' => $this->updated_at->toISOString(),

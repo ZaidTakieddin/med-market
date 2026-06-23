@@ -30,21 +30,20 @@ class CompanyResource extends JsonResource
             'regionId' => $this->region_id,
             'region' => $this->when(
                 $this->relationLoaded('region'),
-                fn() => new RegionResource($this->region)
+                fn () => new RegionResource($this->region)
             ),
             'addressLine' => $this->address_line,
             'taxId' => $this->tax_id,
             'registrationNumber' => $this->registration_number,
             'isActive' => $this->is_active,
-            'categories' => $this->relationLoaded('categories') 
-                ? CategoryResource::collection($this->categories) 
+            'categories' => $this->relationLoaded('categories')
+                ? CategoryResource::collection($this->categories)
                 : [],
-            'manufacturers' => $this->relationLoaded('manufacturers') 
-                ? ManufacturerResource::collection($this->manufacturers) 
+            'manufacturers' => $this->relationLoaded('manufacturers')
+                ? ManufacturerResource::collection($this->manufacturers)
                 : [],
             'createdAt' => $this->created_at?->toISOString(),
             'updatedAt' => $this->updated_at?->toISOString(),
         ];
     }
 }
-

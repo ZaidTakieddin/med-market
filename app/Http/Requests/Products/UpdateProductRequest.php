@@ -37,4 +37,3 @@ class UpdateProductRequest extends BaseFormRequest
         ];
     }
 }
-

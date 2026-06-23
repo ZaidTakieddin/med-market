@@ -38,4 +38,3 @@ class OfferResource extends JsonResource
         ];
     }
 }
-

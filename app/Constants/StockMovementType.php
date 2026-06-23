@@ -5,8 +5,11 @@ namespace App\Constants;
 class StockMovementType
 {
     public const IN = 'in';
+
     public const OUT = 'out';
+
     public const ADJUSTMENT = 'adjustment';
+
     public const RETURN = 'return';
 
     /**
@@ -30,4 +33,3 @@ class StockMovementType
         return in_array($type, self::all(), true);
     }
 }
-

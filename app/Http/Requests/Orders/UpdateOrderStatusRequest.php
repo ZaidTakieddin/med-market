@@ -25,8 +25,7 @@ class UpdateOrderStatusRequest extends BaseFormRequest
     {
         return [
             'status.required' => 'Status is required.',
-            'status.in' => 'Invalid status. Valid statuses: ' . implode(', ', OrderStatus::all()),
+            'status.in' => 'Invalid status. Valid statuses: '.implode(', ', OrderStatus::all()),
         ];
     }
 }
-

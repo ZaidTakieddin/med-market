@@ -50,4 +50,3 @@ class CompanyPolicy
         return $user->isAdmin();
     }
 }
-

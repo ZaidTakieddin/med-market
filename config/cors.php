@@ -30,4 +30,3 @@ return [
 
     'supports_credentials' => false, // Must be false when allowed_origins is ['*']
 ];
-

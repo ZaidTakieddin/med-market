@@ -78,6 +78,6 @@ class CitySeeder extends Seeder
             );
         }
 
-        $this->command->info('تم تحديث/إنشاء ' . count($cities) . ' مدينة بنجاح.');
+        $this->command->info('تم تحديث/إنشاء '.count($cities).' مدينة بنجاح.');
     }
 }

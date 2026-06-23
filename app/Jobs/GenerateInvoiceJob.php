@@ -52,7 +52,7 @@ class GenerateInvoiceJob implements ShouldQueue
             $invoicePath = $this->saveInvoice($this->order, $invoiceContent);
 
             // Generate invoice number
-            $invoiceNumber = 'INV-' . $this->order->order_number;
+            $invoiceNumber = 'INV-'.$this->order->order_number;
 
             // Check if invoice already exists
             $invoice = Invoice::where('order_id', $this->order->id)->first();
@@ -121,7 +121,7 @@ class GenerateInvoiceJob implements ShouldQueue
 
         $content .= "Invoice Number: INV-{$order->order_number}\n";
         $content .= "Order Number: {$order->order_number}\n";
-        $content .= "Date: " . $order->created_at->format('Y-m-d H:i:s') . "\n\n";
+        $content .= 'Date: '.$order->created_at->format('Y-m-d H:i:s')."\n\n";
 
         $content .= "Buyer Information:\n";
         $content .= "  Company: {$order->buyerCompany->name}\n";
@@ -168,8 +168,8 @@ class GenerateInvoiceJob implements ShouldQueue
         }
 
         $content .= "\n";
-        $content .= "Status: " . strtoupper($order->status) . "\n";
-        $content .= "Generated: " . now()->format('Y-m-d H:i:s') . "\n";
+        $content .= 'Status: '.strtoupper($order->status)."\n";
+        $content .= 'Generated: '.now()->format('Y-m-d H:i:s')."\n";
 
         return $content;
     }
@@ -179,7 +179,7 @@ class GenerateInvoiceJob implements ShouldQueue
      */
     private function saveInvoice(Order $order, string $content): string
     {
-        $directory = 'invoices/' . now()->format('Y/m');
+        $directory = 'invoices/'.now()->format('Y/m');
         $filename = "INV-{$order->order_number}.txt";
         $path = "{$directory}/{$filename}";
 
@@ -205,4 +205,3 @@ class GenerateInvoiceJob implements ShouldQueue
         ]);
     }
 }
-

@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Inventory\StockMovementService;
 use App\Http\Controllers\Api\BaseApiController;
-use App\Http\Requests\Stock\AdjustStockRequest;
 use App\Http\Requests\Stock\AddStockRequest;
-use App\Models\Product;
+use App\Http\Requests\Stock\AdjustStockRequest;
 use App\Http\Resources\StockMovementResource;
+use App\Models\Product;
 use App\Models\StockMovement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -46,7 +46,7 @@ class StockController extends BaseApiController
     {
         $user = auth()->user();
 
-        if (!$user->isSupplier() && !$user->isAdmin()) {
+        if (! $user->isSupplier() && ! $user->isAdmin()) {
             return $this->error('Only suppliers and admins can view stock movements', null, 403);
         }
 
@@ -61,19 +61,19 @@ class StockController extends BaseApiController
             $query->where('type', $request->type);
         }
 
-            [$movements, $pagination] = $this->paginateOrAll($query->latest(), $request);
+        [$movements, $pagination] = $this->paginateOrAll($query->latest(), $request);
 
-            $additional = [
-                'success' => true,
-                'message' => 'Stock movements retrieved successfully',
-            ];
-            if ($pagination !== null) {
-                $additional['pagination'] = $pagination;
-            }
+        $additional = [
+            'success' => true,
+            'message' => 'Stock movements retrieved successfully',
+        ];
+        if ($pagination !== null) {
+            $additional['pagination'] = $pagination;
+        }
 
-            return StockMovementResource::collection($movements)
-                ->additional($additional)
-                ->response();
+        return StockMovementResource::collection($movements)
+            ->additional($additional)
+            ->response();
     }
 
     /**
@@ -110,7 +110,7 @@ class StockController extends BaseApiController
     {
         $user = auth()->user();
 
-        if (!$user->isSupplier()) {
+        if (! $user->isSupplier()) {
             return $this->error('Only suppliers can add stock', null, 403);
         }
 
@@ -176,7 +176,7 @@ class StockController extends BaseApiController
     {
         $user = auth()->user();
 
-        if (!$user->isSupplier()) {
+        if (! $user->isSupplier()) {
             return $this->error('Only suppliers can adjust stock', null, 403);
         }
 

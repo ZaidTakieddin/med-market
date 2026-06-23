@@ -5,9 +5,13 @@ namespace App\Constants;
 class OfferType
 {
     public const BUY_X_GET_Y = 'buy_x_get_y';
+
     public const PERCENTAGE_DISCOUNT = 'percentage_discount';
+
     public const FIXED_DISCOUNT = 'fixed_discount';
+
     public const BUNDLE_PERCENTAGE = 'bundle_percentage';
+
     public const BUNDLE_FIXED = 'bundle_fixed';
 
     /**
@@ -56,4 +60,3 @@ class OfferType
         return in_array($type, [self::BUNDLE_PERCENTAGE, self::BUNDLE_FIXED], true);
     }
 }
-

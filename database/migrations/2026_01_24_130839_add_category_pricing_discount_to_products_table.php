@@ -19,15 +19,15 @@ return new class extends Migration
         Schema::table('products', function (Blueprint $table) {
             // Category field
             $table->string('category')->nullable()->after('description');
-            
+
             // Dual pricing system
             $table->decimal('pharmacist_price', 10, 2)->nullable()->after('price');
             $table->decimal('customer_price', 10, 2)->nullable()->after('pharmacist_price');
-            
+
             // Discount system
             $table->decimal('discount', 10, 2)->nullable()->after('customer_price');
             $table->enum('discount_type', ['percentage', 'fixed'])->nullable()->after('discount');
-            
+
             // Index for category filtering
             $table->index('category');
         });

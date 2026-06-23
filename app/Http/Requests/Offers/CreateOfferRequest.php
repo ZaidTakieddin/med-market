@@ -30,11 +30,11 @@ class CreateOfferRequest extends BaseFormRequest
         ];
         $merge = [];
         foreach ($map as $camel => $snake) {
-            if ($this->has($camel) && !$this->has($snake)) {
+            if ($this->has($camel) && ! $this->has($snake)) {
                 $merge[$snake] = $this->input($camel);
             }
         }
-        if (!empty($merge)) {
+        if (! empty($merge)) {
             $this->merge($merge);
         }
         if ($this->input('end_date') === '' || $this->input('endDate') === '') {
@@ -72,12 +72,12 @@ class CreateOfferRequest extends BaseFormRequest
             $hasProductIds = is_array($productIds) && count($productIds) >= 1;
 
             if ($isBundle) {
-                if (!$hasProducts) {
+                if (! $hasProducts) {
                     $validator->errors()->add('products', 'Bundle offers require products array with product_id and quantity for each product.');
                 } elseif (count($products) < 2) {
                     $validator->errors()->add('products', 'Bundle offers require at least 2 products.');
                 }
-            } elseif (!$hasProducts && !$hasProductIds) {
+            } elseif (! $hasProducts && ! $hasProductIds) {
                 $validator->errors()->add('product_ids', 'At least one product must be selected (use product_ids or products).');
             }
         });
@@ -100,4 +100,3 @@ class CreateOfferRequest extends BaseFormRequest
         ];
     }
 }
-

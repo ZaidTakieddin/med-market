@@ -3,7 +3,6 @@
 namespace App\Observers;
 
 use App\Jobs\LowStockAlertJob;
-use App\Models\Product;
 use App\Models\StockMovement;
 use Illuminate\Support\Facades\Log;
 
@@ -86,4 +85,3 @@ class StockMovementObserver
         ]);
     }
 }
-

@@ -19,6 +19,7 @@ class OfferSeeder extends Seeder
 
         if ($suppliers->isEmpty()) {
             $this->command->warn('لا توجد شركات موردة. يرجى تشغيل CompanySeeder أولاً.');
+
             return;
         }
 
@@ -33,6 +34,7 @@ class OfferSeeder extends Seeder
 
         if ($supplier1Products->isEmpty() && $supplier2Products->isEmpty() && $supplier3Products->isEmpty()) {
             $this->command->warn('لا توجد منتجات. يرجى تشغيل ProductSeeder أولاً.');
+
             return;
         }
 
@@ -165,7 +167,6 @@ class OfferSeeder extends Seeder
             $offers[] = $offer5;
         }
 
-        $this->command->info('تم إنشاء ' . count($offers) . ' عرض بنجاح.');
+        $this->command->info('تم إنشاء '.count($offers).' عرض بنجاح.');
     }
 }
-

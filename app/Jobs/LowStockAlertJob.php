@@ -44,11 +44,12 @@ class LowStockAlertJob implements ShouldQueue
             // Reload product with supplier company
             $product->load('supplierCompany');
 
-            if (!$product->supplierCompany) {
+            if (! $product->supplierCompany) {
                 Log::warning('Product has no supplier company for low stock alert', [
                     'product_id' => $product->id,
                     'product_sku' => $product->sku,
                 ]);
+
                 return;
             }
 
@@ -64,6 +65,7 @@ class LowStockAlertJob implements ShouldQueue
                     'product_sku' => $product->sku,
                     'supplier_company_id' => $product->supplier_company_id,
                 ]);
+
                 return;
             }
 
@@ -114,7 +116,7 @@ class LowStockAlertJob implements ShouldQueue
         $content .= "SKU: {$product->sku}\n";
         $content .= "Current Stock: {$product->stock_quantity}\n";
         $content .= "Minimum Stock Level: {$product->min_stock_level}\n";
-        $content .= "Stock Deficit: " . max(0, $product->min_stock_level - $product->stock_quantity) . "\n\n";
+        $content .= 'Stock Deficit: '.max(0, $product->min_stock_level - $product->stock_quantity)."\n\n";
 
         if ($product->category) {
             $content .= "Category: {$product->category}\n";
@@ -140,4 +142,3 @@ class LowStockAlertJob implements ShouldQueue
         ]);
     }
 }
-
