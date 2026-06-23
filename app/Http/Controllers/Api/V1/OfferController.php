@@ -104,7 +104,7 @@ class OfferController extends BaseApiController
                 'line' => $e->getLine(),
             ]);
 
-            return $this->error('Failed to retrieve offers: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve offers. Please try again later.', null, 500);
         }
     }
 
@@ -186,7 +186,7 @@ class OfferController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to create offer: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to create offer. Please try again later.', null, 500);
         }
     }
 
@@ -245,7 +245,7 @@ class OfferController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve offer: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve offer. Please try again later.', null, 500);
         }
     }
 
@@ -323,7 +323,7 @@ class OfferController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to update offer: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to update offer. Please try again later.', null, 500);
         }
     }
 
@@ -368,7 +368,7 @@ class OfferController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to delete offer: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to delete offer. Please try again later.', null, 500);
         }
     }
 }

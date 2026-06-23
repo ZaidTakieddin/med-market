@@ -107,7 +107,7 @@ class InvoiceController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve invoices: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve invoices. Please try again later.', null, 500);
         }
     }
 

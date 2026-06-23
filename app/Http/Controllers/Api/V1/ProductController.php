@@ -206,7 +206,7 @@ class ProductController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to create product: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to create product. Please try again later.', null, 500);
         }
     }
 

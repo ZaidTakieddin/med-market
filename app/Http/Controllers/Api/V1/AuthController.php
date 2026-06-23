@@ -138,7 +138,7 @@ class AuthController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Login failed: '.$e->getMessage(), null, 500);
+            return $this->error('Login failed. Please try again later.', null, 500);
         }
     }
 

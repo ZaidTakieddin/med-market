@@ -164,7 +164,7 @@ class OrderController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve orders: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve orders. Please try again later.', null, 500);
         }
     }
 
@@ -531,7 +531,7 @@ class OrderController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to cancel order: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to cancel order. Please try again later.', null, 500);
         }
     }
 
@@ -627,7 +627,7 @@ class OrderController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to assign driver: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to assign driver. Please try again later.', null, 500);
         }
     }
 }

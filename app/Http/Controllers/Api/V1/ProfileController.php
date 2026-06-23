@@ -42,7 +42,7 @@ class ProfileController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve profile: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve profile. Please try again later.', null, 500);
         }
     }
 
@@ -85,7 +85,7 @@ class ProfileController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to update profile: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to update profile. Please try again later.', null, 500);
         }
     }
 
@@ -135,7 +135,7 @@ class ProfileController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to change password: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to change password. Please try again later.', null, 500);
         }
     }
 
@@ -199,7 +199,7 @@ class ProfileController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to update company: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to update company. Please try again later.', null, 500);
         }
     }
 }

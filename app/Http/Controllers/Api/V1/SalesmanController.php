@@ -94,7 +94,7 @@ class SalesmanController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Salesman list error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to retrieve salesmen: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve salesmen. Please try again later.', null, 500);
         }
     }
 
@@ -137,7 +137,7 @@ class SalesmanController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Salesman show error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to retrieve salesman: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve salesman. Please try again later.', null, 500);
         }
     }
 
@@ -175,7 +175,7 @@ class SalesmanController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Salesman regions error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to retrieve regions: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve regions. Please try again later.', null, 500);
         }
     }
 
@@ -223,7 +223,7 @@ class SalesmanController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Salesman assign regions error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to assign regions: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to assign regions. Please try again later.', null, 500);
         }
     }
 
@@ -262,7 +262,7 @@ class SalesmanController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Salesman remove region error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to remove region: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to remove region. Please try again later.', null, 500);
         }
     }
 
@@ -307,7 +307,7 @@ class SalesmanController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Salesman clients error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to retrieve clients: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve clients. Please try again later.', null, 500);
         }
     }
 
@@ -377,7 +377,7 @@ class SalesmanController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Salesman assign client error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to assign client: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to assign client. Please try again later.', null, 500);
         }
     }
 
@@ -417,7 +417,7 @@ class SalesmanController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Salesman remove client error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to remove client: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to remove client. Please try again later.', null, 500);
         }
     }
 
@@ -470,7 +470,7 @@ class SalesmanController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Salesman orders error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to retrieve salesman orders: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve salesman orders. Please try again later.', null, 500);
         }
     }
 
@@ -590,7 +590,7 @@ class SalesmanController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Salesman place order error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to place order: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to place order. Please try again later.', null, 500);
         }
     }
 

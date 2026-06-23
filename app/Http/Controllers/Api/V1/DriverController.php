@@ -90,7 +90,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve drivers: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve drivers. Please try again later.', null, 500);
         }
     }
 
@@ -160,7 +160,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to create driver: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to create driver. Please try again later.', null, 500);
         }
     }
 
@@ -203,7 +203,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve driver: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve driver. Please try again later.', null, 500);
         }
     }
 
@@ -254,7 +254,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to update driver: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to update driver. Please try again later.', null, 500);
         }
     }
 
@@ -300,7 +300,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to delete driver: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to delete driver. Please try again later.', null, 500);
         }
     }
 
@@ -372,7 +372,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve driver orders: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve driver orders. Please try again later.', null, 500);
         }
     }
 
@@ -416,7 +416,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve driver region plan: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve driver region plan. Please try again later.', null, 500);
         }
     }
 
@@ -493,7 +493,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to save region plan: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to save region plan. Please try again later.', null, 500);
         }
     }
 
@@ -556,7 +556,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to save holidays: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to save holidays. Please try again later.', null, 500);
         }
     }
 
@@ -617,7 +617,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to assign regions: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to assign regions. Please try again later.', null, 500);
         }
     }
 
@@ -669,7 +669,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to remove region: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to remove region. Please try again later.', null, 500);
         }
     }
 

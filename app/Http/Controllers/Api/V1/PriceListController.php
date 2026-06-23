@@ -84,7 +84,7 @@ class PriceListController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Price list index error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to retrieve price list entries: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve price list entries. Please try again later.', null, 500);
         }
     }
 
@@ -154,7 +154,7 @@ class PriceListController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Price list create error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to create price list entry: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to create price list entry. Please try again later.', null, 500);
         }
     }
 
@@ -186,7 +186,7 @@ class PriceListController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Price list show error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to retrieve price list entry: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve price list entry. Please try again later.', null, 500);
         }
     }
 
@@ -233,7 +233,7 @@ class PriceListController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Price list update error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to update price list entry: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to update price list entry. Please try again later.', null, 500);
         }
     }
 
@@ -264,7 +264,7 @@ class PriceListController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Price list delete error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to delete price list entry: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to delete price list entry. Please try again later.', null, 500);
         }
     }
 
@@ -321,7 +321,7 @@ class PriceListController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Price list for buyer error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to retrieve buyer price list: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve buyer price list. Please try again later.', null, 500);
         }
     }
 }

@@ -81,7 +81,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Buyer-supplier relationship list error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to retrieve relationships: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve relationships. Please try again later.', null, 500);
         }
     }
 
@@ -159,7 +159,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Buyer-supplier relationship create error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to create relationship: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to create relationship. Please try again later.', null, 500);
         }
     }
 
@@ -191,7 +191,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Buyer-supplier relationship show error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to retrieve relationship: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve relationship. Please try again later.', null, 500);
         }
     }
 
@@ -244,7 +244,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Buyer-supplier relationship update error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to update relationship: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to update relationship. Please try again later.', null, 500);
         }
     }
 
@@ -279,7 +279,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Buyer-supplier relationship delete error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to delete relationship: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to delete relationship. Please try again later.', null, 500);
         }
     }
 
@@ -323,7 +323,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Buyer-supplier relationship approve error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to approve relationship: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to approve relationship. Please try again later.', null, 500);
         }
     }
 
@@ -367,7 +367,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Buyer-supplier relationship reject error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to reject relationship: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to reject relationship. Please try again later.', null, 500);
         }
     }
 
@@ -441,7 +441,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Credit adjustment error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to adjust credit: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to adjust credit. Please try again later.', null, 500);
         }
     }
 
@@ -486,7 +486,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Credit check error', ['message' => $e->getMessage()]);
 
-            return $this->error('Failed to check credit: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to check credit. Please try again later.', null, 500);
         }
     }
 }

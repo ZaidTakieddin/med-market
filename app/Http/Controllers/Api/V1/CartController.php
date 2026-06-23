@@ -123,7 +123,7 @@ class CartController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve cart: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve cart. Please try again later.', null, 500);
         }
     }
 
@@ -269,7 +269,7 @@ class CartController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to add item to cart: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to add item to cart. Please try again later.', null, 500);
         }
     }
 
@@ -359,7 +359,7 @@ class CartController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to update cart item: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to update cart item. Please try again later.', null, 500);
         }
     }
 
@@ -466,7 +466,7 @@ class CartController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve available offers: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve available offers. Please try again later.', null, 500);
         }
     }
 
@@ -547,7 +547,7 @@ class CartController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to apply offer: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to apply offer. Please try again later.', null, 500);
         }
     }
 
@@ -619,7 +619,7 @@ class CartController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to remove offer: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to remove offer. Please try again later.', null, 500);
         }
     }
 
@@ -690,7 +690,7 @@ class CartController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to remove item from cart: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to remove item from cart. Please try again later.', null, 500);
         }
     }
 
@@ -730,7 +730,7 @@ class CartController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to clear cart: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to clear cart. Please try again later.', null, 500);
         }
     }
 
@@ -868,7 +868,7 @@ class CartController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to checkout cart: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to checkout cart. Please try again later.', null, 500);
         }
     }
 
@@ -1015,7 +1015,7 @@ class CartController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to checkout supplier items: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to checkout supplier items. Please try again later.', null, 500);
         }
     }
 
