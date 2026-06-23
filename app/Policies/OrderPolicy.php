@@ -50,14 +50,23 @@ class OrderPolicy
             || $user->company_id === $order->supplier_company_id;
     }
 
-    public function accept(User $user, Order $order): bool
+    /**
+     * Gate an order status transition by role. Forward fulfilment transitions
+     * (accepted/prepared/shipped/delivered) are the supplier's responsibility on
+     * their own orders; cancellation follows the dedicated cancel rules. Buyers
+     * and salesmen never advance an order's status.
+     */
+    public function updateStatus(User $user, Order $order, string $targetStatus): bool
     {
-        if (!$user->isSupplier()) {
-            return false;
+        if ($user->isAdmin()) {
+            return true;
         }
 
-        return $user->company_id === $order->supplier_company_id
-            && $order->status === OrderStatus::PENDING;
+        if ($targetStatus === OrderStatus::CANCELLED) {
+            return $this->cancel($user, $order);
+        }
+
+        return $user->isSupplier() && $user->company_id === $order->supplier_company_id;
     }
 
     public function cancel(User $user, Order $order): bool
@@ -86,4 +95,3 @@ class OrderPolicy
         return $user->isAdmin();
     }
 }
-

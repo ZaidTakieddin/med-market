@@ -49,18 +49,6 @@ parameters:
 			path: app/Domain/Orders/OrderStateTransitionService.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\Product\:\:\$wholesale_min_qty\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Domain/Pricing/PricingService.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\CartItem\:\:\$pricing_type\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/Api/V1/CartController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$applied_offer_id\.$#'
 			identifier: property.notFound
 			count: 3
@@ -167,12 +155,6 @@ parameters:
 			identifier: method.notFound
 			count: 1
 			path: app/Http/Controllers/Api/V1/CompanyController.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Order\:\:\$placed_by_salesman_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/V1/InvoiceController.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$placed_by_salesman_id\.$#'
@@ -1531,24 +1513,6 @@ parameters:
 			path: app/Models/Cart.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\Order\:\:\$placed_by_salesman_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Models/Order.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Product\:\:\$wholesale_min_qty\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Models/Product.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Product\:\:\$wholesale_price\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Models/Product.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -1583,9 +1547,3 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Observers/StockMovementObserver.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\Order\:\:\$placed_by_salesman_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Policies/OrderPolicy.php
