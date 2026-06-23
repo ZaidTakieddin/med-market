@@ -2,11 +2,16 @@
 
 namespace App\Http\Requests\Auth;
 
-use App\Constants\CompanyType;
-use App\Constants\UserRole;
 use App\Http\Requests\BaseFormRequest;
-use Illuminate\Validation\Rule;
 
+/**
+ * Public self-registration input.
+ *
+ * Security: `role` and `company_id` are intentionally NOT accepted here. Public
+ * registration can only create a buyer (pharmacy) that owns a brand-new company;
+ * the role and company are assigned server-side by the RegistrationService.
+ * See codebase rules §17 lesson #1 (privilege escalation).
+ */
 class RegisterRequest extends BaseFormRequest
 {
     /**
@@ -19,6 +24,8 @@ class RegisterRequest extends BaseFormRequest
 
     /**
      * Get the validation rules that apply to the request.
+     *
+     * @return array<string, array<int, string>>
      */
     public function rules(): array
     {
@@ -26,13 +33,18 @@ class RegisterRequest extends BaseFormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'company_id' => ['nullable', 'exists:companies,id'],
-            'role' => ['nullable', 'string', Rule::in(UserRole::all())],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'company_name' => ['required', 'string', 'max:255'],
+            'company_phone' => ['nullable', 'string', 'max:30'],
+            'company_address' => ['nullable', 'string', 'max:500'],
+            'region_id' => ['nullable', 'integer', 'exists:regions,id'],
         ];
     }
 
     /**
      * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
      */
     public function messages(): array
     {
@@ -40,9 +52,8 @@ class RegisterRequest extends BaseFormRequest
             'email.unique' => 'This email is already registered.',
             'password.min' => 'Password must be at least 8 characters.',
             'password.confirmed' => 'Password confirmation does not match.',
-            'company_id.exists' => 'The selected company does not exist.',
-            'role.in' => 'Invalid role. Must be one of: ' . implode(', ', UserRole::all()),
+            'company_name.required' => 'A company (pharmacy) name is required to register.',
+            'region_id.exists' => 'The selected region does not exist.',
         ];
     }
 }
-
