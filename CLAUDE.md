@@ -26,7 +26,7 @@ Business logic lives in **`app/Domain/<Context>/`**, not in controllers or model
 ```
 app/
 ├── Domain/           # Business logic lives HERE (services, DTOs, state machines)
-│   ├── Orders/       # OrderCreationService, OrderStateTransitionService, OrderState
+│   ├── Orders/       # OrderCreationService, OrderStateTransitionService (states: Constants\OrderStatus)
 │   ├── Inventory/    # StockMovementService
 │   ├── Pricing/      # PricingService, PriceResult DTO  (multi-tier price resolution)
 │   ├── Products/  Companies/  Deliveries/  Cart/  Users/
@@ -75,7 +75,8 @@ These come straight from the codebase rules — violating them is a correctness/
 ## Order state machine
 
 States: `pending → accepted → prepared → shipped → delivered`, with `cancelled` reachable
-from any non-final state (per `OrderStatus`). `delivered` and `cancelled` are final.
+from `pending`, `accepted`, or `prepared` — **not once `shipped`** (shipped can only go to
+`delivered`). `delivered` and `cancelled` are final. Single source of truth: `App\Constants\OrderStatus`.
 
 - Stock is **deducted** on transition to `accepted`/`prepared`; **reverted** on `cancelled`.
 - Transition to `accepted` auto-dispatches `GenerateInvoiceJob`.
@@ -161,8 +162,7 @@ API resources, observers.
 - Dashboard/statistics, user-management (admin), product images, payment integration,
   real-time/notifications infra — see "Missing Features" in PROGRESS.md.
 
-**Known technical debt**: `OrderStatus` vs `OrderState` transition inconsistency
-(shipped→cancelled); `App\Domain\Users\UserRole` duplicates `App\Constants\UserRole`
+**Known technical debt**: `App\Domain\Users\UserRole` duplicates `App\Constants\UserRole`
 (should consolidate).
 
 ## Final rule
