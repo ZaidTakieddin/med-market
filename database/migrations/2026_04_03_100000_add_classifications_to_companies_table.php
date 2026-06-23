@@ -11,9 +11,17 @@ return new class extends Migration
 
     public function up(): void
     {
-        DB::statement("ALTER TABLE companies ADD COLUMN IF NOT EXISTS supplier_classification VARCHAR(255) NULL");
-        DB::statement("ALTER TABLE companies ADD COLUMN IF NOT EXISTS buyer_classification VARCHAR(255) NULL");
-        DB::statement("ALTER TABLE companies ADD COLUMN IF NOT EXISTS min_order_amount DECIMAL(12, 2) NULL");
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE companies ADD COLUMN IF NOT EXISTS supplier_classification VARCHAR(255) NULL');
+            DB::statement('ALTER TABLE companies ADD COLUMN IF NOT EXISTS buyer_classification VARCHAR(255) NULL');
+            DB::statement('ALTER TABLE companies ADD COLUMN IF NOT EXISTS min_order_amount DECIMAL(12, 2) NULL');
+        } else {
+            Schema::table('companies', function (Blueprint $table) {
+                $table->string('supplier_classification')->nullable();
+                $table->string('buyer_classification')->nullable();
+                $table->decimal('min_order_amount', 12, 2)->nullable();
+            });
+        }
 
         DB::table('companies')
             ->where('type', 'supplier')

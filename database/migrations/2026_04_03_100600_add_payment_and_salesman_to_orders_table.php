@@ -11,9 +11,20 @@ return new class extends Migration
 
     public function up(): void
     {
+        if (DB::getDriverName() !== 'pgsql') {
+            Schema::table('orders', function (Blueprint $table) {
+                $table->string('payment_method')->default('cash');
+                $table->date('payment_due_date')->nullable();
+                $table->unsignedBigInteger('placed_by_salesman_id')->nullable();
+                $table->index('placed_by_salesman_id');
+            });
+
+            return;
+        }
+
         DB::statement("ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(255) NOT NULL DEFAULT 'cash'");
-        DB::statement("ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_due_date DATE NULL");
-        DB::statement("ALTER TABLE orders ADD COLUMN IF NOT EXISTS placed_by_salesman_id BIGINT NULL");
+        DB::statement('ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_due_date DATE NULL');
+        DB::statement('ALTER TABLE orders ADD COLUMN IF NOT EXISTS placed_by_salesman_id BIGINT NULL');
 
         DB::statement("
             DO $$

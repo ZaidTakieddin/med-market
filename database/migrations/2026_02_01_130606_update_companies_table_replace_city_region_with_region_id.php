@@ -17,15 +17,25 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (DB::getDriverName() !== 'pgsql') {
+            // Portable path for the sqlite test runner. city/region were never
+            // created on these drivers (see prior migration); only region_id is added.
+            Schema::table('companies', function (Blueprint $table) {
+                $table->unsignedBigInteger('region_id')->nullable()->index();
+            });
+
+            return;
+        }
+
         // Drop indexes first if they exist (using raw SQL to avoid transaction issues)
-        DB::statement("DROP INDEX IF EXISTS companies_region_index");
-        DB::statement("DROP INDEX IF EXISTS companies_city_index");
+        DB::statement('DROP INDEX IF EXISTS companies_region_index');
+        DB::statement('DROP INDEX IF EXISTS companies_city_index');
 
         // Add region_id foreign key if it doesn't exist
-        if (!Schema::hasColumn('companies', 'region_id')) {
+        if (! Schema::hasColumn('companies', 'region_id')) {
             // First add the column
-            DB::statement("ALTER TABLE companies ADD COLUMN IF NOT EXISTS region_id BIGINT NULL");
-            
+            DB::statement('ALTER TABLE companies ADD COLUMN IF NOT EXISTS region_id BIGINT NULL');
+
             // Then add the foreign key constraint
             $fkExists = DB::selectOne(
                 "SELECT EXISTS (
@@ -35,17 +45,17 @@ return new class extends Migration
                 ) as exists"
             );
 
-            if (!$fkExists->exists) {
-                DB::statement("ALTER TABLE companies ADD CONSTRAINT companies_region_id_foreign FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE SET NULL");
+            if (! $fkExists->exists) {
+                DB::statement('ALTER TABLE companies ADD CONSTRAINT companies_region_id_foreign FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE SET NULL');
             }
         }
 
         // Drop old city and region string columns if they exist
         if (Schema::hasColumn('companies', 'city')) {
-            DB::statement("ALTER TABLE companies DROP COLUMN IF EXISTS city");
+            DB::statement('ALTER TABLE companies DROP COLUMN IF EXISTS city');
         }
         if (Schema::hasColumn('companies', 'region')) {
-            DB::statement("ALTER TABLE companies DROP COLUMN IF EXISTS region");
+            DB::statement('ALTER TABLE companies DROP COLUMN IF EXISTS region');
         }
 
         // Add index for region_id
@@ -57,8 +67,8 @@ return new class extends Migration
                 ) as exists"
             );
 
-            if (!$indexExists->exists) {
-                DB::statement("CREATE INDEX companies_region_id_index ON companies (region_id)");
+            if (! $indexExists->exists) {
+                DB::statement('CREATE INDEX companies_region_id_index ON companies (region_id)');
             }
         }
     }
@@ -72,7 +82,7 @@ return new class extends Migration
             $table->dropIndex(['region_id']);
             $table->dropForeign(['region_id']);
             $table->dropColumn('region_id');
-            
+
             // Restore old columns
             $table->string('city')->nullable()->after('longitude');
             $table->string('region')->nullable()->after('city');
