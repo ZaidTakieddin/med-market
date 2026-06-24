@@ -167,6 +167,16 @@ class CheckoutService
     private function resolveCheckoutItems(iterable $cartItems, Company $buyerCompany): array
     {
         $collection = collect($cartItems);
+
+        // Batch-resolve base tier prices once (avoids a price-list query per item).
+        $batch = [];
+        foreach ($collection as $cartItem) {
+            if ($cartItem->product instanceof Product) {
+                $batch[] = ['product' => $cartItem->product, 'quantity' => $cartItem->quantity];
+            }
+        }
+        $priceResults = $this->pricingService->resolveMany($batch, $buyerCompany);
+
         $orderItems = [];
 
         foreach ($collection as $cartItem) {
@@ -175,7 +185,8 @@ class CheckoutService
                 continue;
             }
 
-            $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
+            $priceResult = $priceResults[$product->id]
+                ?? $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
             $unitPrice = $priceResult->unitPrice;
             $pricingType = $priceResult->pricingType;
             $appliedOfferId = $cartItem->applied_offer_id;
