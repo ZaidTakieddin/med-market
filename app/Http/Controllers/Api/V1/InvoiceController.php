@@ -248,17 +248,7 @@ class InvoiceController extends BaseApiController
     )]
     public function markAsSent(Invoice $invoice): JsonResponse
     {
-        $user = auth()->user();
-
-        // Only suppliers can mark invoices as sent
-        if (! $user->isSupplier() && ! $user->isAdmin()) {
-            return $this->error('Only suppliers can mark invoices as sent', null, 403);
-        }
-
-        // Authorization check
-        if ($invoice->supplier_company_id !== $user->company_id && ! $user->isAdmin()) {
-            return $this->error('Unauthorized', null, 403);
-        }
+        $this->authorize('send', $invoice);
 
         $invoice->markAsSent();
 
@@ -271,7 +261,7 @@ class InvoiceController extends BaseApiController
     #[OA\Post(
         path: '/invoices/{id}/pay',
         summary: 'Mark invoice as paid',
-        description: 'Mark an invoice as paid (buyers and suppliers can mark as paid)',
+        description: 'Mark an invoice as paid. Only the issuing supplier (or admin) may confirm payment — a buyer cannot mark their own invoice paid (it would release their trade credit).',
         tags: ['Invoices'],
         security: [['sanctum' => []]],
         parameters: [
@@ -296,11 +286,7 @@ class InvoiceController extends BaseApiController
     )]
     public function markAsPaid(MarkInvoicePaidRequest $request, Invoice $invoice): JsonResponse
     {
-        $user = auth()->user();
-
-        if (! $this->canAccessInvoice($user, $invoice)) {
-            return $this->error('Unauthorized', null, 403);
-        }
+        $this->authorize('pay', $invoice);
 
         $amount = $request->amount ?? $invoice->total_amount;
 

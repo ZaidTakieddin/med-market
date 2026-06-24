@@ -40,6 +40,8 @@ class LowStockAlertJob implements ShouldQueue
      */
     public function handle(): void
     {
+        $product = $this->product;
+
         try {
             // Reload product with supplier company
             $product->load('supplierCompany');

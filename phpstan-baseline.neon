@@ -1387,12 +1387,6 @@ parameters:
 			path: app/Jobs/GenerateInvoiceJob.php
 
 		-
-			message: '#^Undefined variable\: \$product$#'
-			identifier: variable.undefined
-			count: 17
-			path: app/Jobs/LowStockAlertJob.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
 			identifier: property.notFound
 			count: 2

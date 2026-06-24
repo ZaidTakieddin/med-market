@@ -44,15 +44,7 @@ class StockController extends BaseApiController
     )]
     public function movements(Request $request, Product $product): JsonResponse
     {
-        $user = auth()->user();
-
-        if (! $user->isSupplier() && ! $user->isAdmin()) {
-            return $this->error('Only suppliers and admins can view stock movements', null, 403);
-        }
-
-        if ($user->isSupplier() && $product->supplier_company_id !== $user->company_id) {
-            return $this->error('You can only view stock movements for your own products', null, 403);
-        }
+        $this->authorize('viewStockMovements', $product);
 
         $query = StockMovement::where('product_id', $product->id)
             ->with(['user', 'order']);
@@ -108,15 +100,9 @@ class StockController extends BaseApiController
     )]
     public function add(AddStockRequest $request, Product $product): JsonResponse
     {
+        $this->authorize('mutateStock', $product);
+
         $user = auth()->user();
-
-        if (! $user->isSupplier()) {
-            return $this->error('Only suppliers can add stock', null, 403);
-        }
-
-        if ($product->supplier_company_id !== $user->company_id) {
-            return $this->error('You can only add stock to your own products', null, 403);
-        }
 
         $movement = $this->stockMovementService->recordIn(
             product: $product,
@@ -174,15 +160,9 @@ class StockController extends BaseApiController
     )]
     public function adjust(AdjustStockRequest $request, Product $product): JsonResponse
     {
+        $this->authorize('mutateStock', $product);
+
         $user = auth()->user();
-
-        if (! $user->isSupplier()) {
-            return $this->error('Only suppliers can adjust stock', null, 403);
-        }
-
-        if ($product->supplier_company_id !== $user->company_id) {
-            return $this->error('You can only adjust stock for your own products', null, 403);
-        }
 
         try {
             $movement = $this->stockMovementService->recordMovement(
