@@ -3646,7 +3646,7 @@
                     "Invoices"
                 ],
                 "summary": "Mark invoice as paid",
-                "description": "Mark an invoice as paid (buyers and suppliers can mark as paid)",
+                "description": "Mark an invoice as paid. Only the issuing supplier (or admin) may confirm payment — a buyer cannot mark their own invoice paid (it would release their trade credit).",
                 "operationId": "9712acbed5013f40f55564ee18aff4ef",
                 "parameters": [
                     {

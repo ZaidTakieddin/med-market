@@ -64,6 +64,10 @@ When placing an order with `payment_method` of `net_15`/`net_30`/`net_60` (via `
 
 For salesman users, the order is always attributed to the authenticated salesman (the client-supplied `placed_by_salesman_id` is ignored — it was a spoofing vector). Use `POST /salesmen/{id}/place-order` for on-behalf ordering.
 
+## 7b. Marking an invoice paid is supplier-only — behavioral
+
+`POST /invoices/{id}/pay` and `POST /invoices/{id}/send` now require the **issuing supplier** (or admin). A **buyer can no longer mark their own invoice paid** → **403** (previously allowed; it would have released their trade credit without payment). **Frontend:** only show the "mark paid / mark sent" actions to supplier users.
+
 ---
 
 ## 8. Error response contract — now consistent ✅
