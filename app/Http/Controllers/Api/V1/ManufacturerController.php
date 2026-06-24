@@ -9,6 +9,7 @@ use App\Http\Resources\ManufacturerResource;
 use App\Models\Manufacturer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Manufacturers', description: 'Manufacturer management endpoints (Admin only)')]
@@ -37,6 +38,20 @@ class ManufacturerController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
+        // The common "load every manufacturer" dropdown fetch is cached and flushed on
+        // any manufacturer write (CacheableReference). Filtered/paginated requests skip it.
+        if (! $request->hasAny(['search', 'is_active']) && $this->wantsUnpaginated($request)) {
+            $manufacturers = Cache::remember(
+                Manufacturer::referenceListCacheKey(),
+                now()->addDay(),
+                fn () => Manufacturer::query()->orderBy('sort_order')->orderBy('name')->get()
+            );
+
+            return ManufacturerResource::collection($manufacturers)
+                ->additional(['success' => true, 'message' => 'Manufacturers retrieved successfully'])
+                ->response();
+        }
+
         $query = Manufacturer::query();
 
         // Filter by active status

@@ -9,6 +9,7 @@ use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Categories', description: 'Category management endpoints (Admin only)')]
@@ -37,6 +38,20 @@ class CategoryController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
+        // The common "load every category" dropdown fetch is cached and flushed on
+        // any category write (CacheableReference). Filtered/paginated requests skip it.
+        if (! $request->hasAny(['search', 'is_active']) && $this->wantsUnpaginated($request)) {
+            $categories = Cache::remember(
+                Category::referenceListCacheKey(),
+                now()->addDay(),
+                fn () => Category::query()->orderBy('sort_order')->orderBy('name')->get()
+            );
+
+            return CategoryResource::collection($categories)
+                ->additional(['success' => true, 'message' => 'Categories retrieved successfully'])
+                ->response();
+        }
+
         $query = Category::query();
 
         // Filter by active status
