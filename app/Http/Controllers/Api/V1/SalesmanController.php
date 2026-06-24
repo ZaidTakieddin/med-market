@@ -115,16 +115,12 @@ class SalesmanController extends BaseApiController
     )]
     public function show(int $id): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)
+            ->with(['company', 'salesmanRegions.city', 'salesmanClients.pharmacyCompany'])
+            ->findOrFail($id);
+        $this->authorize('accessSalesman', $salesman);
+
         try {
-            $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)
-                ->with(['company', 'salesmanRegions.city', 'salesmanClients.pharmacyCompany'])
-                ->findOrFail($id);
-
-            if (! $this->canAccessSalesman($user, $salesman)) {
-                return $this->error('You do not have access to this salesman', null, 403);
-            }
-
             $data = (new UserResource($salesman))->toArray(request());
             $data['regions'] = RegionResource::collection($salesman->salesmanRegions);
             $data['clients'] = SalesmanClientResource::collection($salesman->salesmanClients);
@@ -158,14 +154,10 @@ class SalesmanController extends BaseApiController
     )]
     public function regions(int $id): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        $this->authorize('accessSalesman', $salesman);
+
         try {
-            $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
-
-            if (! $this->canAccessSalesman($user, $salesman)) {
-                return $this->error('Unauthorized', null, 403);
-            }
-
             $regions = $salesman->salesmanRegions()->with('city')->get();
 
             return $this->success(
@@ -205,14 +197,10 @@ class SalesmanController extends BaseApiController
     )]
     public function assignRegions(AssignSalesmanRegionsRequest $request, int $id): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        $this->authorize('manageSalesman', $salesman);
+
         try {
-            $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
-
-            if (! $this->canManageSalesman($user, $salesman)) {
-                return $this->error('Only suppliers can assign regions to their salesmen', null, 403);
-            }
-
             $salesman->salesmanRegions()->sync($request->region_ids);
             $regions = $salesman->salesmanRegions()->with('city')->get();
 
@@ -245,14 +233,10 @@ class SalesmanController extends BaseApiController
     )]
     public function removeRegion(int $id, int $regionId): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        $this->authorize('manageSalesman', $salesman);
+
         try {
-            $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
-
-            if (! $this->canManageSalesman($user, $salesman)) {
-                return $this->error('Only suppliers can remove regions from their salesmen', null, 403);
-            }
-
             $detached = $salesman->salesmanRegions()->detach($regionId);
             if ($detached === 0) {
                 return $this->error('Region was not assigned to this salesman', null, 404);
@@ -284,14 +268,10 @@ class SalesmanController extends BaseApiController
     )]
     public function clients(Request $request, int $id): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        $this->authorize('accessSalesman', $salesman);
+
         try {
-            $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
-
-            if (! $this->canAccessSalesman($user, $salesman)) {
-                return $this->error('Unauthorized', null, 403);
-            }
-
             $query = $salesman->salesmanClients()->with(['pharmacyCompany', 'salesmanUser', 'salesmanCompany']);
 
             if ($request->has('is_active')) {
@@ -338,14 +318,10 @@ class SalesmanController extends BaseApiController
     )]
     public function assignClient(AssignSalesmanClientRequest $request, int $id): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        $this->authorize('manageSalesman', $salesman);
+
         try {
-            $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
-
-            if (! $this->canManageSalesman($user, $salesman)) {
-                return $this->error('Only suppliers can assign clients to their salesmen', null, 403);
-            }
-
             $pharmacy = Company::findOrFail($request->pharmacy_company_id);
             if ($pharmacy->buyer_classification !== BuyerClassification::PHARMACY) {
                 return $this->error('The selected company is not a pharmacy', null, 400);
@@ -399,14 +375,10 @@ class SalesmanController extends BaseApiController
     )]
     public function removeClient(int $id, int $clientId): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        $this->authorize('manageSalesman', $salesman);
+
         try {
-            $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
-
-            if (! $this->canManageSalesman($user, $salesman)) {
-                return $this->error('Only suppliers can remove clients from their salesmen', null, 403);
-            }
-
             $client = SalesmanClient::where('salesman_user_id', $salesman->id)
                 ->where('id', $clientId)
                 ->firstOrFail();
@@ -440,14 +412,10 @@ class SalesmanController extends BaseApiController
     )]
     public function orders(Request $request, int $id): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        $this->authorize('accessSalesman', $salesman);
+
         try {
-            $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
-
-            if (! $this->canAccessSalesman($user, $salesman)) {
-                return $this->error('Unauthorized', null, 403);
-            }
-
             $query = Order::where('placed_by_salesman_id', $salesman->id)
                 ->with([
                     'buyerCompany',
@@ -514,15 +482,11 @@ class SalesmanController extends BaseApiController
     )]
     public function placeOrder(PlaceOrderOnBehalfRequest $request, int $id): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        $this->authorize('accessSalesman', $salesman);
+
         try {
             $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
-
-            if ($user->id !== $salesman->id && ! $user->isAdmin()) {
-                if (! ($user->isSupplier() && $user->company_id === $salesman->company_id)) {
-                    return $this->error('You can only place orders as yourself or for your company\'s salesmen', null, 403);
-                }
-            }
 
             $buyerCompany = Company::findOrFail($request->buyer_company_id);
             if (! $buyerCompany->isBuyer()) {
@@ -592,31 +556,5 @@ class SalesmanController extends BaseApiController
 
             return $this->error('Failed to place order. Please try again later.', null, 500);
         }
-    }
-
-    private function canAccessSalesman(User $user, User $salesman): bool
-    {
-        if ($user->isAdmin()) {
-            return true;
-        }
-
-        if ($user->id === $salesman->id) {
-            return true;
-        }
-
-        if ($user->isSupplier() && $user->company_id === $salesman->company_id) {
-            return true;
-        }
-
-        return false;
-    }
-
-    private function canManageSalesman(User $user, User $salesman): bool
-    {
-        if ($user->isAdmin()) {
-            return true;
-        }
-
-        return $user->isSupplier() && $user->company_id === $salesman->company_id;
     }
 }

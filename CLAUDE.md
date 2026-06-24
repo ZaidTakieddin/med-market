@@ -168,8 +168,9 @@ leak exception messages.
 - Dashboard/statistics depth, user-management (admin), product images, payment
   integration, real-time/notifications infra — see "Missing Features" in docs/PROGRESS.md.
 
-**Known technical debt**: `DriverController`/`SalesmanController` still use inline,
-User-scoped authorization rather than Policies.
+**Known technical debt**: the PHPStan baseline still grandfathers ~289 findings
+(mostly un-generic'd Eloquent relation return types); pay these down and raise the
+`level` over time.
 
 ## Final rule
 

@@ -90,4 +90,44 @@ class PolicyAuthorizationTest extends TestCase
         $this->postJson('/api/v1/cities', ['name' => 'Hama'])->assertCreated();
         $this->postJson('/api/v1/regions', ['name' => 'Mazzeh', 'city_id' => $city->id])->assertCreated();
     }
+
+    public function test_driver_policy_scopes_to_owning_supplier(): void
+    {
+        $supplier = Company::factory()->supplier()->create();
+        $supplierUser = User::factory()->supplier()->forCompany($supplier)->create();
+        $otherSupplier = User::factory()->supplier()->create();
+        $driver = User::factory()->driver()->forCompany($supplier)->create();
+        $policy = new \App\Policies\UserPolicy;
+
+        $this->assertTrue($policy->viewDrivers($supplierUser));
+        $this->assertFalse($policy->viewDrivers(User::factory()->buyer()->create()));
+        $this->assertTrue($policy->manageDriver($supplierUser, $driver));
+        $this->assertTrue($policy->manageDriver(User::factory()->admin()->create(), $driver));
+        $this->assertFalse($policy->manageDriver($otherSupplier, $driver));
+    }
+
+    public function test_buyer_cannot_list_drivers_supplier_can(): void
+    {
+        Sanctum::actingAs(User::factory()->buyer()->create());
+        $this->getJson('/api/v1/drivers')->assertForbidden();
+
+        Sanctum::actingAs(User::factory()->supplier()->create());
+        $this->getJson('/api/v1/drivers')->assertOk();
+    }
+
+    public function test_salesman_policy_scopes_to_owning_supplier_or_self(): void
+    {
+        $supplier = Company::factory()->supplier()->create();
+        $supplierUser = User::factory()->supplier()->forCompany($supplier)->create();
+        $salesman = User::factory()->salesman()->forCompany($supplier)->create();
+        $otherSupplier = User::factory()->supplier()->create();
+        $policy = new \App\Policies\UserPolicy;
+
+        $this->assertTrue($policy->accessSalesman($salesman, $salesman)); // self
+        $this->assertTrue($policy->accessSalesman($supplierUser, $salesman));
+        $this->assertFalse($policy->accessSalesman($otherSupplier, $salesman));
+        $this->assertTrue($policy->manageSalesman($supplierUser, $salesman));
+        $this->assertFalse($policy->manageSalesman($salesman, $salesman)); // self can't manage
+        $this->assertFalse($policy->manageSalesman($otherSupplier, $salesman));
+    }
 }
