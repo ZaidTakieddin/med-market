@@ -19,12 +19,6 @@ parameters:
 			path: app/Domain/Cart/Services/CartOfferService.php
 
 		-
-			message: '#^Variable \$bestPrice might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: app/Domain/Cart/Services/CartOfferService.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 1

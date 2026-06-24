@@ -89,6 +89,7 @@ class CartOfferService
 
         $bestOffer = null;
         $basePrice = $basePrice ?? $product->getFinalPharmacistPrice();
+        $bestPrice = $basePrice;
         $bestTotal = $quantity * $basePrice;
 
         foreach ($offers as $offer) {
