@@ -1,18 +1,42 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-23 (Supplier/buyer reach visibility rules; dashboard trend tone positive/warning/danger only)
+> Last Updated: 2026-06-24 (Audit remediation branch: security + correctness fixes, test suite + CI, docs reorg into `docs/` — see the remediation entry below)
+
+> Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
 
 ### Related Documentation
 
-- [README.md](./README.md) - Project overview, setup, API docs
+- [README.md](../README.md) - Project overview, setup, API docs
+- [CLAUDE.md](../CLAUDE.md) - Agent/operating guide and hard rules
 - [DEPLOYMENT.md](./DEPLOYMENT.md) - Production deployment guide
 - [QUEUE_WORKERS.md](./QUEUE_WORKERS.md) - Queue workers setup and configuration
-- [app/Domain/Orders/README.md](./app/Domain/Orders/README.md) - Order domain
-- [app/Domain/Inventory/README.md](./app/Domain/Inventory/README.md) - Inventory domain
-- [app/Domain/Products/README.md](./app/Domain/Products/README.md) - Product domain
-- [app/Domain/Companies/README.md](./app/Domain/Companies/README.md) - Company domain
-- [app/Domain/Deliveries/README.md](./app/Domain/Deliveries/README.md) - Deliveries domain
-- [app/Domain/Pricing/README.md](./app/Domain/Pricing/README.md) - Pricing domain (NEW)
+- [app/Domain/Orders/README.md](../app/Domain/Orders/README.md) - Order domain
+- [app/Domain/Inventory/README.md](../app/Domain/Inventory/README.md) - Inventory domain
+- [app/Domain/Products/README.md](../app/Domain/Products/README.md) - Product domain
+- [app/Domain/Companies/README.md](../app/Domain/Companies/README.md) - Company domain
+- [app/Domain/Deliveries/README.md](../app/Domain/Deliveries/README.md) - Deliveries domain
+- [app/Domain/Pricing/README.md](../app/Domain/Pricing/README.md) - Pricing domain
+
+## 🔒 2026-06-24 — Audit Remediation (branch `fix/register-privilege-escalation`)
+
+Full read-only audit (2026-06-23) followed by remediation. 25 commits; suite green
+(43 tests, Pint + PHPStan clean; Larastan baseline 334 → 293).
+
+**Security**
+
+- Closed a P0 privilege escalation: public `/auth/register` accepted `role` (incl. `admin`) and an arbitrary `company_id`; it now creates a buyer + its own company only, and is rate-limited.
+- Order status transitions are gated by role (buyers can't accept); a shipped order can no longer be cancelled (single source of truth: `Constants\OrderStatus`).
+- Invoice payment is supplier-only (a buyer marking their own invoice paid would have released their trade credit); Sanctum tokens now expire; no controller leaks exception messages; salesman-id spoofing removed.
+
+**Correctness / money**
+
+- Stock mutations lock the product row (no oversell); `PricingService::resolve` and `resolveMany` price identically; buyer↔supplier trade credit is enforced (reserve on net-term order, release on cancel/payment); cart checkout re-resolves prices instead of using the stale add-time price.
+
+**Architecture / quality**
+
+- Extracted `CheckoutService` + `RegistrationService`; inline validation → Form Requests; standardized error contract; Policy-based authorization on every resource model; reference-list caching (Category/Manufacturer).
+- Added model factories + a cross-DB sqlite test database, a feature/unit suite, a GitHub Actions CI pipeline, and normalized the repo to the Pint baseline. Fixed a latent bug: `LowStockAlertJob` never ran (used `$product` instead of `$this->product`).
+- See `.cursor/rules/codebase_rules.mdc` §17 (Mistake Log) for the lessons recorded.
 
 ## 📋 Table of Contents
 
@@ -558,7 +582,9 @@ All 6 phases complete.
     -   [x] Consistent pagination format across all list endpoints
     -   [x] Resources handle conditional loading with whenLoaded()
 
-#### 10. Testing ⚠️ CRITICAL MISSING
+#### 10. Testing ✅ ESTABLISHED (broaden over time)
+
+**Status**: A feature/unit suite now covers registration/auth, order transitions + the state-machine matrix, stock deduct/revert + oversell, pricing parity, the trade-credit lifecycle, cart checkout pricing, policy authorization, reference caching, factories, and a seeder invariant — running on a cross-DB sqlite test database with GitHub Actions CI. Coverage should keep expanding to the endpoints below.
 
 -   [ ] Feature tests for authentication endpoints
 -   [ ] Feature tests for order endpoints
@@ -1365,7 +1391,7 @@ These features are essential for core functionality and should be prioritized fo
 - [ ] Notification delivery status tracking
 
 #### 5. Testing Suite
-**Status**: PHPUnit configured, only example tests exist
+**Status**: Established — feature/unit suite + model factories + cross-DB (sqlite) test database + GitHub Actions CI are in place; broaden coverage to all endpoints over time
 - [ ] Feature tests for authentication endpoints
 - [ ] Feature tests for order endpoints
 - [ ] Feature tests for product endpoints
@@ -1558,11 +1584,11 @@ These features improve security, performance, and code quality.
 -   **Completed Features**: 110+ (including all new requirements and documentation updates)
 -   **Database Seeders**: 10 (CitySeeder, RegionSeeder, CompanySeeder, CategorySeeder, ManufacturerSeeder, UserSeeder, ProductSeeder, OfferSeeder, BuyerSupplierRelationshipSeeder, OrderSeeder)
 -   **Pending Tasks**: See "Missing Features & Requirements" section below
--   **Critical Missing Features**: 4 (Product Images, Export API, Notification Infrastructure, Testing Suite)
+-   **Critical Missing Features**: 3 (Product Images, Export API, Notification Infrastructure) — the Testing Suite is now established
 -   **High Priority Missing Features**: 5 (Driver Availability, Payment Integration, Analytics, Advanced Search, Real-Time)
 -   **Medium Priority Missing Features**: 5 (Order Templates, Wishlist, Reviews, Multi-Language, Inventory Enhancements)
 -   **Security & Quality Missing Features**: 4 (Security Enhancements, Performance Optimizations, User Management, Additional Features)
--   **Documentation Files**: 10 (README.md, DEPLOYMENT.md, PROGRESS.md, QUEUE_WORKERS.md, 6 Domain READMEs)
+-   **Documentation Files**: README.md + CLAUDE.md (root); docs/ (PROGRESS.md, DEPLOYMENT.md, QUEUE_WORKERS.md); 6 Domain READMEs
 -   **Background Jobs**: 4 (SendOrderNotificationJob, GenerateInvoiceJob, LowStockAlertJob, ExportOrdersJob)
 -   **Deployment Files**: 3 (Procfile, render.yaml, railway.json)
 -   **Observers**: 3 (OrderObserver, StockMovementObserver, ProductObserver)
