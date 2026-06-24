@@ -9,6 +9,7 @@ use App\Http\Resources\CityResource;
 use App\Models\City;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Cities', description: 'City management endpoints (Admin only)')]
@@ -38,6 +39,20 @@ class CityController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
+        // Cache the unfiltered "all cities" dropdown fetch; flushed on any write
+        // (CacheableReference). Filtered/paginated/with-regions requests skip it.
+        if (! $request->hasAny(['search', 'is_active', 'with_regions']) && $this->wantsUnpaginated($request)) {
+            $cities = Cache::remember(
+                City::referenceListCacheKey(),
+                now()->addDay(),
+                fn () => City::query()->orderBy('sort_order')->orderBy('name')->get()
+            );
+
+            return CityResource::collection($cities)
+                ->additional(['success' => true, 'message' => 'Cities retrieved successfully'])
+                ->response();
+        }
+
         $query = City::query();
 
         if ($request->boolean('with_regions')) {
@@ -107,10 +122,7 @@ class CityController extends BaseApiController
     )]
     public function store(CreateCityRequest $request): JsonResponse
     {
-        $user = auth()->user();
-        if (! $user->isAdmin()) {
-            return $this->error('Only admins can create cities.', null, 403);
-        }
+        $this->authorize('create', City::class);
 
         $city = City::create($request->validated());
 
@@ -183,10 +195,7 @@ class CityController extends BaseApiController
     )]
     public function update(UpdateCityRequest $request, City $city): JsonResponse
     {
-        $user = auth()->user();
-        if (! $user->isAdmin()) {
-            return $this->error('Only admins can update cities.', null, 403);
-        }
+        $this->authorize('update', $city);
 
         $city->update($request->validated());
 
@@ -217,10 +226,7 @@ class CityController extends BaseApiController
     )]
     public function destroy(City $city): JsonResponse
     {
-        $user = auth()->user();
-        if (! $user->isAdmin()) {
-            return $this->error('Only admins can delete cities.', null, 403);
-        }
+        $this->authorize('delete', $city);
 
         $city->delete();
 

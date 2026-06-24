@@ -35,6 +35,21 @@ class ReferenceCacheTest extends TestCase
         $this->assertCount(2, $second->json('data'));
     }
 
+    public function test_city_dropdown_is_cached_and_flushed_on_write(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        \App\Models\City::create(['name' => 'Damascus']);
+
+        $key = \App\Models\City::referenceListCacheKey();
+        $this->assertFalse(Cache::has($key));
+
+        $this->getJson('/api/v1/cities?per_page=all')->assertOk();
+        $this->assertTrue(Cache::has($key));
+
+        \App\Models\City::create(['name' => 'Aleppo']);
+        $this->assertFalse(Cache::has($key));
+    }
+
     public function test_filtered_request_is_not_served_from_the_dropdown_cache(): void
     {
         Sanctum::actingAs(User::factory()->create());

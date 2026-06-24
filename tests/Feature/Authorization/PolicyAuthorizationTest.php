@@ -77,4 +77,17 @@ class PolicyAuthorizationTest extends TestCase
         $this->assertTrue($policy->update($owner, $offer));
         $this->assertFalse($policy->update($otherSupplier, $offer));
     }
+
+    public function test_only_admin_can_create_cities_and_regions(): void
+    {
+        $city = \App\Models\City::create(['name' => 'Damascus']);
+
+        Sanctum::actingAs(User::factory()->supplier()->create());
+        $this->postJson('/api/v1/cities', ['name' => 'Hama'])->assertForbidden();
+        $this->postJson('/api/v1/regions', ['name' => 'Mazzeh', 'city_id' => $city->id])->assertForbidden();
+
+        Sanctum::actingAs(User::factory()->admin()->create());
+        $this->postJson('/api/v1/cities', ['name' => 'Hama'])->assertCreated();
+        $this->postJson('/api/v1/regions', ['name' => 'Mazzeh', 'city_id' => $city->id])->assertCreated();
+    }
 }

@@ -9,6 +9,7 @@ use App\Http\Resources\RegionResource;
 use App\Models\Region;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Regions', description: 'Region management endpoints (Admin only)')]
@@ -39,6 +40,20 @@ class RegionController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
+        // Cache the unfiltered "all regions" dropdown fetch; flushed on any write
+        // (CacheableReference). Filtered/paginated/with-city requests skip it.
+        if (! $request->hasAny(['search', 'is_active', 'city_id', 'with_city']) && $this->wantsUnpaginated($request)) {
+            $regions = Cache::remember(
+                Region::referenceListCacheKey(),
+                now()->addDay(),
+                fn () => Region::query()->orderBy('sort_order')->orderBy('name')->get()
+            );
+
+            return RegionResource::collection($regions)
+                ->additional(['success' => true, 'message' => 'Regions retrieved successfully'])
+                ->response();
+        }
+
         $query = Region::query();
 
         if ($request->boolean('with_city')) {
@@ -114,10 +129,7 @@ class RegionController extends BaseApiController
     )]
     public function store(CreateRegionRequest $request): JsonResponse
     {
-        $user = auth()->user();
-        if (! $user->isAdmin()) {
-            return $this->error('Only admins can create regions.', null, 403);
-        }
+        $this->authorize('create', Region::class);
 
         $region = Region::create($request->validated());
 
@@ -191,10 +203,7 @@ class RegionController extends BaseApiController
     )]
     public function update(UpdateRegionRequest $request, Region $region): JsonResponse
     {
-        $user = auth()->user();
-        if (! $user->isAdmin()) {
-            return $this->error('Only admins can update regions.', null, 403);
-        }
+        $this->authorize('update', $region);
 
         $region->update($request->validated());
 
@@ -225,10 +234,7 @@ class RegionController extends BaseApiController
     )]
     public function destroy(Region $region): JsonResponse
     {
-        $user = auth()->user();
-        if (! $user->isAdmin()) {
-            return $this->error('Only admins can delete regions.', null, 403);
-        }
+        $this->authorize('delete', $region);
 
         $region->delete();
 
