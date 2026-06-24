@@ -58,6 +58,12 @@ $pintOut = [];
 exec($php.' vendor/bin/pint --dirty 2>&1', $pintOut, $pintCode);
 
 // 2) Static analysis — baseline means only new errors return a non-zero code.
+// Clear the result cache first: PHPStan only watches its analysis paths (app/),
+// so schema changes under database/migrations don't invalidate it and a stale
+// cache can report a false "clean" (and hide resolved baseline entries).
+$clearOut = [];
+exec($php.' vendor/bin/phpstan clear-result-cache --no-interaction 2>&1', $clearOut);
+
 $analyseOut = [];
 exec($php.' vendor/bin/phpstan analyse --no-progress --no-interaction --memory-limit=512M 2>&1', $analyseOut, $analyseCode);
 

@@ -12,7 +12,8 @@ class StockMovementService
     /**
      * Record a stock movement and update product stock.
      *
-     * @param int $quantity Positive for 'in', negative for 'out'
+     * @param  int  $quantity  Positive for 'in', negative for 'out'
+     *
      * @throws \InvalidArgumentException If quantity is invalid
      */
     public function recordMovement(
@@ -39,18 +40,28 @@ class StockMovementService
             $referenceType,
             $referenceId
         ) {
-            $quantityBefore = $product->stock_quantity;
+            // Pessimistically lock the product row so two concurrent movements cannot
+            // both read the same quantity and oversell (stock < 0). lockForUpdate is a
+            // no-op on sqlite (tests) and enforced on PostgreSQL.
+            $lockedProduct = Product::whereKey($product->getKey())->lockForUpdate()->first();
+
+            if ($lockedProduct === null) {
+                throw new \InvalidArgumentException("Product {$product->getKey()} not found for stock movement");
+            }
+
+            $quantityBefore = $lockedProduct->stock_quantity;
             $quantityAfter = $quantityBefore + $quantity;
 
             if ($quantityAfter < 0) {
                 throw new \InvalidArgumentException(
-                    "Insufficient stock. Available: {$quantityBefore}, Requested: " . abs($quantity)
+                    "Insufficient stock. Available: {$quantityBefore}, Requested: ".abs($quantity)
                 );
             }
 
-            // Update product stock
+            // Update product stock on the locked row, keeping the caller's instance in sync.
+            $lockedProduct->stock_quantity = $quantityAfter;
+            $lockedProduct->save();
             $product->stock_quantity = $quantityAfter;
-            $product->save();
 
             // Record the movement
             $movement = StockMovement::create([
@@ -107,4 +118,3 @@ class StockMovementService
         return $this->recordMovement($product, 'out', -abs($quantity), $orderId, $userId, $reason, 'order', (string) $orderId);
     }
 }
-

@@ -20,6 +20,7 @@ class ProductSeeder extends Seeder
 
         if ($suppliers->isEmpty()) {
             $this->command->warn('لا توجد شركات موردة. يرجى تشغيل CompanySeeder أولاً.');
+
             return;
         }
 
@@ -348,6 +349,6 @@ class ProductSeeder extends Seeder
             $supplier->manufacturers()->sync($manufacturerIds);
         }
 
-        $this->command->info('تم تحديث/إنشاء ' . count($products) . ' منتج بنجاح.');
+        $this->command->info('تم تحديث/إنشاء '.count($products).' منتج بنجاح.');
     }
 }

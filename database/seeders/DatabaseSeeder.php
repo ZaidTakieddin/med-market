@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
         // Use unpooled connection for seeding to avoid transaction issues
         // This ensures seeders work reliably with Neon PostgreSQL
         $originalConnection = DB::getDefaultConnection();
-        
+
         try {
             // Switch to seeder connection if configured, otherwise use default
             if (config('database.connections.pgsql_seeder.host')) {

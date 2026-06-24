@@ -5,8 +5,11 @@ namespace App\Constants;
 class PaymentTerms
 {
     public const CASH = 'cash';
+
     public const NET_15 = 'net_15';
+
     public const NET_30 = 'net_30';
+
     public const NET_60 = 'net_60';
 
     /**

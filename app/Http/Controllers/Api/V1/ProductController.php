@@ -42,93 +42,84 @@ class ProductController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
-        try {
-            $user = auth()->user();
-            $query = Product::with(['supplierCompany', 'category', 'manufacturer']);
+        $user = auth()->user();
+        $query = Product::with(['supplierCompany', 'category', 'manufacturer']);
 
-            $activeOffersEagerLoad = ['offers' => function ($q) {
-                $q->where('is_active', true)
-                    ->where('start_date', '<=', now())
-                    ->where(function ($subQ) {
-                        $subQ->whereNull('end_date')
-                            ->orWhere('end_date', '>=', now());
-                    });
-            }];
+        $activeOffersEagerLoad = ['offers' => function ($q) {
+            $q->where('is_active', true)
+                ->where('start_date', '<=', now())
+                ->where(function ($subQ) {
+                    $subQ->whereNull('end_date')
+                        ->orWhere('end_date', '>=', now());
+                });
+        }];
 
-            if ($user->isSupplier()) {
-                $query->where('supplier_company_id', $user->company_id);
-                $query->with($activeOffersEagerLoad);
-            } else {
-                $query->where('is_active', true);
-                $query->with($activeOffersEagerLoad);
+        if ($user->isSupplier()) {
+            $query->where('supplier_company_id', $user->company_id);
+            $query->with($activeOffersEagerLoad);
+        } else {
+            $query->where('is_active', true);
+            $query->with($activeOffersEagerLoad);
 
-                // Hide products from suppliers the buyer cannot reach (pharmacy → retail +
-                // hybrid; salesman → wholesale + hybrid).
-                $allowedClassifications = Company::visibleSupplierClassificationsFor($user->company);
-                if ($allowedClassifications !== null) {
-                    $query->whereHas('supplierCompany', function ($q) use ($allowedClassifications) {
-                        $q->whereIn('supplier_classification', $allowedClassifications);
-                    });
-                }
-            }
-
-            // Filter by supplier
-            if ($request->has('supplier_company_id')) {
-                $query->where('supplier_company_id', $request->supplier_company_id);
-            }
-
-            // Filter by category
-            if ($request->has('category_id')) {
-                $query->where('category_id', $request->category_id);
-            }
-
-            // Filter by manufacturer
-            if ($request->has('manufacturer_id')) {
-                $query->where('manufacturer_id', $request->manufacturer_id);
-            }
-
-            // Filter by active status
-            if ($request->has('is_active')) {
-                $query->where('is_active', $request->boolean('is_active'));
-            }
-
-            // Search
-            if ($request->has('search')) {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'ilike', "%{$search}%")
-                        ->orWhere('sku', 'ilike', "%{$search}%")
-                        ->orWhere('description', 'ilike', "%{$search}%")
-                        ->orWhereHas('category', function ($categoryQuery) use ($search) {
-                            $categoryQuery->where('name', 'ilike', "%{$search}%");
-                        })
-                        ->orWhereHas('manufacturer', function ($manufacturerQuery) use ($search) {
-                            $manufacturerQuery->where('name', 'ilike', "%{$search}%");
-                        });
+            // Hide products from suppliers the buyer cannot reach (pharmacy → retail +
+            // hybrid; salesman → wholesale + hybrid).
+            $allowedClassifications = Company::visibleSupplierClassificationsFor($user->company);
+            if ($allowedClassifications !== null) {
+                $query->whereHas('supplierCompany', function ($q) use ($allowedClassifications) {
+                    $q->whereIn('supplier_classification', $allowedClassifications);
                 });
             }
-
-            [$products, $pagination] = $this->paginateOrAll($query->latest(), $request);
-
-            $additional = [
-                'success' => true,
-                'message' => 'Products retrieved successfully',
-            ];
-            if ($pagination !== null) {
-                $additional['pagination'] = $pagination;
-            }
-
-            return ProductResource::collection($products)
-                ->additional($additional)
-                ->response();
-        } catch (\Exception $e) {
-            Log::error('Product list error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to retrieve products: '.$e->getMessage(), null, 500);
         }
+
+        // Filter by supplier
+        if ($request->has('supplier_company_id')) {
+            $query->where('supplier_company_id', $request->supplier_company_id);
+        }
+
+        // Filter by category
+        if ($request->has('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        // Filter by manufacturer
+        if ($request->has('manufacturer_id')) {
+            $query->where('manufacturer_id', $request->manufacturer_id);
+        }
+
+        // Filter by active status
+        if ($request->has('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        // Search
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'ilike', "%{$search}%")
+                    ->orWhere('sku', 'ilike', "%{$search}%")
+                    ->orWhere('description', 'ilike', "%{$search}%")
+                    ->orWhereHas('category', function ($categoryQuery) use ($search) {
+                        $categoryQuery->where('name', 'ilike', "%{$search}%");
+                    })
+                    ->orWhereHas('manufacturer', function ($manufacturerQuery) use ($search) {
+                        $manufacturerQuery->where('name', 'ilike', "%{$search}%");
+                    });
+            });
+        }
+
+        [$products, $pagination] = $this->paginateOrAll($query->latest(), $request);
+
+        $additional = [
+            'success' => true,
+            'message' => 'Products retrieved successfully',
+        ];
+        if ($pagination !== null) {
+            $additional['pagination'] = $pagination;
+        }
+
+        return ProductResource::collection($products)
+            ->additional($additional)
+            ->response();
     }
 
     /**
@@ -215,7 +206,7 @@ class ProductController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to create product: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to create product. Please try again later.', null, 500);
         }
     }
 

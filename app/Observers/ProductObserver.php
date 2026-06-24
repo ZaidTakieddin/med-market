@@ -68,7 +68,7 @@ class ProductObserver
      */
     protected function syncSupplierCategoriesAndManufacturers(Product $product): void
     {
-        if (!$product->supplier_company_id) {
+        if (! $product->supplier_company_id) {
             return;
         }
 
@@ -82,7 +82,7 @@ class ProductObserver
     {
         $supplier = \App\Models\Company::find($supplierCompanyId);
 
-        if (!$supplier || !$supplier->isSupplier()) {
+        if (! $supplier || ! $supplier->isSupplier()) {
             return;
         }
 

@@ -41,7 +41,7 @@ class ProductPolicy
             return true;
         }
 
-        return $user->isSupplier() 
+        return $user->isSupplier()
             && $user->company_id === $product->supplier_company_id;
     }
 
@@ -55,8 +55,29 @@ class ProductPolicy
             return true;
         }
 
-        return $user->isSupplier() 
+        return $user->isSupplier()
+            && $user->company_id === $product->supplier_company_id;
+    }
+
+    /**
+     * Determine if the user can add or adjust stock for the product (owning supplier only).
+     */
+    public function mutateStock(User $user, Product $product): bool
+    {
+        return $user->isSupplier()
+            && $user->company_id === $product->supplier_company_id;
+    }
+
+    /**
+     * Determine if the user can view the product's stock movement history.
+     */
+    public function viewStockMovements(User $user, Product $product): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $user->isSupplier()
             && $user->company_id === $product->supplier_company_id;
     }
 }
-

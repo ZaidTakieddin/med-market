@@ -22,7 +22,7 @@ class OrderResource extends JsonResource
             'supplierCompany' => new CompanyResource($this->whenLoaded('supplierCompany')),
             'creator' => new UserResource($this->whenLoaded('creator')),
             'driver' => $this->driver ? new UserResource($this->driver) : null,
-            'salesman' => $this->whenLoaded('salesman', fn() => new UserResource($this->salesman)),
+            'salesman' => $this->whenLoaded('salesman', fn () => new UserResource($this->salesman)),
             'placedBySalesmanId' => $this->placed_by_salesman_id,
             'items' => OrderItemResource::collection($this->whenLoaded('items')),
             'subtotal' => (float) $this->subtotal,
@@ -43,4 +43,3 @@ class OrderResource extends JsonResource
         ];
     }
 }
-

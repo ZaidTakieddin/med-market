@@ -37,4 +37,3 @@ class LoginRequest extends BaseFormRequest
         ];
     }
 }
-

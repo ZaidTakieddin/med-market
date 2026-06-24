@@ -31,6 +31,6 @@ class CategorySeeder extends Seeder
             );
         }
 
-        $this->command->info('تم تحديث/إنشاء ' . count($categories) . ' فئة بنجاح.');
+        $this->command->info('تم تحديث/إنشاء '.count($categories).' فئة بنجاح.');
     }
 }

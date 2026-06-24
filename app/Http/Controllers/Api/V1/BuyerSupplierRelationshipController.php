@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Requests\BuyerSupplierRelationships\AdjustCreditRequest;
+use App\Http\Requests\BuyerSupplierRelationships\CheckCreditRequest;
 use App\Http\Requests\BuyerSupplierRelationships\CreateBuyerSupplierRelationshipRequest;
 use App\Http\Requests\BuyerSupplierRelationships\UpdateBuyerSupplierRelationshipRequest;
 use App\Http\Resources\BuyerSupplierRelationshipResource;
@@ -78,7 +80,8 @@ class BuyerSupplierRelationshipController extends BaseApiController
                 ->response();
         } catch (\Exception $e) {
             Log::error('Buyer-supplier relationship list error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to retrieve relationships: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve relationships. Please try again later.', null, 500);
         }
     }
 
@@ -118,15 +121,15 @@ class BuyerSupplierRelationshipController extends BaseApiController
             $buyerCompany = Company::findOrFail($request->buyer_company_id);
             $supplierCompany = Company::findOrFail($request->supplier_company_id);
 
-            if (!$buyerCompany->isBuyer()) {
+            if (! $buyerCompany->isBuyer()) {
                 return $this->error('The selected buyer company is not a buyer', null, 400);
             }
 
-            if (!$supplierCompany->isSupplier()) {
+            if (! $supplierCompany->isSupplier()) {
                 return $this->error('The selected supplier company is not a supplier', null, 400);
             }
 
-            if (!$user->isAdmin() && $user->company_id !== $supplierCompany->id) {
+            if (! $user->isAdmin() && $user->company_id !== $supplierCompany->id) {
                 return $this->error('You can only create relationships for your own company', null, 403);
             }
 
@@ -155,7 +158,8 @@ class BuyerSupplierRelationshipController extends BaseApiController
             );
         } catch (\Exception $e) {
             Log::error('Buyer-supplier relationship create error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to create relationship: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to create relationship. Please try again later.', null, 500);
         }
     }
 
@@ -186,7 +190,8 @@ class BuyerSupplierRelationshipController extends BaseApiController
             );
         } catch (\Exception $e) {
             Log::error('Buyer-supplier relationship show error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to retrieve relationship: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve relationship. Please try again later.', null, 500);
         }
     }
 
@@ -223,9 +228,9 @@ class BuyerSupplierRelationshipController extends BaseApiController
 
             $data = $request->validated();
 
-            if (isset($data['is_approved']) && $data['is_approved'] && !$relationship->is_approved) {
+            if (isset($data['is_approved']) && $data['is_approved'] && ! $relationship->is_approved) {
                 $data['approved_at'] = now();
-            } elseif (isset($data['is_approved']) && !$data['is_approved']) {
+            } elseif (isset($data['is_approved']) && ! $data['is_approved']) {
                 $data['approved_at'] = null;
             }
 
@@ -238,7 +243,8 @@ class BuyerSupplierRelationshipController extends BaseApiController
             );
         } catch (\Exception $e) {
             Log::error('Buyer-supplier relationship update error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to update relationship: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to update relationship. Please try again later.', null, 500);
         }
     }
 
@@ -272,7 +278,8 @@ class BuyerSupplierRelationshipController extends BaseApiController
             return $this->success(null, 'Relationship deleted successfully');
         } catch (\Exception $e) {
             Log::error('Buyer-supplier relationship delete error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to delete relationship: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to delete relationship. Please try again later.', null, 500);
         }
     }
 
@@ -315,7 +322,8 @@ class BuyerSupplierRelationshipController extends BaseApiController
             );
         } catch (\Exception $e) {
             Log::error('Buyer-supplier relationship approve error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to approve relationship: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to approve relationship. Please try again later.', null, 500);
         }
     }
 
@@ -341,7 +349,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
             $relationship = BuyerSupplierRelationship::findOrFail($id);
             $this->authorize('approve', $relationship);
 
-            if (!$relationship->is_approved) {
+            if (! $relationship->is_approved) {
                 return $this->error('This relationship is not currently approved', null, 400);
             }
 
@@ -358,7 +366,8 @@ class BuyerSupplierRelationshipController extends BaseApiController
             );
         } catch (\Exception $e) {
             Log::error('Buyer-supplier relationship reject error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to reject relationship: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to reject relationship. Please try again later.', null, 500);
         }
     }
 
@@ -388,16 +397,11 @@ class BuyerSupplierRelationshipController extends BaseApiController
             new OA\Response(response: 404, description: 'Not found'),
         ]
     )]
-    public function adjustCredit(Request $request, int $id): JsonResponse
+    public function adjustCredit(AdjustCreditRequest $request, int $id): JsonResponse
     {
         try {
             $relationship = BuyerSupplierRelationship::findOrFail($id);
             $this->authorize('adjustCredit', $relationship);
-
-            $request->validate([
-                'amount' => ['required', 'numeric'],
-                'reason' => ['required', 'string', 'max:500'],
-            ]);
 
             $amount = (float) $request->amount;
             $newBalance = (float) $relationship->current_balance + $amount;
@@ -408,7 +412,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
 
             if ($relationship->credit_limit !== null && $newBalance > (float) $relationship->credit_limit) {
                 return $this->error(
-                    'Adjustment would exceed credit limit. Credit limit: ' . $relationship->credit_limit . ', current balance: ' . $relationship->current_balance . ', requested adjustment: ' . $amount,
+                    'Adjustment would exceed credit limit. Credit limit: '.$relationship->credit_limit.', current balance: '.$relationship->current_balance.', requested adjustment: '.$amount,
                     null,
                     400
                 );
@@ -432,11 +436,12 @@ class BuyerSupplierRelationshipController extends BaseApiController
 
             return $this->success(
                 new BuyerSupplierRelationshipResource($relationship),
-                'Credit balance adjusted successfully. Previous: ' . number_format($previousBalance, 2) . ', New: ' . number_format($newBalance, 2)
+                'Credit balance adjusted successfully. Previous: '.number_format($previousBalance, 2).', New: '.number_format($newBalance, 2)
             );
         } catch (\Exception $e) {
             Log::error('Credit adjustment error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to adjust credit: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to adjust credit. Please try again later.', null, 500);
         }
     }
 
@@ -456,15 +461,11 @@ class BuyerSupplierRelationshipController extends BaseApiController
             new OA\Response(response: 404, description: 'Not found'),
         ]
     )]
-    public function checkCredit(Request $request, int $id): JsonResponse
+    public function checkCredit(CheckCreditRequest $request, int $id): JsonResponse
     {
         try {
             $relationship = BuyerSupplierRelationship::findOrFail($id);
             $this->authorize('view', $relationship);
-
-            $request->validate([
-                'amount' => ['required', 'numeric', 'min:0'],
-            ]);
 
             $amount = (float) $request->amount;
             $creditAvailable = $relationship->hasCreditAvailable($amount);
@@ -484,7 +485,8 @@ class BuyerSupplierRelationshipController extends BaseApiController
             ], 'Credit check completed');
         } catch (\Exception $e) {
             Log::error('Credit check error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to check credit: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to check credit. Please try again later.', null, 500);
         }
     }
 }

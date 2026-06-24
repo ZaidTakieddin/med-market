@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Concerns\CacheableReference;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,7 +11,7 @@ use Illuminate\Support\Str;
 
 class Manufacturer extends Model
 {
-    use HasFactory, SoftDeletes;
+    use CacheableReference, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'name',

@@ -7,6 +7,7 @@ use App\Constants\OrderStatus;
 use App\Constants\RegionPlanType;
 use App\Domain\Deliveries\DriverRegionPlanService;
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Requests\Drivers\AssignDriverRegionsRequest;
 use App\Http\Requests\Drivers\CreateDriverRequest;
 use App\Http\Requests\Drivers\SetDriverHolidaysRequest;
 use App\Http\Requests\Drivers\SetDriverRegionPlanRequest;
@@ -53,12 +54,10 @@ class DriverController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('viewDrivers', User::class);
+
         try {
             $user = auth()->user();
-
-            if (! $user->isSupplier() && ! $user->isAdmin()) {
-                return $this->error('Only suppliers and admins can view drivers', null, 403);
-            }
 
             $query = User::where('role', 'driver');
 
@@ -89,7 +88,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve drivers: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve drivers. Please try again later.', null, 500);
         }
     }
 
@@ -127,12 +126,10 @@ class DriverController extends BaseApiController
     )]
     public function store(CreateDriverRequest $request): JsonResponse
     {
+        $this->authorize('createDriver', User::class);
+
         try {
             $user = auth()->user();
-
-            if (! $user->isSupplier() && ! $user->isAdmin()) {
-                return $this->error('Only suppliers and admins can create drivers', null, 403);
-            }
 
             $driver = User::create([
                 'name' => $request->name,
@@ -159,7 +156,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to create driver: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to create driver. Please try again later.', null, 500);
         }
     }
 
@@ -184,15 +181,10 @@ class DriverController extends BaseApiController
     )]
     public function show(int $id): JsonResponse
     {
+        $driver = User::where('role', 'driver')->findOrFail($id);
+        $this->authorize('viewDriver', $driver);
+
         try {
-            $user = auth()->user();
-            $driver = User::where('role', 'driver')->findOrFail($id);
-
-            // Suppliers can only see their company drivers
-            if ($user->isSupplier() && ! $user->isAdmin() && $driver->company_id !== $user->company_id) {
-                return $this->error('Unauthorized', null, 403);
-            }
-
             $driver->load('company')->loadCount($this->orderCountRelations());
 
             return $this->success(new UserResource($driver));
@@ -202,7 +194,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve driver: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve driver. Please try again later.', null, 500);
         }
     }
 
@@ -227,18 +219,10 @@ class DriverController extends BaseApiController
     )]
     public function update(UpdateDriverRequest $request, int $id): JsonResponse
     {
+        $driver = User::where('role', 'driver')->findOrFail($id);
+        $this->authorize('manageDriver', $driver);
+
         try {
-            $user = auth()->user();
-            $driver = User::where('role', 'driver')->findOrFail($id);
-
-            if (! $user->isSupplier() && ! $user->isAdmin()) {
-                return $this->error('Only suppliers and admins can update drivers', null, 403);
-            }
-
-            if ($user->isSupplier() && $driver->company_id !== $user->company_id) {
-                return $this->error('You can only update drivers from your company', null, 403);
-            }
-
             $driver->update($request->validated());
 
             $driver->load('company')->loadCount($this->orderCountRelations());
@@ -253,7 +237,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to update driver: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to update driver. Please try again later.', null, 500);
         }
     }
 
@@ -278,18 +262,10 @@ class DriverController extends BaseApiController
     )]
     public function destroy(int $id): JsonResponse
     {
+        $driver = User::where('role', 'driver')->findOrFail($id);
+        $this->authorize('manageDriver', $driver);
+
         try {
-            $user = auth()->user();
-            $driver = User::where('role', 'driver')->findOrFail($id);
-
-            if (! $user->isSupplier() && ! $user->isAdmin()) {
-                return $this->error('Only suppliers and admins can delete drivers', null, 403);
-            }
-
-            if ($user->isSupplier() && $driver->company_id !== $user->company_id) {
-                return $this->error('You can only delete drivers from your company', null, 403);
-            }
-
             $driver->delete();
 
             return $this->success(null, 'Driver deleted successfully');
@@ -299,7 +275,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to delete driver: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to delete driver. Please try again later.', null, 500);
         }
     }
 
@@ -328,15 +304,10 @@ class DriverController extends BaseApiController
     )]
     public function orders(Request $request, int $id): JsonResponse
     {
+        $driver = User::where('role', 'driver')->findOrFail($id);
+        $this->authorize('viewDriver', $driver);
+
         try {
-            $user = auth()->user();
-            $driver = User::where('role', 'driver')->findOrFail($id);
-
-            // Suppliers can only see orders for their company drivers
-            if ($user->isSupplier() && ! $user->isAdmin() && $driver->company_id !== $user->company_id) {
-                return $this->error('Unauthorized', null, 403);
-            }
-
             $query = Order::where('driver_id', $id)
                 ->with([
                     'buyerCompany.region.city',
@@ -371,7 +342,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve driver orders: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve driver orders. Please try again later.', null, 500);
         }
     }
 
@@ -396,15 +367,10 @@ class DriverController extends BaseApiController
     )]
     public function regions(int $id): JsonResponse
     {
+        $driver = User::where('role', 'driver')->findOrFail($id);
+        $this->authorize('viewDriver', $driver);
+
         try {
-            $user = auth()->user();
-            $driver = User::where('role', 'driver')->findOrFail($id);
-
-            // Suppliers can only see regions for their company drivers
-            if ($user->isSupplier() && ! $user->isAdmin() && $driver->company_id !== $user->company_id) {
-                return $this->error('Unauthorized', null, 403);
-            }
-
             return $this->success(
                 $this->buildPlanResponse($driver),
                 'Driver region plan retrieved successfully'
@@ -415,7 +381,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve driver region plan: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve driver region plan. Please try again later.', null, 500);
         }
     }
 
@@ -464,14 +430,10 @@ class DriverController extends BaseApiController
     )]
     public function setRegionPlan(SetDriverRegionPlanRequest $request, int $id): JsonResponse
     {
+        $driver = User::where('role', 'driver')->findOrFail($id);
+        $this->authorize('manageDriver', $driver);
+
         try {
-            $user = auth()->user();
-            $driver = User::where('role', 'driver')->findOrFail($id);
-
-            if ($denied = $this->denyUnlessManages($user, $driver, 'manage region plans for')) {
-                return $denied;
-            }
-
             $validated = $request->validated();
 
             if ($validated['plan_type'] === RegionPlanType::FIXED) {
@@ -492,7 +454,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to save region plan: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to save region plan. Please try again later.', null, 500);
         }
     }
 
@@ -533,14 +495,10 @@ class DriverController extends BaseApiController
     )]
     public function setHolidays(SetDriverHolidaysRequest $request, int $id): JsonResponse
     {
+        $driver = User::where('role', 'driver')->findOrFail($id);
+        $this->authorize('manageDriver', $driver);
+
         try {
-            $user = auth()->user();
-            $driver = User::where('role', 'driver')->findOrFail($id);
-
-            if ($denied = $this->denyUnlessManages($user, $driver, 'manage holidays for')) {
-                return $denied;
-            }
-
             $driver = $this->regionPlanService->setHolidays($driver, $request->validated()['holidays']);
 
             return $this->success(
@@ -555,7 +513,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to save holidays: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to save holidays. Please try again later.', null, 500);
         }
     }
 
@@ -594,22 +552,13 @@ class DriverController extends BaseApiController
             new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
-    public function assignRegions(Request $request, int $id): JsonResponse
+    public function assignRegions(AssignDriverRegionsRequest $request, int $id): JsonResponse
     {
+        $driver = User::where('role', 'driver')->findOrFail($id);
+        $this->authorize('manageDriver', $driver);
+
         try {
-            $user = auth()->user();
-            $driver = User::where('role', 'driver')->findOrFail($id);
-
-            if ($denied = $this->denyUnlessManages($user, $driver, 'assign regions to')) {
-                return $denied;
-            }
-
-            $validated = $request->validate([
-                'region_ids' => ['required', 'array'],
-                'region_ids.*' => ['integer', 'exists:regions,id'],
-            ]);
-
-            $driver = $this->regionPlanService->setFixedPlan($driver, $validated['region_ids']);
+            $driver = $this->regionPlanService->setFixedPlan($driver, $request->validated()['region_ids']);
 
             return $this->success(
                 $this->buildPlanResponse($driver),
@@ -621,7 +570,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to assign regions: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to assign regions. Please try again later.', null, 500);
         }
     }
 
@@ -647,20 +596,10 @@ class DriverController extends BaseApiController
     )]
     public function removeRegion(int $id, int $region_id): JsonResponse
     {
+        $driver = User::where('role', 'driver')->findOrFail($id);
+        $this->authorize('manageDriver', $driver);
+
         try {
-            $user = auth()->user();
-            $driver = User::where('role', 'driver')->findOrFail($id);
-
-            // Only suppliers can remove regions from their drivers
-            if (! $user->isSupplier() && ! $user->isAdmin()) {
-                return $this->error('Only suppliers can remove regions from drivers', null, 403);
-            }
-
-            // Verify driver belongs to supplier's company
-            if ($driver->company_id !== $user->company_id && ! $user->isAdmin()) {
-                return $this->error('You can only remove regions from your own drivers', null, 403);
-            }
-
             // Verify region exists
             Region::findOrFail($region_id);
 
@@ -673,7 +612,7 @@ class DriverController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to remove region: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to remove region. Please try again later.', null, 500);
         }
     }
 
@@ -699,23 +638,6 @@ class DriverController extends BaseApiController
             'driverOrders as total_orders_count',
             'driverOrders as delivered_orders_count' => fn (Builder $query): Builder => $query->where('status', OrderStatus::DELIVERED),
         ];
-    }
-
-    /**
-     * Guard a driver-management action: only suppliers (for their own drivers) and
-     * admins may proceed. Returns an error response when denied, otherwise null.
-     */
-    private function denyUnlessManages(User $user, User $driver, string $verb): ?JsonResponse
-    {
-        if (! $user->isSupplier() && ! $user->isAdmin()) {
-            return $this->error("Only suppliers can {$verb} drivers", null, 403);
-        }
-
-        if (! $user->isAdmin() && $driver->company_id !== $user->company_id) {
-            return $this->error("You can only {$verb} your own drivers", null, 403);
-        }
-
-        return null;
     }
 
     /**

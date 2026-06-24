@@ -76,8 +76,8 @@ class SalesmanController extends BaseApiController
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'ilike', "%{$search}%")
-                      ->orWhere('email', 'ilike', "%{$search}%")
-                      ->orWhere('phone', 'ilike', "%{$search}%");
+                        ->orWhere('email', 'ilike', "%{$search}%")
+                        ->orWhere('phone', 'ilike', "%{$search}%");
                 });
             }
 
@@ -93,7 +93,8 @@ class SalesmanController extends BaseApiController
                 ->response();
         } catch (\Exception $e) {
             Log::error('Salesman list error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to retrieve salesmen: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve salesmen. Please try again later.', null, 500);
         }
     }
 
@@ -114,16 +115,12 @@ class SalesmanController extends BaseApiController
     )]
     public function show(int $id): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)
+            ->with(['company', 'salesmanRegions.city', 'salesmanClients.pharmacyCompany'])
+            ->findOrFail($id);
+        $this->authorize('accessSalesman', $salesman);
+
         try {
-            $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)
-                ->with(['company', 'salesmanRegions.city', 'salesmanClients.pharmacyCompany'])
-                ->findOrFail($id);
-
-            if (!$this->canAccessSalesman($user, $salesman)) {
-                return $this->error('You do not have access to this salesman', null, 403);
-            }
-
             $data = (new UserResource($salesman))->toArray(request());
             $data['regions'] = RegionResource::collection($salesman->salesmanRegions);
             $data['clients'] = SalesmanClientResource::collection($salesman->salesmanClients);
@@ -135,7 +132,8 @@ class SalesmanController extends BaseApiController
             return $this->success($data, 'Salesman retrieved successfully');
         } catch (\Exception $e) {
             Log::error('Salesman show error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to retrieve salesman: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve salesman. Please try again later.', null, 500);
         }
     }
 
@@ -156,14 +154,10 @@ class SalesmanController extends BaseApiController
     )]
     public function regions(int $id): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        $this->authorize('accessSalesman', $salesman);
+
         try {
-            $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
-
-            if (!$this->canAccessSalesman($user, $salesman)) {
-                return $this->error('Unauthorized', null, 403);
-            }
-
             $regions = $salesman->salesmanRegions()->with('city')->get();
 
             return $this->success(
@@ -172,7 +166,8 @@ class SalesmanController extends BaseApiController
             );
         } catch (\Exception $e) {
             Log::error('Salesman regions error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to retrieve regions: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve regions. Please try again later.', null, 500);
         }
     }
 
@@ -202,14 +197,10 @@ class SalesmanController extends BaseApiController
     )]
     public function assignRegions(AssignSalesmanRegionsRequest $request, int $id): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        $this->authorize('manageSalesman', $salesman);
+
         try {
-            $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
-
-            if (!$this->canManageSalesman($user, $salesman)) {
-                return $this->error('Only suppliers can assign regions to their salesmen', null, 403);
-            }
-
             $salesman->salesmanRegions()->sync($request->region_ids);
             $regions = $salesman->salesmanRegions()->with('city')->get();
 
@@ -219,7 +210,8 @@ class SalesmanController extends BaseApiController
             );
         } catch (\Exception $e) {
             Log::error('Salesman assign regions error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to assign regions: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to assign regions. Please try again later.', null, 500);
         }
     }
 
@@ -241,14 +233,10 @@ class SalesmanController extends BaseApiController
     )]
     public function removeRegion(int $id, int $regionId): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        $this->authorize('manageSalesman', $salesman);
+
         try {
-            $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
-
-            if (!$this->canManageSalesman($user, $salesman)) {
-                return $this->error('Only suppliers can remove regions from their salesmen', null, 403);
-            }
-
             $detached = $salesman->salesmanRegions()->detach($regionId);
             if ($detached === 0) {
                 return $this->error('Region was not assigned to this salesman', null, 404);
@@ -257,7 +245,8 @@ class SalesmanController extends BaseApiController
             return $this->success(null, 'Region removed from salesman successfully');
         } catch (\Exception $e) {
             Log::error('Salesman remove region error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to remove region: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to remove region. Please try again later.', null, 500);
         }
     }
 
@@ -279,14 +268,10 @@ class SalesmanController extends BaseApiController
     )]
     public function clients(Request $request, int $id): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        $this->authorize('accessSalesman', $salesman);
+
         try {
-            $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
-
-            if (!$this->canAccessSalesman($user, $salesman)) {
-                return $this->error('Unauthorized', null, 403);
-            }
-
             $query = $salesman->salesmanClients()->with(['pharmacyCompany', 'salesmanUser', 'salesmanCompany']);
 
             if ($request->has('is_active')) {
@@ -301,7 +286,8 @@ class SalesmanController extends BaseApiController
             );
         } catch (\Exception $e) {
             Log::error('Salesman clients error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to retrieve clients: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve clients. Please try again later.', null, 500);
         }
     }
 
@@ -332,14 +318,10 @@ class SalesmanController extends BaseApiController
     )]
     public function assignClient(AssignSalesmanClientRequest $request, int $id): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        $this->authorize('manageSalesman', $salesman);
+
         try {
-            $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
-
-            if (!$this->canManageSalesman($user, $salesman)) {
-                return $this->error('Only suppliers can assign clients to their salesmen', null, 403);
-            }
-
             $pharmacy = Company::findOrFail($request->pharmacy_company_id);
             if ($pharmacy->buyer_classification !== BuyerClassification::PHARMACY) {
                 return $this->error('The selected company is not a pharmacy', null, 400);
@@ -370,7 +352,8 @@ class SalesmanController extends BaseApiController
             );
         } catch (\Exception $e) {
             Log::error('Salesman assign client error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to assign client: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to assign client. Please try again later.', null, 500);
         }
     }
 
@@ -392,14 +375,10 @@ class SalesmanController extends BaseApiController
     )]
     public function removeClient(int $id, int $clientId): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        $this->authorize('manageSalesman', $salesman);
+
         try {
-            $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
-
-            if (!$this->canManageSalesman($user, $salesman)) {
-                return $this->error('Only suppliers can remove clients from their salesmen', null, 403);
-            }
-
             $client = SalesmanClient::where('salesman_user_id', $salesman->id)
                 ->where('id', $clientId)
                 ->firstOrFail();
@@ -409,7 +388,8 @@ class SalesmanController extends BaseApiController
             return $this->success(null, 'Client removed from salesman successfully');
         } catch (\Exception $e) {
             Log::error('Salesman remove client error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to remove client: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to remove client. Please try again later.', null, 500);
         }
     }
 
@@ -432,14 +412,10 @@ class SalesmanController extends BaseApiController
     )]
     public function orders(Request $request, int $id): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        $this->authorize('accessSalesman', $salesman);
+
         try {
-            $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
-
-            if (!$this->canAccessSalesman($user, $salesman)) {
-                return $this->error('Unauthorized', null, 403);
-            }
-
             $query = Order::where('placed_by_salesman_id', $salesman->id)
                 ->with([
                     'buyerCompany',
@@ -461,7 +437,8 @@ class SalesmanController extends BaseApiController
                 ->response();
         } catch (\Exception $e) {
             Log::error('Salesman orders error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to retrieve salesman orders: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve salesman orders. Please try again later.', null, 500);
         }
     }
 
@@ -505,18 +482,14 @@ class SalesmanController extends BaseApiController
     )]
     public function placeOrder(PlaceOrderOnBehalfRequest $request, int $id): JsonResponse
     {
+        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        $this->authorize('accessSalesman', $salesman);
+
         try {
             $user = auth()->user();
-            $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
-
-            if ($user->id !== $salesman->id && !$user->isAdmin()) {
-                if (!($user->isSupplier() && $user->company_id === $salesman->company_id)) {
-                    return $this->error('You can only place orders as yourself or for your company\'s salesmen', null, 403);
-                }
-            }
 
             $buyerCompany = Company::findOrFail($request->buyer_company_id);
-            if (!$buyerCompany->isBuyer()) {
+            if (! $buyerCompany->isBuyer()) {
                 return $this->error('The selected company is not a buyer', null, 400);
             }
 
@@ -525,7 +498,7 @@ class SalesmanController extends BaseApiController
                 ->where('is_active', true)
                 ->exists();
 
-            if (!$isClient && !$user->isAdmin()) {
+            if (! $isClient && ! $user->isAdmin()) {
                 return $this->error('This pharmacy is not assigned as a client of this salesman', null, 400);
             }
 
@@ -557,26 +530,12 @@ class SalesmanController extends BaseApiController
                 createdBy: $salesman->id,
                 items: $items,
                 notes: $request->notes,
-                taxRate: $request->tax_rate ?? 0
+                taxRate: $request->tax_rate ?? 0,
+                paymentMethod: $request->payment_method,
             );
 
-            $order->update([
-                'placed_by_salesman_id' => $salesman->id,
-                'payment_method' => $request->payment_method,
-            ]);
-
-            if ($request->payment_method && $request->payment_method !== 'cash') {
-                $relationship = \App\Models\BuyerSupplierRelationship::where('buyer_company_id', $buyerCompany->id)
-                    ->where('supplier_company_id', $request->supplier_company_id)
-                    ->where('is_approved', true)
-                    ->first();
-
-                if ($relationship) {
-                    $order->update([
-                        'payment_due_date' => $relationship->calculateDueDate(now()),
-                    ]);
-                }
-            }
+            // Payment terms + credit reservation are handled inside OrderCreationService.
+            $order->update(['placed_by_salesman_id' => $salesman->id]);
 
             return $this->success(
                 new OrderResource($order->load([
@@ -590,35 +549,12 @@ class SalesmanController extends BaseApiController
                 'Order placed on behalf of buyer successfully',
                 201
             );
+        } catch (\InvalidArgumentException $e) {
+            return $this->error($e->getMessage(), null, 400);
         } catch (\Exception $e) {
             Log::error('Salesman place order error', ['message' => $e->getMessage()]);
-            return $this->error('Failed to place order: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to place order. Please try again later.', null, 500);
         }
-    }
-
-    private function canAccessSalesman(User $user, User $salesman): bool
-    {
-        if ($user->isAdmin()) {
-            return true;
-        }
-
-        if ($user->id === $salesman->id) {
-            return true;
-        }
-
-        if ($user->isSupplier() && $user->company_id === $salesman->company_id) {
-            return true;
-        }
-
-        return false;
-    }
-
-    private function canManageSalesman(User $user, User $salesman): bool
-    {
-        if ($user->isAdmin()) {
-            return true;
-        }
-
-        return $user->isSupplier() && $user->company_id === $salesman->company_id;
     }
 }

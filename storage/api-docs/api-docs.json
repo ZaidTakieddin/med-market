@@ -17,8 +17,8 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Register a new user",
-                "description": "Creates a new user account and returns an authentication token",
+                "summary": "Register a new buyer",
+                "description": "Public self-registration. Creates a new buyer (pharmacy) account together with its own company and returns an authentication token. The role (buyer) and the company are assigned by the server — privileged roles and joining an existing company are not possible through this endpoint.",
                 "operationId": "8f20688904ee49d0d8739eeb08faf0b1",
                 "requestBody": {
                     "required": true,
@@ -29,7 +29,8 @@
                                     "name",
                                     "email",
                                     "password",
-                                    "password_confirmation"
+                                    "password_confirmation",
+                                    "company_name"
                                 ],
                                 "properties": {
                                     "name": {
@@ -51,21 +52,31 @@
                                         "format": "password",
                                         "example": "password123"
                                     },
-                                    "company_id": {
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+966500000000",
+                                        "nullable": true
+                                    },
+                                    "company_name": {
+                                        "description": "Name of the pharmacy/company created for this buyer",
+                                        "type": "string",
+                                        "example": "صيدلية المدينة"
+                                    },
+                                    "company_phone": {
+                                        "type": "string",
+                                        "example": "+966112223333",
+                                        "nullable": true
+                                    },
+                                    "company_address": {
+                                        "type": "string",
+                                        "example": "Riyadh, Al Narjis",
+                                        "nullable": true
+                                    },
+                                    "region_id": {
+                                        "description": "Region the pharmacy is located in (for delivery)",
                                         "type": "integer",
                                         "example": 1,
                                         "nullable": true
-                                    },
-                                    "role": {
-                                        "type": "string",
-                                        "enum": [
-                                            "admin",
-                                            "supplier",
-                                            "buyer",
-                                            "driver",
-                                            "salesman"
-                                        ],
-                                        "example": "buyer"
                                     }
                                 },
                                 "type": "object"
@@ -3635,7 +3646,7 @@
                     "Invoices"
                 ],
                 "summary": "Mark invoice as paid",
-                "description": "Mark an invoice as paid (buyers and suppliers can mark as paid)",
+                "description": "Mark an invoice as paid. Only the issuing supplier (or admin) may confirm payment — a buyer cannot mark their own invoice paid (it would release their trade credit).",
                 "operationId": "9712acbed5013f40f55564ee18aff4ef",
                 "parameters": [
                     {
@@ -4797,7 +4808,7 @@
                         "description": "Unauthenticated"
                     },
                     "403": {
-                        "description": "Forbidden - Suppliers can only update their own orders"
+                        "description": "Forbidden - Only the supplier of the order may advance its status (accept/prepare/ship/deliver). Buyers and salesmen can only cancel."
                     },
                     "404": {
                         "description": "Order not found"

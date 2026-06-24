@@ -33,4 +33,3 @@ class AdjustStockRequest extends BaseFormRequest
         ];
     }
 }
-

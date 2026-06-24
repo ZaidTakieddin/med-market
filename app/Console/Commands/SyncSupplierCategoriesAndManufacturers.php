@@ -35,23 +35,27 @@ class SyncSupplierCategoriesAndManufacturers extends Command
 
         if ($supplierId) {
             $supplier = Company::where('type', 'supplier')->find($supplierId);
-            if (!$supplier) {
+            if (! $supplier) {
                 $this->error("Supplier with ID {$supplierId} not found.");
+
                 return Command::FAILURE;
             }
             $this->syncSupplier($supplier);
             $this->info("Synced categories and manufacturers for supplier: {$supplier->name}");
+
             return Command::SUCCESS;
         }
 
         if ($buyerId) {
             $buyer = Company::where('type', 'buyer')->find($buyerId);
-            if (!$buyer) {
+            if (! $buyer) {
                 $this->error("Buyer with ID {$buyerId} not found.");
+
                 return Command::FAILURE;
             }
             $this->syncBuyer($buyer);
             $this->info("Synced categories and manufacturers for buyer: {$buyer->name}");
+
             return Command::SUCCESS;
         }
 
@@ -75,7 +79,7 @@ class SyncSupplierCategoriesAndManufacturers extends Command
 
         $bar->finish();
         $this->newLine();
-        $this->info("Successfully synced all companies!");
+        $this->info('Successfully synced all companies!');
 
         return Command::SUCCESS;
     }
@@ -119,6 +123,7 @@ class SyncSupplierCategoriesAndManufacturers extends Command
         if (empty($productIds)) {
             $buyer->categories()->sync([]);
             $buyer->manufacturers()->sync([]);
+
             return;
         }
 

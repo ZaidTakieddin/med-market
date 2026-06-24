@@ -50,7 +50,7 @@ class PriceList extends Model
      */
     public function isCurrentlyValid(): bool
     {
-        if (!$this->is_active) {
+        if (! $this->is_active) {
             return false;
         }
 

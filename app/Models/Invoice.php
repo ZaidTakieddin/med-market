@@ -80,11 +80,11 @@ class Invoice extends Model
      */
     public function isOverdue(): bool
     {
-        if (!$this->due_date) {
+        if (! $this->due_date) {
             return false;
         }
 
-        return !$this->isPaid() && now()->isAfter($this->due_date);
+        return ! $this->isPaid() && now()->isAfter($this->due_date);
     }
 
     /**
@@ -92,7 +92,7 @@ class Invoice extends Model
      */
     public function getFileContent(): ?string
     {
-        if (!Storage::exists($this->file_path)) {
+        if (! Storage::exists($this->file_path)) {
             return null;
         }
 
@@ -127,7 +127,7 @@ class Invoice extends Model
     public function markAsPaid(?float $amount = null): void
     {
         $paidAmount = $amount ?? $this->total_amount;
-        
+
         $this->update([
             'payment_status' => $paidAmount >= $this->total_amount ? 'paid' : 'partial',
             'paid_amount' => $paidAmount,
@@ -141,7 +141,7 @@ class Invoice extends Model
      */
     public function markAsOverdue(): void
     {
-        if (!$this->isPaid()) {
+        if (! $this->isPaid()) {
             $this->update([
                 'payment_status' => 'overdue',
                 'status' => 'overdue',

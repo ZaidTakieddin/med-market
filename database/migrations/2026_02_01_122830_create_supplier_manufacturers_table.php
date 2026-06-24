@@ -24,7 +24,7 @@ return new class extends Migration
 
             // Ensure unique combination
             $table->unique(['company_id', 'manufacturer_id']);
-            
+
             // Indexes for performance
             $table->index('company_id');
             $table->index('manufacturer_id');

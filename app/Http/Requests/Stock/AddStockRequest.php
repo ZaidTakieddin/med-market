@@ -28,4 +28,3 @@ class AddStockRequest extends BaseFormRequest
         ];
     }
 }
-

@@ -5,10 +5,15 @@ namespace App\Constants;
 class OrderStatus
 {
     public const PENDING = 'pending';
+
     public const ACCEPTED = 'accepted';
+
     public const PREPARED = 'prepared';
+
     public const SHIPPED = 'shipped';
+
     public const DELIVERED = 'delivered';
+
     public const CANCELLED = 'cancelled';
 
     /**
@@ -43,7 +48,7 @@ class OrderStatus
             self::PENDING => [self::ACCEPTED, self::CANCELLED],
             self::ACCEPTED => [self::PREPARED, self::CANCELLED],
             self::PREPARED => [self::SHIPPED, self::CANCELLED],
-            self::SHIPPED => [self::DELIVERED, self::CANCELLED],
+            self::SHIPPED => [self::DELIVERED],
             self::DELIVERED => [],
             self::CANCELLED => [],
             default => [],
@@ -58,4 +63,3 @@ class OrderStatus
         return in_array($toStatus, self::getValidTransitions($fromStatus), true);
     }
 }
-

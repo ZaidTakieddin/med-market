@@ -29,7 +29,7 @@ class CreateBuyerSupplierRelationshipRequest extends BaseFormRequest
             'supplier_company_id.exists' => 'The selected supplier company does not exist.',
             'supplier_company_id.different' => 'Supplier and buyer companies must be different.',
             'payment_terms.required' => 'Payment terms are required.',
-            'payment_terms.in' => 'Invalid payment terms. Valid options: ' . implode(', ', PaymentTerms::all()),
+            'payment_terms.in' => 'Invalid payment terms. Valid options: '.implode(', ', PaymentTerms::all()),
         ];
     }
 }

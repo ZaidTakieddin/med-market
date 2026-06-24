@@ -3,20 +3,28 @@
 namespace App\Providers;
 
 use App\Models\BuyerSupplierRelationship;
+use App\Models\City;
 use App\Models\Company;
+use App\Models\Invoice;
+use App\Models\Offer;
 use App\Models\Order;
 use App\Models\PriceList;
 use App\Models\Product;
+use App\Models\Region;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Observers\OrderObserver;
 use App\Observers\ProductObserver;
 use App\Observers\StockMovementObserver;
 use App\Policies\BuyerSupplierRelationshipPolicy;
+use App\Policies\CityPolicy;
 use App\Policies\CompanyPolicy;
+use App\Policies\InvoicePolicy;
+use App\Policies\OfferPolicy;
 use App\Policies\OrderPolicy;
 use App\Policies\PriceListPolicy;
 use App\Policies\ProductPolicy;
+use App\Policies\RegionPolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
@@ -32,8 +40,12 @@ class AppServiceProvider extends ServiceProvider
         Company::class => CompanyPolicy::class,
         Product::class => ProductPolicy::class,
         Order::class => OrderPolicy::class,
+        Invoice::class => InvoicePolicy::class,
+        Offer::class => OfferPolicy::class,
         BuyerSupplierRelationship::class => BuyerSupplierRelationshipPolicy::class,
         PriceList::class => PriceListPolicy::class,
+        City::class => CityPolicy::class,
+        Region::class => RegionPolicy::class,
     ];
 
     /**

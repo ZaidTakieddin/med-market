@@ -168,33 +168,39 @@ public function transition(
 -   **Stock Deduction**: When order transitions to `accepted` or `prepared` (only if coming from `pending` or `accepted`)
 -   **Stock Reversion**: When order is cancelled (only if stock was previously deducted)
 
-### OrderState
+### Order state machine — `App\Constants\OrderStatus`
 
-**Purpose**: Provides order state constants and validation logic.
+**Purpose**: Single source of truth for order states, valid transitions, and validation.
+(The former `App\Domain\Orders\OrderState` duplicate was removed — it diverged from
+`OrderStatus`. Use `OrderStatus` everywhere.)
 
 **Key Methods**:
 
 -   `all()` - Get all valid order states
--   `isValid(string $state)` - Check if a state is valid
--   `getValidNextStates(string $currentState)` - Get valid next states for a given state
+-   `isValid(string $status)` - Check if a status is valid
+-   `getValidTransitions(string $fromStatus)` - Get valid next states for a given status
 -   `canTransition(string $from, string $to)` - Check if a transition is valid
+
+**Transitions**: `pending → accepted|cancelled`, `accepted → prepared|cancelled`,
+`prepared → shipped|cancelled`, `shipped → delivered` (a shipped order **cannot** be
+cancelled), `delivered`/`cancelled` are final.
 
 **Usage Example**:
 
 ```php
-use App\Domain\Orders\OrderState;
+use App\Constants\OrderStatus;
 
-// Check if state is valid
-if (OrderState::isValid($status)) {
+// Check if status is valid
+if (OrderStatus::isValid($status)) {
     // Process status
 }
 
 // Get valid next states
-$nextStates = OrderState::getValidNextStates(OrderState::PENDING);
+$nextStates = OrderStatus::getValidTransitions(OrderStatus::PENDING);
 // Returns: ['accepted', 'cancelled']
 
 // Check if transition is valid
-if (OrderState::canTransition(OrderState::PENDING, OrderState::ACCEPTED)) {
+if (OrderStatus::canTransition(OrderStatus::PENDING, OrderStatus::ACCEPTED)) {
     // Transition is valid
 }
 ```

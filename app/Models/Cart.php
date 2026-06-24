@@ -43,6 +43,8 @@ class Cart extends Model
 
     /**
      * Get cart items.
+     *
+     * @return HasMany<CartItem, $this>
      */
     public function items(): HasMany
     {
@@ -76,14 +78,16 @@ class Cart extends Model
 
     /**
      * Group cart items by supplier.
+     *
+     * @return array<int, array<int, CartItem>>
      */
     public function itemsBySupplier(): array
     {
         $grouped = [];
-        
+
         foreach ($this->items as $item) {
             $supplierId = $item->product->supplier_company_id;
-            if (!isset($grouped[$supplierId])) {
+            if (! isset($grouped[$supplierId])) {
                 $grouped[$supplierId] = [];
             }
             $grouped[$supplierId][] = $item;

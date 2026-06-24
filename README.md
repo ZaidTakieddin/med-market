@@ -476,7 +476,7 @@ REDIS_PORT=6379
 
 ## Production Deployment
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
+See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for detailed deployment instructions.
 
 ## Development Guidelines
 
@@ -484,5 +484,6 @@ See `.cursor/rules/codebase_rules.mdc` for detailed development guidelines and a
 
 ## Additional Documentation
 
--   [Deployment Guide](./DEPLOYMENT.md) - Production deployment instructions
--   [Progress Tracker](./PROGRESS.md) - Development progress and tasks
+-   [Deployment Guide](./docs/DEPLOYMENT.md) - Production deployment instructions
+-   [Queue Workers](./docs/QUEUE_WORKERS.md) - Queue setup and worker configuration
+-   [Progress Tracker](./docs/PROGRESS.md) - Development progress and tasks

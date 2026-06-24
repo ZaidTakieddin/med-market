@@ -191,14 +191,15 @@ app/
 
 ### Project Documentation Hub
 
-- **PROGRESS.md** is the main brain of the project. It must:
+- Project docs live in `docs/` (except `README.md` and `CLAUDE.md`, which stay at the repo root).
+- **docs/PROGRESS.md** is the main brain of the project. It must:
   - Be updated with every change: document what was done, when, and why.
   - Document any mistakes, issues encountered, and how they were resolved.
-  - Reference all system-related docs: README.md, DEPLOYMENT.md, QUEUE_WORKERS.md, domain READMEs.
+  - Reference all system-related docs: README.md, docs/DEPLOYMENT.md, docs/QUEUE_WORKERS.md, domain READMEs.
   - Reflect the current state of the system (completed features, in progress, pending).
   - Include a "Last Updated" date and changelog-style entries for recent work.
-- **QUEUE_WORKERS.md**: Document all queue-related changes—new jobs, queue configuration, worker setup, retry logic, troubleshooting.
-- **DEPLOYMENT.md**: Document all deployment-related changes—environment variables, platform-specific config, migration procedures, deployment steps.
+- **docs/QUEUE_WORKERS.md**: Document all queue-related changes—new jobs, queue configuration, worker setup, retry logic, troubleshooting.
+- **docs/DEPLOYMENT.md**: Document all deployment-related changes—environment variables, platform-specific config, migration procedures, deployment steps.
 
 ---
 
@@ -209,11 +210,61 @@ app/
 - No direct DB writes from jobs without validation.
 - No magic numbers (use constants).
 - No assumptions about user behavior.
-- No changes without updating the relevant docs (PROGRESS.md, QUEUE_WORKERS.md, or DEPLOYMENT.md).
+- No changes without updating the relevant docs (docs/PROGRESS.md, docs/QUEUE_WORKERS.md, or docs/DEPLOYMENT.md).
 
 ---
 
-## 17. Final Rule
+## 17. Mistake Log & Lessons Learned (do not repeat)
+
+Every bug, regression, or rule violation discovered MUST be recorded as a short
+lesson here (what went wrong → the preventive rule), in addition to the
+PROGRESS.md changelog entry (§15). Before starting work in a domain, skim this
+list so a past mistake is not reintroduced. When a lesson recurs, promote it into
+a hard rule above.
+
+Known lessons (seeded from the 2026-06-23 codebase audit):
+
+1. **Never trust client-supplied role/company.** `/auth/register` once accepted
+   `role` (including `admin`) and an arbitrary `company_id` from the body —
+   privilege escalation. Public registration forces a non-privileged role;
+   privileged role/company assignment goes through an authenticated admin flow.
+2. **One source of truth for enums/state.** Order status existed twice
+   (`Constants\OrderStatus` vs `Domain\OrderState`) and diverged; `UserRole` was
+   duplicated too. Never keep parallel copies of an enum, state machine, or
+   constant — delete duplicates.
+3. **Money must be identical across code paths.** `PricingService::resolve` and
+   `resolveMany` computed wholesale prices differently. Wholesale prices never
+   receive product-level retail discounts. Single-item and batch pricing share
+   one implementation and are unit-tested for parity.
+4. **Stock mutations need row locking.** Read-then-write without `lockForUpdate()`
+   (or an atomic guarded UPDATE) can oversell under concurrency.
+5. **Authorize per transition/action, not per resource.** A generic `update`
+   policy let buyers "accept" their own orders. Each transition / sensitive
+   action gets its own Policy ability; guard ALL sensitive actions with Policies,
+   never ad-hoc inline role checks.
+6. **A half-built feature is a liability.** `credit_limit`/`current_balance`
+   existed but were never enforced on orders or updated by invoices/payments — so
+   limits were decorative. A feature is not done until wired into every path that
+   must honor it.
+7. **Controllers stay thin and never leak.** Domain logic + manual
+   `DB::beginTransaction` + `try/catch` returning `$e->getMessage()` leaked
+   internals and bypassed the central Handler. Delegate to Domain services
+   (`DB::transaction(closure)`); let the Handler format errors; validate in Form
+   Requests.
+8. **Seeders track migrations.** `CompanySeeder` never set `region_id` after the
+   column was added, leaving the regions/driver feature untestable. A migration
+   that adds a feature-critical column updates the seeder + a factory in the same
+   change.
+9. **Normalize before committing.** Mixed CRLF/LF left the repo permanently
+   failing `pint --test`. Respect `.gitattributes` (`eol=lf`); a one-time
+   `git add --renormalize` fixes the backlog.
+10. **Tests are mandatory for money/stock/state.** The above bugs survived
+    because there were no tests. No money/stock/state-machine change ships
+    without a feature test.
+
+---
+
+## 18. Final Rule
 
 If a decision affects data integrity, security, or money:
 STOP → THINK → IMPLEMENT SAFELY.

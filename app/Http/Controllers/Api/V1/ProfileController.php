@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\BaseApiController;
-use App\Http\Requests\Profile\UpdateProfileRequest;
 use App\Http\Requests\Profile\ChangePasswordRequest;
 use App\Http\Requests\Profile\UpdateCompanyRequest;
+use App\Http\Requests\Profile\UpdateProfileRequest;
 use App\Http\Resources\CompanyResource;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
@@ -39,9 +39,10 @@ class ProfileController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Get profile error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to retrieve profile: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve profile. Please try again later.', null, 500);
         }
     }
 
@@ -81,9 +82,10 @@ class ProfileController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Update profile error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to update profile: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to update profile. Please try again later.', null, 500);
         }
     }
 
@@ -118,7 +120,7 @@ class ProfileController extends BaseApiController
         try {
             $user = auth()->user();
 
-            if (!Hash::check($request->current_password, $user->password)) {
+            if (! Hash::check($request->current_password, $user->password)) {
                 return $this->error('Current password is incorrect', null, 422);
             }
 
@@ -130,9 +132,10 @@ class ProfileController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Change password error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to change password: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to change password. Please try again later.', null, 500);
         }
     }
 
@@ -174,12 +177,12 @@ class ProfileController extends BaseApiController
         try {
             $user = auth()->user();
 
-            if (!$user->isAdmin() && $user->role !== 'supplier' && $user->role !== 'buyer' && $user->role !== 'salesman') {
+            if (! $user->isAdmin() && $user->role !== 'supplier' && $user->role !== 'buyer' && $user->role !== 'salesman') {
                 return $this->error('You do not have permission to update company information', null, 403);
             }
 
             $company = $user->company;
-            if (!$company) {
+            if (! $company) {
                 return $this->error('User does not belong to a company', null, 404);
             }
 
@@ -193,10 +196,10 @@ class ProfileController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Update company error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to update company: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to update company. Please try again later.', null, 500);
         }
     }
 }
-

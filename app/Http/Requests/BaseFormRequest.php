@@ -5,7 +5,6 @@ namespace App\Http\Requests;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
-use Illuminate\Validation\ValidationException;
 
 abstract class BaseFormRequest extends FormRequest
 {
@@ -20,8 +19,6 @@ abstract class BaseFormRequest extends FormRequest
     /**
      * Handle a failed validation attempt.
      *
-     * @param  \Illuminate\Contracts\Validation\Validator  $validator
-     * @return void
      *
      * @throws \Illuminate\Validation\ValidationException
      */
@@ -38,8 +35,10 @@ abstract class BaseFormRequest extends FormRequest
         throw new HttpResponseException(
             response()->json([
                 'success' => false,
-                'error' => 'Validation failed',
-                'message' => 'The given data was invalid.',
+                'error' => [
+                    'title' => 'Validation failed',
+                    'message' => 'The given data was invalid.',
+                ],
                 'errors' => $formattedErrors,
             ], 422)
         );
@@ -48,7 +47,6 @@ abstract class BaseFormRequest extends FormRequest
     /**
      * Handle a failed authorization attempt.
      *
-     * @return void
      *
      * @throws \Illuminate\Http\Exceptions\HttpResponseException
      */
@@ -57,10 +55,11 @@ abstract class BaseFormRequest extends FormRequest
         throw new HttpResponseException(
             response()->json([
                 'success' => false,
-                'error' => 'Forbidden',
-                'message' => 'You do not have permission to perform this action.',
+                'error' => [
+                    'title' => 'Forbidden',
+                    'message' => 'You do not have permission to perform this action.',
+                ],
             ], 403)
         );
     }
 }
-

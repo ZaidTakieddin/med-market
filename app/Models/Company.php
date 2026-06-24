@@ -51,6 +51,8 @@ class Company extends Model
 
     /**
      * Get users belonging to this company.
+     *
+     * @return HasMany<User, $this>
      */
     public function users(): HasMany
     {

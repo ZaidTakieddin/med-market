@@ -3,6 +3,8 @@
 namespace App\Domain\Orders;
 
 use App\Constants\OrderStatus;
+use App\Constants\PaymentTerms;
+use App\Domain\Companies\CreditService;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Support\Facades\DB;
@@ -10,11 +12,16 @@ use Illuminate\Support\Str;
 
 class OrderCreationService
 {
+    public function __construct(
+        private CreditService $creditService
+    ) {}
+
     /**
      * Create a new order with items.
      *
-     * @param array $items Array of ['product_id', 'quantity', 'unit_price']
-     * @throws \InvalidArgumentException If validation fails
+     * @param  array<int, array<string, mixed>>  $items  Array of ['product_id', 'quantity', 'unit_price']
+     *
+     * @throws \InvalidArgumentException If validation fails or net-term credit is unavailable
      */
     public function create(
         int $buyerCompanyId,
@@ -22,7 +29,8 @@ class OrderCreationService
         int $createdBy,
         array $items,
         ?string $notes = null,
-        float $taxRate = 0.0
+        float $taxRate = 0.0,
+        ?string $paymentMethod = null
     ): Order {
         if (empty($items)) {
             throw new \InvalidArgumentException('Order must have at least one item');
@@ -35,11 +43,11 @@ class OrderCreationService
         // Generate unique order number
         // If in transaction, generate inside transaction to avoid query issues
         if ($inTransaction) {
-            return $this->createOrderInTransaction($buyerCompanyId, $supplierCompanyId, $createdBy, $items, $notes, $taxRate);
+            return $this->createOrderInTransaction($buyerCompanyId, $supplierCompanyId, $createdBy, $items, $notes, $taxRate, $paymentMethod);
         }
 
-        return DB::transaction(function () use ($buyerCompanyId, $supplierCompanyId, $createdBy, $items, $notes, $taxRate) {
-            return $this->createOrderInTransaction($buyerCompanyId, $supplierCompanyId, $createdBy, $items, $notes, $taxRate);
+        return DB::transaction(function () use ($buyerCompanyId, $supplierCompanyId, $createdBy, $items, $notes, $taxRate, $paymentMethod) {
+            return $this->createOrderInTransaction($buyerCompanyId, $supplierCompanyId, $createdBy, $items, $notes, $taxRate, $paymentMethod);
         });
     }
 
@@ -52,7 +60,8 @@ class OrderCreationService
         int $createdBy,
         array $items,
         ?string $notes,
-        float $taxRate
+        float $taxRate,
+        ?string $paymentMethod
     ): Order {
         // Generate unique order number - rely on database constraint for uniqueness
         // Retry on duplicate key exception (very rare with random suffix)
@@ -62,14 +71,16 @@ class OrderCreationService
         while ($attempt < $maxAttempts) {
             try {
                 $orderNumber = $this->generateOrderNumber();
-                return $this->createOrderWithoutTransaction($buyerCompanyId, $supplierCompanyId, $createdBy, $items, $notes, $taxRate, $orderNumber);
+
+                return $this->createOrderWithoutTransaction($buyerCompanyId, $supplierCompanyId, $createdBy, $items, $notes, $taxRate, $orderNumber, $paymentMethod);
             } catch (\Illuminate\Database\QueryException $e) {
                 // Check if it's a unique constraint violation
                 if ($e->getCode() === '23505' || str_contains($e->getMessage(), 'unique constraint') || str_contains($e->getMessage(), 'duplicate key')) {
                     $attempt++;
                     if ($attempt >= $maxAttempts) {
-                        throw new \RuntimeException('Failed to generate unique order number after ' . $maxAttempts . ' attempts');
+                        throw new \RuntimeException('Failed to generate unique order number after '.$maxAttempts.' attempts');
                     }
+
                     // Retry with new order number
                     continue;
                 }
@@ -78,7 +89,7 @@ class OrderCreationService
             }
         }
 
-        throw new \RuntimeException('Failed to create order after ' . $maxAttempts . ' attempts');
+        throw new \RuntimeException('Failed to create order after '.$maxAttempts.' attempts');
     }
 
     /**
@@ -91,11 +102,12 @@ class OrderCreationService
         array $items,
         ?string $notes,
         float $taxRate,
-        string $orderNumber
+        string $orderNumber,
+        ?string $paymentMethod
     ): Order {
         foreach ($items as $item) {
             $product = \App\Models\Product::find($item['product_id']);
-            if (!$product || $product->supplier_company_id !== $supplierCompanyId) {
+            if (! $product || $product->supplier_company_id !== $supplierCompanyId) {
                 throw new \InvalidArgumentException(
                     "Product {$item['product_id']} does not belong to supplier {$supplierCompanyId}"
                 );
@@ -108,6 +120,11 @@ class OrderCreationService
         }
         $taxAmount = $subtotal * ($taxRate / 100);
         $totalAmount = $subtotal + $taxAmount;
+
+        // Fail fast on insufficient net-term credit before creating the order.
+        if ($paymentMethod && $paymentMethod !== PaymentTerms::CASH) {
+            $this->creditService->assertAvailable($buyerCompanyId, $supplierCompanyId, $totalAmount);
+        }
 
         // Create order
         $order = Order::create([
@@ -135,8 +152,28 @@ class OrderCreationService
             ]);
         }
 
+        $this->applyPaymentTerms($order, $buyerCompanyId, $supplierCompanyId, $paymentMethod);
+
         // Reload order with items
         return $order->load('items');
+    }
+
+    /**
+     * Set the order's payment method. For net-term orders, reserve buyer credit with
+     * the supplier (rejecting the order if there is no approved relationship or the
+     * credit limit would be exceeded) and set the payment due date.
+     */
+    private function applyPaymentTerms(Order $order, int $buyerCompanyId, int $supplierCompanyId, ?string $paymentMethod): void
+    {
+        $paymentMethod = $paymentMethod ?: PaymentTerms::CASH;
+        $order->payment_method = $paymentMethod;
+
+        if ($paymentMethod !== PaymentTerms::CASH) {
+            $relationship = $this->creditService->reserve($buyerCompanyId, $supplierCompanyId, (float) $order->total_amount);
+            $order->payment_due_date = $relationship->calculateDueDate(now());
+        }
+
+        $order->save();
     }
 
     /**
@@ -151,4 +188,3 @@ class OrderCreationService
         return "{$prefix}-{$date}-{$random}";
     }
 }
-

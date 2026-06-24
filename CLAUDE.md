@@ -26,7 +26,7 @@ Business logic lives in **`app/Domain/<Context>/`**, not in controllers or model
 ```
 app/
 ├── Domain/           # Business logic lives HERE (services, DTOs, state machines)
-│   ├── Orders/       # OrderCreationService, OrderStateTransitionService, OrderState
+│   ├── Orders/       # OrderCreationService, OrderStateTransitionService (states: Constants\OrderStatus)
 │   ├── Inventory/    # StockMovementService
 │   ├── Pricing/      # PricingService, PriceResult DTO  (multi-tier price resolution)
 │   ├── Products/  Companies/  Deliveries/  Cart/  Users/
@@ -75,7 +75,8 @@ These come straight from the codebase rules — violating them is a correctness/
 ## Order state machine
 
 States: `pending → accepted → prepared → shipped → delivered`, with `cancelled` reachable
-from any non-final state (per `OrderStatus`). `delivered` and `cancelled` are final.
+from `pending`, `accepted`, or `prepared` — **not once `shipped`** (shipped can only go to
+`delivered`). `delivered` and `cancelled` are final. Single source of truth: `App\Constants\OrderStatus`.
 
 - Stock is **deducted** on transition to `accepted`/`prepared`; **reverted** on `cancelled`.
 - Transition to `accepted` auto-dispatches `GenerateInvoiceJob`.
@@ -103,11 +104,11 @@ Full detail: [Pricing README](app/Domain/Pricing/README.md).
 
 ## Documentation discipline (required by the rules)
 
-**[PROGRESS.md](PROGRESS.md) is the project brain.** After any change, update it: what was
+**[PROGRESS.md](docs/PROGRESS.md) is the project brain.** After any change, update it: what was
 done, when, why, and any mistakes/resolutions. Keep its "Last Updated" date current.
 
-- Queue changes → also update [QUEUE_WORKERS.md](QUEUE_WORKERS.md)
-- Deployment/env changes → also update [DEPLOYMENT.md](DEPLOYMENT.md)
+- Queue changes → also update [QUEUE_WORKERS.md](docs/QUEUE_WORKERS.md)
+- Deployment/env changes → also update [DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - Domain changes → update that domain's README
 - API changes → **regenerate Swagger**: `php artisan l5-swagger:generate` and update
   OpenAPI annotations on the touched endpoints.
@@ -136,34 +137,40 @@ composer analyse      # PHPStan/Larastan static analysis (level 5)
 composer quality      # both: pint --dirty, then phpstan
 ```
 
-- **Pint** uses the Laravel preset. The legacy codebase predates Pint, so only ever
-  format **changed** files (`--dirty`) — do **not** bulk-reformat the repo.
-- **Larastan** runs at **level 5** with a **baseline** (`phpstan-baseline.neon`) that
-  grandfathers ~379 pre-existing findings. Only *newly introduced* errors fail. Fix the
+- **Pint** uses the Laravel preset. The repo is fully normalized, so keep it that way —
+  format **changed** files with `--dirty` before finishing; `pint --test` must stay green.
+- **Larastan** runs at **level 5** with a **baseline** (`phpstan-baseline.neon`, ~293
+  grandfathered findings and shrinking). Only *newly introduced* errors fail. Fix the
   root cause — never add `@phpstan-ignore`/baseline entries to silence new errors. Raise
   the `level` in `phpstan.neon` as legacy debt is paid down.
+- **CI** (`.github/workflows/ci.yml`) runs `pint --test` + Larastan + `php artisan test`
+  on push to `main` and every PR.
 - A **Stop hook** (`.claude/hooks/code-quality.php`, wired in `.claude/settings.json`)
-  runs this gate automatically when a turn finishes: it skips if no PHP changed,
-  auto-formats with Pint, and blocks on new PHPStan errors. Pinned to `shell: powershell`
-  because Herd's `php` resolves there, not in Git Bash.
+  runs this gate when a turn finishes: it skips if no PHP changed, clears the PHPStan
+  result cache, auto-formats with Pint, and blocks on new PHPStan errors. Pinned to
+  `shell: powershell` because Herd's `php` resolves there, not in Git Bash.
 
-## Current status (see PROGRESS.md for the full picture)
+## Current status (see docs/PROGRESS.md for the full picture)
 
 Implemented & audited: auth, orders + state machine + invoices, products/categories/
 manufacturers, companies + classifications, multi-tier pricing (all 6 phases), cart +
 offers, drivers + regions, salesman management + on-behalf ordering, buyer-supplier
-relationships + credit, custom price lists, location (cities/regions), background jobs,
-API resources, observers.
+relationships + credit (enforced), custom price lists, location (cities/regions),
+background jobs, API resources, observers.
+
+**Testing & tooling**: PHPUnit feature/unit suite with model factories and a cross-DB
+(sqlite) test database; GitHub Actions CI; repo normalized to the Pint baseline.
+Authorization is Policy-based on every resource model; controllers are thin and never
+leak exception messages.
 
 **Notably NOT done yet** (good candidates for new work):
-- **Automated tests** — flagged CRITICAL MISSING in PROGRESS.md; coverage is thin.
-- Caching of read-heavy endpoints (product/company lists).
-- Dashboard/statistics, user-management (admin), product images, payment integration,
-  real-time/notifications infra — see "Missing Features" in PROGRESS.md.
+- Broader caching — only the Category/Manufacturer reference lists are cached so far.
+- Dashboard/statistics depth, user-management (admin), product images, payment
+  integration, real-time/notifications infra — see "Missing Features" in docs/PROGRESS.md.
 
-**Known technical debt**: `OrderStatus` vs `OrderState` transition inconsistency
-(shipped→cancelled); `App\Domain\Users\UserRole` duplicates `App\Constants\UserRole`
-(should consolidate).
+**Known technical debt**: the PHPStan baseline still grandfathers ~289 findings
+(mostly un-generic'd Eloquent relation return types); pay these down and raise the
+`level` over time.
 
 ## Final rule
 

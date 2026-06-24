@@ -26,6 +26,7 @@ class BuyerSupplierRelationshipSeeder extends Seeder
 
         if ($suppliers->isEmpty() || $pharmacies->isEmpty()) {
             $this->command->warn('لا توجد بيانات كافية. يرجى تشغيل CompanySeeder أولاً.');
+
             return;
         }
 

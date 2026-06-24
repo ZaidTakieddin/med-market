@@ -11,8 +11,17 @@ return new class extends Migration
 
     public function up(): void
     {
-        DB::statement("ALTER TABLE products ADD COLUMN IF NOT EXISTS wholesale_price DECIMAL(12, 2) NULL");
-        DB::statement("ALTER TABLE products ADD COLUMN IF NOT EXISTS wholesale_min_qty INTEGER NULL");
+        if (DB::getDriverName() !== 'pgsql') {
+            Schema::table('products', function (Blueprint $table) {
+                $table->decimal('wholesale_price', 12, 2)->nullable();
+                $table->integer('wholesale_min_qty')->nullable();
+            });
+
+            return;
+        }
+
+        DB::statement('ALTER TABLE products ADD COLUMN IF NOT EXISTS wholesale_price DECIMAL(12, 2) NULL');
+        DB::statement('ALTER TABLE products ADD COLUMN IF NOT EXISTS wholesale_min_qty INTEGER NULL');
     }
 
     public function down(): void

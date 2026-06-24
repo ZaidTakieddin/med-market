@@ -35,4 +35,3 @@ class UpdateCompanyRequest extends BaseFormRequest
         ];
     }
 }
-

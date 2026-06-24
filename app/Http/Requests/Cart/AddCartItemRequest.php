@@ -33,4 +33,3 @@ class AddCartItemRequest extends BaseFormRequest
         ];
     }
 }
-

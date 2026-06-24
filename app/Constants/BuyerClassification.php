@@ -5,6 +5,7 @@ namespace App\Constants;
 class BuyerClassification
 {
     public const PHARMACY = 'pharmacy';
+
     public const SALESMAN = 'salesman';
 
     /**

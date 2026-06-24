@@ -3,19 +3,21 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Cart\Services\CartOfferService;
-use App\Domain\Orders\OrderCreationService;
+use App\Domain\Cart\Services\CheckoutService;
 use App\Domain\Pricing\PricingService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Cart\AddCartItemRequest;
+use App\Http\Requests\Cart\ApplyOfferRequest;
+use App\Http\Requests\Cart\CheckoutSupplierRequest;
 use App\Http\Requests\Cart\UpdateCartItemRequest;
 use App\Http\Resources\CartResource;
 use App\Http\Resources\OrderResource;
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\Offer;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
@@ -26,7 +28,7 @@ use OpenApi\Attributes as OA;
 class CartController extends BaseApiController
 {
     public function __construct(
-        private OrderCreationService $orderCreationService,
+        private CheckoutService $checkoutService,
         private CartOfferService $cartOfferService,
         private PricingService $pricingService
     ) {}
@@ -93,20 +95,20 @@ class CartController extends BaseApiController
     {
         try {
             $user = auth()->user();
-            
+
             $cart = Cart::firstOrCreate(
                 ['user_id' => $user->id],
                 ['company_id' => $user->company_id]
             );
 
             $cart->load([
-                'items.product.supplierCompany', 
-                'items.product.category', 
+                'items.product.supplierCompany',
+                'items.product.category',
                 'items.product.manufacturer',
                 'items.product.offers',
                 'items.appliedOffer',
-                'user', 
-                'company'
+                'user',
+                'company',
             ]);
 
             return $this->success(
@@ -116,9 +118,10 @@ class CartController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Cart retrieval error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to retrieve cart: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve cart. Please try again later.', null, 500);
         }
     }
 
@@ -154,8 +157,8 @@ class CartController extends BaseApiController
     {
         try {
             $user = auth()->user();
-            
-            if (!$user->canBuy()) {
+
+            if (! $user->canBuy()) {
                 return $this->error('Only buyers and salesmen can add items to cart', null, 403);
             }
 
@@ -165,16 +168,16 @@ class CartController extends BaseApiController
 
             $product = Product::findOrFail($request->product_id);
 
-            if (!$product->is_active) {
+            if (! $product->is_active) {
                 return $this->error('Product is not available', null, 400);
             }
 
             $buyerCompany = $user->company;
-            if (!$buyerCompany) {
+            if (! $buyerCompany) {
                 return $this->error('User has no company assigned', null, 400);
             }
 
-            if (!$this->pricingService->canBuyerSeeSupplier($product->supplierCompany, $buyerCompany)) {
+            if (! $this->pricingService->canBuyerSeeSupplier($product->supplierCompany, $buyerCompany)) {
                 return $this->error('This product is not available for your account type', null, 403);
             }
 
@@ -189,12 +192,12 @@ class CartController extends BaseApiController
 
             if ($existingItem) {
                 $newQuantity = $existingItem->quantity + $request->quantity;
-                
+
                 $priceResult = $this->pricingService->resolve($product, $buyerCompany, $newQuantity);
                 $tierPrice = $priceResult->unitPrice;
 
                 $offerResult = $this->cartOfferService->findBestOffer($product, $newQuantity, $currentCartItems, $tierPrice);
-                
+
                 if ($offerResult) {
                     $existingItem->quantity = $newQuantity;
                     $existingItem->unit_price = $offerResult['unit_price'];
@@ -206,7 +209,7 @@ class CartController extends BaseApiController
                     $existingItem->total_price = $newQuantity * $tierPrice;
                     $existingItem->applied_offer_id = null;
                 }
-                
+
                 $existingItem->pricing_type = $priceResult->pricingType;
                 $existingItem->notes = $request->notes ?? $existingItem->notes;
                 $existingItem->save();
@@ -215,7 +218,7 @@ class CartController extends BaseApiController
                 $tierPrice = $priceResult->unitPrice;
 
                 $offerResult = $this->cartOfferService->findBestOffer($product, $request->quantity, $currentCartItems, $tierPrice);
-                
+
                 if ($offerResult) {
                     $cartItem = CartItem::create([
                         'cart_id' => $cart->id,
@@ -245,13 +248,13 @@ class CartController extends BaseApiController
             $cart->calculateTotals();
 
             $cart->load([
-                'items.product.supplierCompany', 
-                'items.product.category', 
+                'items.product.supplierCompany',
+                'items.product.category',
                 'items.product.manufacturer',
                 'items.product.offers',
                 'items.appliedOffer',
-                'user', 
-                'company'
+                'user',
+                'company',
             ]);
 
             return $this->success(
@@ -261,9 +264,10 @@ class CartController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Add cart item error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to add item to cart: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to add item to cart. Please try again later.', null, 500);
         }
     }
 
@@ -311,17 +315,17 @@ class CartController extends BaseApiController
                 $product = $cartItem->product;
                 $product->load('offers');
                 $buyerCompany = $user->company;
-                
+
                 $cartItems = $cartItem->cart->items()->with('product')->get();
-                
+
                 $priceResult = $this->pricingService->resolve($product, $buyerCompany, $newQuantity);
                 $tierPrice = $priceResult->unitPrice;
 
                 $offerResult = $this->cartOfferService->findBestOffer($product, $newQuantity, $cartItems, $tierPrice);
-                
+
                 $cartItem->quantity = $newQuantity;
                 $cartItem->pricing_type = $priceResult->pricingType;
-                
+
                 if ($offerResult) {
                     $cartItem->unit_price = $offerResult['unit_price'];
                     $cartItem->total_price = $offerResult['total_price'];
@@ -350,9 +354,10 @@ class CartController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Update cart item error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to update cart item: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to update cart item. Please try again later.', null, 500);
         }
     }
 
@@ -423,14 +428,14 @@ class CartController extends BaseApiController
             $product = $cartItem->product;
             $product->load('offers');
             $buyerCompany = $user->company;
-            
+
             $cartItems = $cartItem->cart->items()->with('product')->get();
-            
+
             $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
             $basePrice = $priceResult->unitPrice;
 
             $availableOffers = $this->cartOfferService->getAvailableOffers($product, $cartItem->quantity, $cartItems, $basePrice);
-            
+
             $baseTotal = $cartItem->quantity * $basePrice;
 
             // Format offers for response
@@ -456,9 +461,10 @@ class CartController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Get available offers error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to retrieve available offers: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve available offers. Please try again later.', null, 500);
         }
     }
 
@@ -491,7 +497,7 @@ class CartController extends BaseApiController
             new OA\Response(response: 400, description: 'Offer cannot be applied (quantity requirement not met, etc.)'),
         ]
     )]
-    public function applyOffer(Request $request, int $id): JsonResponse
+    public function applyOffer(ApplyOfferRequest $request, int $id): JsonResponse
     {
         try {
             $user = auth()->user();
@@ -502,25 +508,21 @@ class CartController extends BaseApiController
                 return $this->error('Unauthorized', null, 403);
             }
 
-            $request->validate([
-                'offer_id' => ['required', 'integer', 'exists:offers,id'],
-            ]);
-
             $product = $cartItem->product;
             $offer = \App\Models\Offer::findOrFail($request->offer_id);
             $buyerCompany = $user->company;
-            
+
             $productOffers = $product->offers()->where('offers.id', $offer->id)->first();
-            if (!$productOffers) {
+            if (! $productOffers) {
                 return $this->error('This offer is not available for this product', null, 400);
             }
 
             $cartItems = $cartItem->cart->items()->with('product')->get();
-            
+
             $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
             $offerResult = $this->cartOfferService->applyOffer($offer, $product, $cartItem->quantity, $cartItems, $priceResult->unitPrice);
-            
-            if (!$offerResult) {
+
+            if (! $offerResult) {
                 return $this->error('Offer cannot be applied. Quantity requirement may not be met or offer is not valid for this cart.', null, 400);
             }
 
@@ -540,9 +542,10 @@ class CartController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Apply offer error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to apply offer: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to apply offer. Please try again later.', null, 500);
         }
     }
 
@@ -579,14 +582,14 @@ class CartController extends BaseApiController
             $product = $cartItem->product;
             $product->load('offers');
             $buyerCompany = $user->company;
-            
+
             $cartItems = $cartItem->cart->items()->with('product')->get();
-            
+
             $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
             $tierPrice = $priceResult->unitPrice;
 
             $offerResult = $this->cartOfferService->findBestOffer($product, $cartItem->quantity, $cartItems, $tierPrice);
-            
+
             if ($offerResult) {
                 $cartItem->unit_price = $offerResult['unit_price'];
                 $cartItem->total_price = $offerResult['total_price'];
@@ -597,7 +600,7 @@ class CartController extends BaseApiController
                 $cartItem->applied_offer_id = null;
             }
             $cartItem->pricing_type = $priceResult->pricingType;
-            
+
             $cartItem->save();
 
             // Recalculate cart totals
@@ -611,9 +614,10 @@ class CartController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Remove offer error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to remove offer: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to remove offer. Please try again later.', null, 500);
         }
     }
 
@@ -655,12 +659,12 @@ class CartController extends BaseApiController
             foreach ($remainingItems as $item) {
                 $itemProduct = $item->product;
                 $itemProduct->load('offers');
-                
+
                 $priceResult = $this->pricingService->resolve($itemProduct, $buyerCompany, $item->quantity);
                 $tierPrice = $priceResult->unitPrice;
 
                 $offerResult = $this->cartOfferService->findBestOffer($itemProduct, $item->quantity, $remainingItems, $tierPrice);
-                
+
                 if ($offerResult) {
                     $item->unit_price = $offerResult['unit_price'];
                     $item->total_price = $offerResult['total_price'];
@@ -681,9 +685,10 @@ class CartController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Remove cart item error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to remove item from cart: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to remove item from cart. Please try again later.', null, 500);
         }
     }
 
@@ -720,9 +725,10 @@ class CartController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Clear cart error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to clear cart: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to clear cart. Please try again later.', null, 500);
         }
     }
 
@@ -761,9 +767,9 @@ class CartController extends BaseApiController
                                     type: 'array',
                                     items: new OA\Items(type: 'object', description: 'Order object with buyerCompany, supplierCompany, and items.product relationships')
                                 ),
-                                new OA\Property(property: 'orders_count', type: 'integer', example: 2, description: 'Number of orders created')
+                                new OA\Property(property: 'orders_count', type: 'integer', example: 2, description: 'Number of orders created'),
                             ]
-                        )
+                        ),
                     ]
                 )
             ),
@@ -774,90 +780,23 @@ class CartController extends BaseApiController
     )]
     public function checkout(Request $request): JsonResponse
     {
-        try {
-            $user = auth()->user();
-            
-            if (!$user->canBuy()) {
-                return $this->error('Only buyers and salesmen can checkout', null, 403);
-            }
+        $user = auth()->user();
 
-            $cart = Cart::where('user_id', $user->id)->with('items.product')->first();
-
-            if (!$cart || $cart->items->isEmpty()) {
-                return $this->error('Cart is empty', null, 400);
-            }
-
-            // Group items by supplier
-            $itemsBySupplier = $cart->itemsBySupplier();
-            $createdOrders = [];
-
-            DB::beginTransaction();
-            try {
-                foreach ($itemsBySupplier as $supplierId => $items) {
-                    $orderItems = [];
-                    foreach ($items as $cartItem) {
-                        $orderItems[] = [
-                            'product_id' => $cartItem->product_id,
-                            'quantity' => $cartItem->quantity,
-                            'unit_price' => $cartItem->unit_price,
-                            'pricing_type' => $cartItem->pricing_type ?? 'retail',
-                            'notes' => $cartItem->notes,
-                            'applied_offer_id' => $cartItem->applied_offer_id,
-                        ];
-                    }
-
-                    $order = $this->orderCreationService->create(
-                        buyerCompanyId: $user->company_id,
-                        supplierCompanyId: $supplierId,
-                        createdBy: $user->id,
-                        items: $orderItems,
-                        notes: $request->notes ?? null,
-                        taxRate: $request->tax_rate ?? 0
-                    );
-
-                    $createdOrders[] = $order->load([
-                        'buyerCompany.region.city',
-                        'supplierCompany.categories',
-                        'supplierCompany.manufacturers',
-                        'driver',
-                        'invoice',
-                        'items.product.category',
-                        'items.product.manufacturer',
-                        'items.product.supplierCompany',
-                        'items.appliedOffer',
-                    ]);
-                }
-
-                // Clear cart after successful checkout
-                $cart->items()->delete();
-                $cart->update([
-                    'subtotal' => 0,
-                    'tax_amount' => 0,
-                    'total_amount' => 0,
-                ]);
-
-                DB::commit();
-
-                return OrderResource::collection($createdOrders)
-                    ->additional([
-                        'success' => true,
-                        'message' => count($createdOrders) > 1 
-                            ? 'Cart checked out. Multiple orders created for different suppliers.' 
-                            : 'Order created successfully',
-                        'orders_count' => count($createdOrders),
-                    ])
-                    ->response();
-            } catch (\Exception $e) {
-                DB::rollBack();
-                throw $e;
-            }
-        } catch (\Exception $e) {
-            Log::error('Cart checkout error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return $this->error('Failed to checkout cart: ' . $e->getMessage(), null, 500);
+        if (! $user->canBuy()) {
+            return $this->error('Only buyers and salesmen can checkout', null, 403);
         }
+
+        $orders = $this->checkoutService->checkoutCart($user, $request->notes, (float) ($request->tax_rate ?? 0));
+
+        return OrderResource::collection($orders)
+            ->additional([
+                'success' => true,
+                'message' => count($orders) > 1
+                    ? 'Cart checked out. Multiple orders created for different suppliers.'
+                    : 'Order created successfully',
+                'orders_count' => count($orders),
+            ])
+            ->response();
     }
 
     /**
@@ -896,7 +835,7 @@ class CartController extends BaseApiController
                                 new OA\Property(property: 'items_checked_out', type: 'integer', example: 3, description: 'Number of cart items checked out'),
                                 new OA\Property(property: 'items_remaining', type: 'integer', example: 2, description: 'Number of items remaining in cart'),
                             ]
-                        )
+                        ),
                     ]
                 )
             ),
@@ -906,111 +845,28 @@ class CartController extends BaseApiController
             new OA\Response(response: 404, description: 'Supplier not found'),
         ]
     )]
-    public function checkoutSupplier(Request $request): JsonResponse
+    public function checkoutSupplier(CheckoutSupplierRequest $request): JsonResponse
     {
-        try {
-            $user = auth()->user();
-            
-            if (!$user->canBuy()) {
-                return $this->error('Only buyers and salesmen can checkout', null, 403);
-            }
+        $user = auth()->user();
 
-            $request->validate([
-                'supplier_id' => ['required', 'integer', 'exists:companies,id'],
-                'notes' => ['nullable', 'string', 'max:1000'],
-                'tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            ]);
-
-            // Verify supplier is actually a supplier company
-            $supplier = \App\Models\Company::findOrFail($request->supplier_id);
-            if (!$supplier->isSupplier()) {
-                return $this->error('The specified company is not a supplier', null, 400);
-            }
-
-            $cart = Cart::where('user_id', $user->id)->with('items.product')->first();
-
-            if (!$cart || $cart->items->isEmpty()) {
-                return $this->error('Cart is empty', null, 400);
-            }
-
-            // Filter items for the specified supplier
-            $supplierItems = $cart->items->filter(function ($item) use ($request) {
-                return $item->product->supplier_company_id == $request->supplier_id;
-            });
-
-            if ($supplierItems->isEmpty()) {
-                return $this->error('No items found for the specified supplier in your cart', null, 400);
-            }
-
-            DB::beginTransaction();
-            try {
-                $orderItems = [];
-                foreach ($supplierItems as $cartItem) {
-                    $orderItems[] = [
-                        'product_id' => $cartItem->product_id,
-                        'quantity' => $cartItem->quantity,
-                        'unit_price' => $cartItem->unit_price,
-                        'pricing_type' => $cartItem->pricing_type ?? 'retail',
-                        'notes' => $cartItem->notes,
-                        'applied_offer_id' => $cartItem->applied_offer_id,
-                    ];
-                }
-
-                // Create order
-                $order = $this->orderCreationService->create(
-                    buyerCompanyId: $user->company_id,
-                    supplierCompanyId: $request->supplier_id,
-                    createdBy: $user->id,
-                    items: $orderItems,
-                    notes: $request->notes ?? null,
-                    taxRate: $request->tax_rate ?? 0
-                );
-
-                $order->load([
-                    'buyerCompany.region.city',
-                    'supplierCompany.categories',
-                    'supplierCompany.manufacturers',
-                    'driver',
-                    'invoice',
-                    'items.product.category',
-                    'items.product.manufacturer',
-                    'items.product.supplierCompany',
-                    'items.appliedOffer',
-                ]);
-
-                // Remove only the checked out items from cart
-                $cart->items()->whereIn('id', $supplierItems->pluck('id'))->delete();
-
-                // Refresh cart to reload items relationship
-                $cart->refresh();
-                $cart->load('items');
-
-                // Recalculate cart totals
-                $cart->calculateTotals();
-
-                DB::commit();
-
-                $remainingItemsCount = $cart->items()->count();
-
-                return (new OrderResource($order))
-                    ->additional([
-                        'success' => true,
-                        'message' => 'Order created successfully',
-                        'items_checked_out' => $supplierItems->count(),
-                        'items_remaining' => $remainingItemsCount,
-                    ])
-                    ->response();
-            } catch (\Exception $e) {
-                DB::rollBack();
-                throw $e;
-            }
-        } catch (\Exception $e) {
-            Log::error('Cart supplier checkout error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return $this->error('Failed to checkout supplier items: ' . $e->getMessage(), null, 500);
+        if (! $user->canBuy()) {
+            return $this->error('Only buyers and salesmen can checkout', null, 403);
         }
+
+        $result = $this->checkoutService->checkoutSupplier(
+            $user,
+            (int) $request->supplier_id,
+            $request->notes,
+            (float) ($request->tax_rate ?? 0),
+        );
+
+        return (new OrderResource($result['order']))
+            ->additional([
+                'success' => true,
+                'message' => 'Order created successfully',
+                'items_checked_out' => $result['items_checked_out'],
+                'items_remaining' => $result['items_remaining'],
+            ])
+            ->response();
     }
 }
-

@@ -11,17 +11,17 @@ use OpenApi\Attributes as OA;
     description: 'B2B Medical Delivery System API Documentation'
 )]
 #[OA\Server(
-        url: '/api/v1',
-        description: 'API Server',
-        variables: []
-    )]
+    url: '/api/v1',
+    description: 'API Server',
+    variables: []
+)]
 #[OA\SecurityScheme(
-        securityScheme: 'sanctum',
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        description: 'Enter your bearer token in the format: Bearer {token}'
-    )]
+    securityScheme: 'sanctum',
+    type: 'http',
+    scheme: 'bearer',
+    bearerFormat: 'JWT',
+    description: 'Enter your bearer token in the format: Bearer {token}'
+)]
 #[OA\Schema(
     schema: 'CartItem',
     description: 'Cart item with product, pricing, and optional applied offer',

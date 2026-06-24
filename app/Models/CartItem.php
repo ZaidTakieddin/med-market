@@ -37,6 +37,8 @@ class CartItem extends Model
 
     /**
      * Get the product.
+     *
+     * @return BelongsTo<Product, $this>
      */
     public function product(): BelongsTo
     {

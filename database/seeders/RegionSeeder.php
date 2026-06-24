@@ -243,6 +243,6 @@ class RegionSeeder extends Seeder
             );
         }
 
-        $this->command->info('تم تحديث/إنشاء ' . count($regions) . ' منطقة بنجاح.');
+        $this->command->info('تم تحديث/إنشاء '.count($regions).' منطقة بنجاح.');
     }
 }

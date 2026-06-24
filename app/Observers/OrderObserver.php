@@ -91,6 +91,4 @@ class OrderObserver
             'user_id' => auth()->id(),
         ]);
     }
-
 }
-

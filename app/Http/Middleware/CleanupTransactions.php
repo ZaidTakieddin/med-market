@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Middleware to cleanup failed transactions before processing requests.
- * 
+ *
  * This is especially important when using database cache with PostgreSQL,
  * as failed transactions can leave the connection in an aborted state,
  * causing subsequent cache operations (like throttling) to fail.
@@ -35,8 +35,15 @@ class CleanupTransactions
     private function cleanupFailedTransactions(): void
     {
         $connections = array_keys(config('database.connections', []));
-        
+
         foreach ($connections as $connection) {
+            // This workaround targets PostgreSQL's aborted-transaction state only.
+            // Skipping other drivers (e.g. the sqlite test connection) keeps
+            // RefreshDatabase's wrapping transaction intact during tests.
+            if (config("database.connections.{$connection}.driver") !== 'pgsql') {
+                continue;
+            }
+
             try {
                 // Check if we're in a transaction
                 if (DB::connection($connection)->transactionLevel() > 0) {
@@ -47,7 +54,7 @@ class CleanupTransactions
                 if (config('app.debug')) {
                     Log::debug('Transaction cleanup error', [
                         'connection' => $connection,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }

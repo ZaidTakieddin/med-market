@@ -19,7 +19,7 @@ class RegionResource extends JsonResource
             'cityId' => $this->city_id,
             'city' => $this->when(
                 $this->relationLoaded('city'),
-                fn() => new CityResource($this->city)
+                fn () => new CityResource($this->city)
             ),
             'name' => $this->name,
             'slug' => $this->slug,

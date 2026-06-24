@@ -7,6 +7,8 @@ use App\Domain\Orders\OrderCreationService;
 use App\Domain\Orders\OrderStateTransitionService;
 use App\Domain\Pricing\PricingService;
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Requests\Orders\AssignDriverRequest;
+use App\Http\Requests\Orders\CancelOrderRequest;
 use App\Http\Requests\Orders\CreateOrderRequest;
 use App\Http\Requests\Orders\UpdateOrderStatusRequest;
 use App\Http\Resources\OrderResource;
@@ -162,7 +164,7 @@ class OrderController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to retrieve orders: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to retrieve orders. Please try again later.', null, 500);
         }
     }
 
@@ -268,31 +270,17 @@ class OrderController extends BaseApiController
             createdBy: $user->id,
             items: $items,
             notes: $request->notes,
-            taxRate: $request->tax_rate ?? 0
+            taxRate: $request->tax_rate ?? 0,
+            paymentMethod: $request->payment_method,
         );
 
-        $updateData = [];
-        if ($request->payment_method) {
-            $updateData['payment_method'] = $request->payment_method;
-        }
-        if ($user->isSalesman() && $request->placed_by_salesman_id) {
-            $updateData['placed_by_salesman_id'] = $request->placed_by_salesman_id;
-        } elseif ($user->isSalesman()) {
-            $updateData['placed_by_salesman_id'] = $user->id;
-        }
-        if (! empty($updateData)) {
-            $order->update($updateData);
-
-            if (($updateData['payment_method'] ?? null) && $updateData['payment_method'] !== 'cash') {
-                $relationship = \App\Models\BuyerSupplierRelationship::where('buyer_company_id', $user->company_id)
-                    ->where('supplier_company_id', $request->supplier_company_id)
-                    ->where('is_approved', true)
-                    ->first();
-
-                if ($relationship) {
-                    $order->update(['payment_due_date' => $relationship->calculateDueDate(now())]);
-                }
-            }
+        // Salesman attribution: always the authenticated salesman (never a client-supplied
+        // id — that was a spoofing vector). On-behalf ordering uses the dedicated
+        // /salesmen/{id}/place-order endpoint. Payment terms + credit reservation are
+        // handled inside OrderCreationService (transactional, credit-limit enforced).
+        if ($user->isSalesman()) {
+            $order->placed_by_salesman_id = $user->id;
+            $order->save();
         }
 
         return $this->success(
@@ -423,13 +411,13 @@ class OrderController extends BaseApiController
             ),
             new OA\Response(response: 400, description: 'Invalid status transition - cannot transition from current status to requested status'),
             new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden - Suppliers can only update their own orders'),
+            new OA\Response(response: 403, description: 'Forbidden - Only the supplier of the order may advance its status (accept/prepare/ship/deliver). Buyers and salesmen can only cancel.'),
             new OA\Response(response: 404, description: 'Order not found'),
         ]
     )]
     public function updateStatus(UpdateOrderStatusRequest $request, Order $order): JsonResponse
     {
-        $this->authorize('update', $order);
+        $this->authorize('updateStatus', [$order, $request->status]);
 
         try {
             $order = $this->orderStateTransitionService->transition(
@@ -506,13 +494,9 @@ class OrderController extends BaseApiController
             new OA\Response(response: 404, description: 'Order not found'),
         ]
     )]
-    public function cancel(Request $request, Order $order): JsonResponse
+    public function cancel(CancelOrderRequest $request, Order $order): JsonResponse
     {
         $this->authorize('cancel', $order);
-
-        $request->validate([
-            'reason' => ['required', 'string', 'max:500'],
-        ]);
 
         try {
             $order->cancellation_reason = $request->reason;
@@ -547,7 +531,7 @@ class OrderController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to cancel order: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to cancel order. Please try again later.', null, 500);
         }
     }
 
@@ -580,7 +564,7 @@ class OrderController extends BaseApiController
             new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
-    public function assignDriver(Request $request, Order $order): JsonResponse
+    public function assignDriver(AssignDriverRequest $request, Order $order): JsonResponse
     {
         try {
             $user = auth()->user();
@@ -594,10 +578,6 @@ class OrderController extends BaseApiController
             if ($order->supplier_company_id !== $user->company_id && ! $user->isAdmin()) {
                 return $this->error('You can only assign drivers to your own orders', null, 403);
             }
-
-            $request->validate([
-                'driver_id' => ['required', 'integer', 'exists:users,id'],
-            ]);
 
             $driver = \App\Models\User::findOrFail($request->driver_id);
 
@@ -647,7 +627,7 @@ class OrderController extends BaseApiController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error('Failed to assign driver: '.$e->getMessage(), null, 500);
+            return $this->error('Failed to assign driver. Please try again later.', null, 500);
         }
     }
 }

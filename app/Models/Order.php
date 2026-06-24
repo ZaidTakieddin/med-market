@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Domain\Orders\OrderState;
+use App\Constants\OrderStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -109,7 +109,7 @@ class Order extends Model
      */
     public function canTransitionTo(string $newStatus): bool
     {
-        return OrderState::canTransition($this->status, $newStatus);
+        return OrderStatus::canTransition($this->status, $newStatus);
     }
 
     /**
@@ -125,7 +125,7 @@ class Order extends Model
      */
     public function isFinalState(): bool
     {
-        return in_array($this->status, [OrderState::DELIVERED, OrderState::CANCELLED], true);
+        return in_array($this->status, [OrderStatus::DELIVERED, OrderStatus::CANCELLED], true);
     }
 
     /**

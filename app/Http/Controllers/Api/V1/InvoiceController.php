@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Constants\PaymentTerms;
+use App\Domain\Companies\CreditService;
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Requests\Invoices\MarkInvoicePaidRequest;
 use App\Http\Resources\InvoiceResource;
 use App\Models\Invoice;
 use App\Models\Order;
@@ -15,6 +18,10 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Invoices', description: 'Invoice management endpoints')]
 class InvoiceController extends BaseApiController
 {
+    public function __construct(
+        private CreditService $creditService
+    ) {}
+
     /**
      * List invoices.
      */
@@ -50,7 +57,7 @@ class InvoiceController extends BaseApiController
             } elseif ($user->isSalesman() && $user->isSupplierSalesman()) {
                 $query->where(function ($q) use ($user) {
                     $q->where('supplier_company_id', $user->company_id)
-                      ->orWhereHas('order', fn ($oq) => $oq->where('placed_by_salesman_id', $user->id));
+                        ->orWhereHas('order', fn ($oq) => $oq->where('placed_by_salesman_id', $user->id));
                 });
             } elseif ($user->isSupplier()) {
                 $query->where('supplier_company_id', $user->company_id);
@@ -97,9 +104,10 @@ class InvoiceController extends BaseApiController
         } catch (\Exception $e) {
             Log::error('Invoice list error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to retrieve invoices: ' . $e->getMessage(), null, 500);
+
+            return $this->error('Failed to retrieve invoices. Please try again later.', null, 500);
         }
     }
 
@@ -126,7 +134,7 @@ class InvoiceController extends BaseApiController
     {
         $user = auth()->user();
 
-        if (!$this->canAccessInvoice($user, $invoice)) {
+        if (! $this->canAccessInvoice($user, $invoice)) {
             return $this->error('Unauthorized', null, 403);
         }
 
@@ -164,13 +172,13 @@ class InvoiceController extends BaseApiController
     {
         $user = auth()->user();
 
-        if (!$this->canAccessOrder($user, $order)) {
+        if (! $this->canAccessOrder($user, $order)) {
             return $this->error('Unauthorized', null, 403);
         }
 
         $invoice = Invoice::where('order_id', $order->id)->first();
 
-        if (!$invoice) {
+        if (! $invoice) {
             return $this->error('Invoice not found for this order', null, 404);
         }
 
@@ -208,11 +216,11 @@ class InvoiceController extends BaseApiController
     {
         $user = auth()->user();
 
-        if (!$this->canAccessInvoice($user, $invoice)) {
+        if (! $this->canAccessInvoice($user, $invoice)) {
             return $this->error('Unauthorized', null, 403);
         }
 
-        if (!Storage::exists($invoice->file_path)) {
+        if (! Storage::exists($invoice->file_path)) {
             return $this->error('Invoice file not found', null, 404);
         }
 
@@ -240,17 +248,7 @@ class InvoiceController extends BaseApiController
     )]
     public function markAsSent(Invoice $invoice): JsonResponse
     {
-        $user = auth()->user();
-
-        // Only suppliers can mark invoices as sent
-        if (!$user->isSupplier() && !$user->isAdmin()) {
-            return $this->error('Only suppliers can mark invoices as sent', null, 403);
-        }
-
-        // Authorization check
-        if ($invoice->supplier_company_id !== $user->company_id && !$user->isAdmin()) {
-            return $this->error('Unauthorized', null, 403);
-        }
+        $this->authorize('send', $invoice);
 
         $invoice->markAsSent();
 
@@ -263,7 +261,7 @@ class InvoiceController extends BaseApiController
     #[OA\Post(
         path: '/invoices/{id}/pay',
         summary: 'Mark invoice as paid',
-        description: 'Mark an invoice as paid (buyers and suppliers can mark as paid)',
+        description: 'Mark an invoice as paid. Only the issuing supplier (or admin) may confirm payment — a buyer cannot mark their own invoice paid (it would release their trade credit).',
         tags: ['Invoices'],
         security: [['sanctum' => []]],
         parameters: [
@@ -286,18 +284,9 @@ class InvoiceController extends BaseApiController
             new OA\Response(response: 422, description: 'Validation error'),
         ]
     )]
-    public function markAsPaid(Request $request, Invoice $invoice): JsonResponse
+    public function markAsPaid(MarkInvoicePaidRequest $request, Invoice $invoice): JsonResponse
     {
-        $user = auth()->user();
-
-        if (!$this->canAccessInvoice($user, $invoice)) {
-            return $this->error('Unauthorized', null, 403);
-        }
-
-        $request->validate([
-            'amount' => ['nullable', 'numeric', 'min:0', 'max:' . $invoice->total_amount],
-            'notes' => ['nullable', 'string', 'max:1000'],
-        ]);
+        $this->authorize('pay', $invoice);
 
         $amount = $request->amount ?? $invoice->total_amount;
 
@@ -305,7 +294,16 @@ class InvoiceController extends BaseApiController
             return $this->error('Payment amount cannot exceed invoice total', null, 422);
         }
 
+        $previouslyPaid = (float) $invoice->paid_amount;
+
         $invoice->markAsPaid($amount);
+
+        // Release the newly-paid portion of a net-term order's reserved trade credit.
+        $newlyPaid = max(0, (float) $amount - $previouslyPaid);
+        $order = $invoice->order_id ? Order::find($invoice->order_id) : null;
+        if ($newlyPaid > 0 && $order && $order->payment_method !== PaymentTerms::CASH) {
+            $this->creditService->release($invoice->buyer_company_id, $invoice->supplier_company_id, $newlyPaid);
+        }
 
         if ($request->has('notes')) {
             $invoice->update(['notes' => $request->notes]);

@@ -59,12 +59,12 @@ class Offer extends Model
      */
     public function isActive(): bool
     {
-        if (!$this->is_active) {
+        if (! $this->is_active) {
             return false;
         }
 
         $now = now();
-        if (!$now->gte($this->start_date)) {
+        if (! $now->gte($this->start_date)) {
             return false;
         }
 
@@ -78,5 +78,4 @@ class Offer extends Model
     {
         return OfferType::isValid($this->offer_type);
     }
-
 }

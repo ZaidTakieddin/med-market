@@ -5,6 +5,7 @@ namespace App\Constants;
 class CompanyType
 {
     public const SUPPLIER = 'supplier';
+
     public const BUYER = 'buyer';
 
     /**
@@ -49,4 +50,3 @@ class CompanyType
         ];
     }
 }
-

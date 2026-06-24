@@ -21,7 +21,7 @@ return new class extends Migration
             $table->foreignId('driver_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('region_id')->constrained()->onDelete('cascade');
             $table->timestamps();
-            
+
             $table->index('driver_id');
             $table->index('region_id');
         });

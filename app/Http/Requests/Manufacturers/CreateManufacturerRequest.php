@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Manufacturers;
 
 use App\Http\Requests\BaseFormRequest;
-use Illuminate\Validation\Rule;
 
 class CreateManufacturerRequest extends BaseFormRequest
 {

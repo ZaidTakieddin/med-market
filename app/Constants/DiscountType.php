@@ -5,6 +5,7 @@ namespace App\Constants;
 class DiscountType
 {
     public const PERCENTAGE = 'percentage';
+
     public const FIXED = 'fixed';
 
     /**
@@ -26,4 +27,3 @@ class DiscountType
         return in_array($type, self::all(), true);
     }
 }
-

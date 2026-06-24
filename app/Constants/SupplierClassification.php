@@ -5,7 +5,9 @@ namespace App\Constants;
 class SupplierClassification
 {
     public const WHOLESALE = 'wholesale';
+
     public const RETAIL = 'retail';
+
     public const HYBRID = 'hybrid';
 
     /**

@@ -6,6 +6,7 @@ use App\Constants\BuyerClassification;
 use App\Constants\CompanyType;
 use App\Constants\SupplierClassification;
 use App\Models\Company;
+use App\Models\Region;
 use Illuminate\Database\Seeder;
 
 class CompanySeeder extends Seeder
@@ -119,7 +120,16 @@ class CompanySeeder extends Seeder
             ],
         ];
 
+        // Assign each company a region (round-robin) so the regions/driver-delivery
+        // features have seed data to operate on. Cities + regions are seeded first.
+        $regions = Region::query()->orderBy('id')->get();
+        $regionIndex = 0;
+
         foreach ($suppliers as $supplier) {
+            if ($regions->isNotEmpty()) {
+                $supplier['region_id'] = $regions[$regionIndex % $regions->count()]->id;
+                $regionIndex++;
+            }
             Company::updateOrCreate(
                 ['email' => $supplier['email']],
                 $supplier
@@ -127,12 +137,16 @@ class CompanySeeder extends Seeder
         }
 
         foreach ($buyers as $buyer) {
+            if ($regions->isNotEmpty()) {
+                $buyer['region_id'] = $regions[$regionIndex % $regions->count()]->id;
+                $regionIndex++;
+            }
             Company::updateOrCreate(
                 ['email' => $buyer['email']],
                 $buyer
             );
         }
 
-        $this->command->info('تم إنشاء ' . count($suppliers) . ' مورد و ' . count($buyers) . ' مشتري (صيدليات + مندوبين).');
+        $this->command->info('تم إنشاء '.count($suppliers).' مورد و '.count($buyers).' مشتري (صيدليات + مندوبين).');
     }
 }
