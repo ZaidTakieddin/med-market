@@ -58,7 +58,7 @@ When placing an order with `payment_method` of `net_15`/`net_30`/`net_60` (via `
 
 ## 6. Cart checkout re-prices at checkout — behavioral
 
-`POST /cart/checkout` and `POST /cart/checkout-supplier` now **re-resolve prices at checkout** using current tier prices (not the price captured when the item was added). The order total may differ from the cart display if prices changed in the meantime. Checkout also returns **403** if a supplier in the cart is not visible to the buyer. **Frontend:** re-fetch/confirm the cart total at the checkout step; handle the 403.
+`POST /cart/checkout` and `POST /cart/checkout-supplier` now **re-resolve prices at checkout** using current tier prices (not the price captured when the item was added). The order total may differ from the cart display if prices changed in the meantime. Checkout returns **400** (with a message) if the cart is empty or a supplier in the cart is not available to the buyer. **Frontend:** re-fetch/confirm the cart total at the checkout step; show the returned message on 400.
 
 ## 7. `POST /orders` — `placed_by_salesman_id` ignored
 

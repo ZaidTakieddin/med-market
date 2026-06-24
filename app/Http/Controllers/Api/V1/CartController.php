@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Cart\Services\CartOfferService;
-use App\Domain\Orders\OrderCreationService;
+use App\Domain\Cart\Services\CheckoutService;
 use App\Domain\Pricing\PricingService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Cart\AddCartItemRequest;
@@ -14,12 +14,10 @@ use App\Http\Resources\CartResource;
 use App\Http\Resources\OrderResource;
 use App\Models\Cart;
 use App\Models\CartItem;
-use App\Models\Company;
 use App\Models\Offer;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
@@ -30,7 +28,7 @@ use OpenApi\Attributes as OA;
 class CartController extends BaseApiController
 {
     public function __construct(
-        private OrderCreationService $orderCreationService,
+        private CheckoutService $checkoutService,
         private CartOfferService $cartOfferService,
         private PricingService $pricingService
     ) {}
@@ -782,94 +780,23 @@ class CartController extends BaseApiController
     )]
     public function checkout(Request $request): JsonResponse
     {
-        try {
-            $user = auth()->user();
+        $user = auth()->user();
 
-            if (! $user->canBuy()) {
-                return $this->error('Only buyers and salesmen can checkout', null, 403);
-            }
-
-            $cart = Cart::where('user_id', $user->id)->with('items.product')->first();
-
-            if (! $cart || $cart->items->isEmpty()) {
-                return $this->error('Cart is empty', null, 400);
-            }
-
-            $buyerCompany = $user->company;
-            if (! $buyerCompany) {
-                return $this->error('Your account is not linked to a company', null, 403);
-            }
-
-            // Group items by supplier
-            $itemsBySupplier = $cart->itemsBySupplier();
-            $createdOrders = [];
-
-            DB::beginTransaction();
-            try {
-                foreach ($itemsBySupplier as $supplierId => $items) {
-                    $supplierCompany = Company::find($supplierId);
-                    if ($supplierCompany && ! $this->pricingService->canBuyerSeeSupplier($supplierCompany, $buyerCompany)) {
-                        DB::rollBack();
-
-                        return $this->error('A supplier in your cart is not available to your account', null, 403);
-                    }
-
-                    // Re-resolve prices at checkout so the order uses current prices, not stale cart prices.
-                    $orderItems = $this->resolveCheckoutItems($items, $buyerCompany);
-
-                    $order = $this->orderCreationService->create(
-                        buyerCompanyId: $user->company_id,
-                        supplierCompanyId: $supplierId,
-                        createdBy: $user->id,
-                        items: $orderItems,
-                        notes: $request->notes ?? null,
-                        taxRate: $request->tax_rate ?? 0
-                    );
-
-                    $createdOrders[] = $order->load([
-                        'buyerCompany.region.city',
-                        'supplierCompany.categories',
-                        'supplierCompany.manufacturers',
-                        'driver',
-                        'invoice',
-                        'items.product.category',
-                        'items.product.manufacturer',
-                        'items.product.supplierCompany',
-                        'items.appliedOffer',
-                    ]);
-                }
-
-                // Clear cart after successful checkout
-                $cart->items()->delete();
-                $cart->update([
-                    'subtotal' => 0,
-                    'tax_amount' => 0,
-                    'total_amount' => 0,
-                ]);
-
-                DB::commit();
-
-                return OrderResource::collection($createdOrders)
-                    ->additional([
-                        'success' => true,
-                        'message' => count($createdOrders) > 1
-                            ? 'Cart checked out. Multiple orders created for different suppliers.'
-                            : 'Order created successfully',
-                        'orders_count' => count($createdOrders),
-                    ])
-                    ->response();
-            } catch (\Exception $e) {
-                DB::rollBack();
-                throw $e;
-            }
-        } catch (\Exception $e) {
-            Log::error('Cart checkout error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to checkout cart. Please try again later.', null, 500);
+        if (! $user->canBuy()) {
+            return $this->error('Only buyers and salesmen can checkout', null, 403);
         }
+
+        $orders = $this->checkoutService->checkoutCart($user, $request->notes, (float) ($request->tax_rate ?? 0));
+
+        return OrderResource::collection($orders)
+            ->additional([
+                'success' => true,
+                'message' => count($orders) > 1
+                    ? 'Cart checked out. Multiple orders created for different suppliers.'
+                    : 'Order created successfully',
+                'orders_count' => count($orders),
+            ])
+            ->response();
     }
 
     /**
@@ -920,153 +847,26 @@ class CartController extends BaseApiController
     )]
     public function checkoutSupplier(CheckoutSupplierRequest $request): JsonResponse
     {
-        try {
-            $user = auth()->user();
+        $user = auth()->user();
 
-            if (! $user->canBuy()) {
-                return $this->error('Only buyers and salesmen can checkout', null, 403);
-            }
-
-            // Verify supplier is actually a supplier company
-            $supplier = \App\Models\Company::findOrFail($request->supplier_id);
-            if (! $supplier->isSupplier()) {
-                return $this->error('The specified company is not a supplier', null, 400);
-            }
-
-            $buyerCompany = $user->company;
-            if (! $buyerCompany) {
-                return $this->error('Your account is not linked to a company', null, 403);
-            }
-            if (! $this->pricingService->canBuyerSeeSupplier($supplier, $buyerCompany)) {
-                return $this->error('This supplier is not available to your account', null, 403);
-            }
-
-            $cart = Cart::where('user_id', $user->id)->with('items.product')->first();
-
-            if (! $cart || $cart->items->isEmpty()) {
-                return $this->error('Cart is empty', null, 400);
-            }
-
-            // Filter items for the specified supplier
-            $supplierItems = $cart->items->filter(function ($item) use ($request) {
-                return $item->product->supplier_company_id == $request->supplier_id;
-            });
-
-            if ($supplierItems->isEmpty()) {
-                return $this->error('No items found for the specified supplier in your cart', null, 400);
-            }
-
-            DB::beginTransaction();
-            try {
-                // Re-resolve prices at checkout so the order uses current prices, not stale cart prices.
-                $orderItems = $this->resolveCheckoutItems($supplierItems, $buyerCompany);
-
-                // Create order
-                $order = $this->orderCreationService->create(
-                    buyerCompanyId: $user->company_id,
-                    supplierCompanyId: $request->supplier_id,
-                    createdBy: $user->id,
-                    items: $orderItems,
-                    notes: $request->notes ?? null,
-                    taxRate: $request->tax_rate ?? 0
-                );
-
-                $order->load([
-                    'buyerCompany.region.city',
-                    'supplierCompany.categories',
-                    'supplierCompany.manufacturers',
-                    'driver',
-                    'invoice',
-                    'items.product.category',
-                    'items.product.manufacturer',
-                    'items.product.supplierCompany',
-                    'items.appliedOffer',
-                ]);
-
-                // Remove only the checked out items from cart
-                $cart->items()->whereIn('id', $supplierItems->pluck('id'))->delete();
-
-                // Refresh cart to reload items relationship
-                $cart->refresh();
-                $cart->load('items');
-
-                // Recalculate cart totals
-                $cart->calculateTotals();
-
-                DB::commit();
-
-                $remainingItemsCount = $cart->items()->count();
-
-                return (new OrderResource($order))
-                    ->additional([
-                        'success' => true,
-                        'message' => 'Order created successfully',
-                        'items_checked_out' => $supplierItems->count(),
-                        'items_remaining' => $remainingItemsCount,
-                    ])
-                    ->response();
-            } catch (\Exception $e) {
-                DB::rollBack();
-                throw $e;
-            }
-        } catch (\Exception $e) {
-            Log::error('Cart supplier checkout error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to checkout supplier items. Please try again later.', null, 500);
-        }
-    }
-
-    /**
-     * Re-resolve prices for cart items at checkout so the order uses current tier
-     * prices (and re-applied offers), not the price captured when the item was added.
-     * A no-longer-valid offer is dropped and the fresh base price is used.
-     *
-     * @param  iterable<int, CartItem>  $cartItems
-     * @return array<int, array<string, mixed>>
-     */
-    private function resolveCheckoutItems(iterable $cartItems, Company $buyerCompany): array
-    {
-        $collection = collect($cartItems);
-        $orderItems = [];
-
-        foreach ($collection as $cartItem) {
-            $product = $cartItem->product;
-            if (! $product instanceof Product) {
-                continue;
-            }
-
-            $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
-            $unitPrice = $priceResult->unitPrice;
-            $pricingType = $priceResult->pricingType;
-            $appliedOfferId = $cartItem->applied_offer_id;
-
-            // Re-apply a still-valid offer on top of the fresh base price; drop it otherwise.
-            if ($appliedOfferId) {
-                $offer = Offer::find($appliedOfferId);
-                $offerResult = $offer
-                    ? $this->cartOfferService->applyOffer($offer, $product, $cartItem->quantity, $collection, $unitPrice)
-                    : null;
-
-                if ($offerResult !== null) {
-                    $unitPrice = $offerResult['unit_price'];
-                } else {
-                    $appliedOfferId = null;
-                }
-            }
-
-            $orderItems[] = [
-                'product_id' => $cartItem->product_id,
-                'quantity' => $cartItem->quantity,
-                'unit_price' => $unitPrice,
-                'pricing_type' => $pricingType,
-                'notes' => $cartItem->notes,
-                'applied_offer_id' => $appliedOfferId,
-            ];
+        if (! $user->canBuy()) {
+            return $this->error('Only buyers and salesmen can checkout', null, 403);
         }
 
-        return $orderItems;
+        $result = $this->checkoutService->checkoutSupplier(
+            $user,
+            (int) $request->supplier_id,
+            $request->notes,
+            (float) ($request->tax_rate ?? 0),
+        );
+
+        return (new OrderResource($result['order']))
+            ->additional([
+                'success' => true,
+                'message' => 'Order created successfully',
+                'items_checked_out' => $result['items_checked_out'],
+                'items_remaining' => $result['items_remaining'],
+            ])
+            ->response();
     }
 }
