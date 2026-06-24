@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\BuyerSupplierRelationship;
 use App\Models\Company;
 use App\Models\Invoice;
+use App\Models\Offer;
 use App\Models\Order;
 use App\Models\PriceList;
 use App\Models\Product;
@@ -16,6 +17,7 @@ use App\Observers\StockMovementObserver;
 use App\Policies\BuyerSupplierRelationshipPolicy;
 use App\Policies\CompanyPolicy;
 use App\Policies\InvoicePolicy;
+use App\Policies\OfferPolicy;
 use App\Policies\OrderPolicy;
 use App\Policies\PriceListPolicy;
 use App\Policies\ProductPolicy;
@@ -35,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
         Product::class => ProductPolicy::class,
         Order::class => OrderPolicy::class,
         Invoice::class => InvoicePolicy::class,
+        Offer::class => OfferPolicy::class,
         BuyerSupplierRelationship::class => BuyerSupplierRelationshipPolicy::class,
         PriceList::class => PriceListPolicy::class,
     ];

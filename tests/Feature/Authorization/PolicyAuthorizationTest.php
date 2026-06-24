@@ -62,4 +62,19 @@ class PolicyAuthorizationTest extends TestCase
         $this->postJson("/api/v1/invoices/{$invoice->id}/pay", [])->assertOk();
         $this->assertSame('paid', $invoice->fresh()->payment_status);
     }
+
+    public function test_offer_policy_allows_only_owning_supplier_or_admin(): void
+    {
+        $supplier = Company::factory()->supplier()->create();
+        $owner = User::factory()->supplier()->forCompany($supplier)->create();
+        $otherSupplier = User::factory()->supplier()->create();
+        $buyer = User::factory()->buyer()->create();
+        $offer = new \App\Models\Offer(['supplier_company_id' => $supplier->id]);
+        $policy = new \App\Policies\OfferPolicy;
+
+        $this->assertTrue($policy->create($owner));
+        $this->assertFalse($policy->create($buyer));
+        $this->assertTrue($policy->update($owner, $offer));
+        $this->assertFalse($policy->update($otherSupplier, $offer));
+    }
 }

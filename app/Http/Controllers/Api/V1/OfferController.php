@@ -150,12 +150,10 @@ class OfferController extends BaseApiController
     )]
     public function store(CreateOfferRequest $request): JsonResponse
     {
+        $this->authorize('create', Offer::class);
+
         try {
             $user = auth()->user();
-
-            if (! $user->isSupplier()) {
-                return $this->error('Only suppliers can create offers', null, 403);
-            }
 
             $offer = Offer::create([
                 'supplier_company_id' => $user->company_id,
@@ -293,17 +291,9 @@ class OfferController extends BaseApiController
     )]
     public function update(UpdateOfferRequest $request, Offer $offer): JsonResponse
     {
+        $this->authorize('update', $offer);
+
         try {
-            $user = auth()->user();
-
-            if (! $user->isSupplier() && ! $user->isAdmin()) {
-                return $this->error('Only suppliers can update offers', null, 403);
-            }
-
-            if ($offer->supplier_company_id !== $user->company_id && ! $user->isAdmin()) {
-                return $this->error('You can only update your own offers', null, 403);
-            }
-
             $offer->update($request->validated());
 
             // Update products if provided
@@ -348,17 +338,9 @@ class OfferController extends BaseApiController
     )]
     public function destroy(Offer $offer): JsonResponse
     {
+        $this->authorize('delete', $offer);
+
         try {
-            $user = auth()->user();
-
-            if (! $user->isSupplier() && ! $user->isAdmin()) {
-                return $this->error('Only suppliers can delete offers', null, 403);
-            }
-
-            if ($offer->supplier_company_id !== $user->company_id && ! $user->isAdmin()) {
-                return $this->error('You can only delete your own offers', null, 403);
-            }
-
             $offer->delete();
 
             return $this->success(null, 'Offer deleted successfully');
