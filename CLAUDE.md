@@ -168,8 +168,7 @@ leak exception messages.
 - Dashboard/statistics depth, user-management (admin), product images, payment
   integration, real-time/notifications infra — see "Missing Features" in docs/PROGRESS.md.
 
-**Known technical debt**: `App\Domain\Users\UserRole` duplicates `App\Constants\UserRole`
-(should consolidate). `DriverController`/`SalesmanController` still use inline,
+**Known technical debt**: `DriverController`/`SalesmanController` still use inline,
 User-scoped authorization rather than Policies.
 
 ## Final rule
