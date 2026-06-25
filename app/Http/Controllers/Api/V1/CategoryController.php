@@ -63,8 +63,8 @@ class CategoryController extends BaseApiController
         if ($request->has('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                    ->orWhere('description', 'ilike', "%{$search}%");
+                $q->whereLike('name', "%{$search}%")
+                    ->orWhereLike('description', "%{$search}%");
             });
         }
 

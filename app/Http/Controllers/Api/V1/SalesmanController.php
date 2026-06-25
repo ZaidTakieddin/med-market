@@ -75,9 +75,9 @@ class SalesmanController extends BaseApiController
             if ($request->has('search')) {
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
-                    $q->where('name', 'ilike', "%{$search}%")
-                        ->orWhere('email', 'ilike', "%{$search}%")
-                        ->orWhere('phone', 'ilike', "%{$search}%");
+                    $q->whereLike('name', "%{$search}%")
+                        ->orWhereLike('email', "%{$search}%")
+                        ->orWhereLike('phone', "%{$search}%");
                 });
             }
 

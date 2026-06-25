@@ -95,14 +95,14 @@ class ProductController extends BaseApiController
         if ($request->has('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                    ->orWhere('sku', 'ilike', "%{$search}%")
-                    ->orWhere('description', 'ilike', "%{$search}%")
+                $q->whereLike('name', "%{$search}%")
+                    ->orWhereLike('sku', "%{$search}%")
+                    ->orWhereLike('description', "%{$search}%")
                     ->orWhereHas('category', function ($categoryQuery) use ($search) {
-                        $categoryQuery->where('name', 'ilike', "%{$search}%");
+                        $categoryQuery->whereLike('name', "%{$search}%");
                     })
                     ->orWhereHas('manufacturer', function ($manufacturerQuery) use ($search) {
-                        $manufacturerQuery->where('name', 'ilike', "%{$search}%");
+                        $manufacturerQuery->whereLike('name', "%{$search}%");
                     });
             });
         }

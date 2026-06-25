@@ -1,8 +1,18 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-25 (Queue: added `$timeout` to all jobs (kept < retry_after) + a guard test. Earlier same day — PHPStan: relation generics + Resource `@mixin` (287 → 6), then **raised Larastan from level 5 → 7**; baseline now 4; see entries below)
+> Last Updated: 2026-06-25 (Search: replaced Postgres-only `ilike` with portable `whereLike` across 7 controllers (now testable on sqlite). Earlier same day — queue `$timeout` hardening; PHPStan relation generics + `@mixin`, **Larastan level 5 → 7**, baseline now 4; see entries below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
+
+## 🔎 2026-06-25 — Portable search (branch `chore/portable-search`)
+
+Search filters used Postgres-only `->where('col', 'ilike', …)`, so search couldn't run
+on the sqlite test DB and was DB-coupled. Replaced every occurrence across 7 controllers
+(Category, City, Company, Manufacturer, Product, Region, Salesman) with Laravel's built-in
+driver-aware **`whereLike()`/`orWhereLike()`** (case-insensitive by default → `ilike` on
+Postgres, portable elsewhere). Added `tests/Feature/Search/PortableSearchTest.php` proving
+case-insensitive search now runs green on sqlite (category name + product SKU/relation
+paths). No behaviour change on Postgres.
 
 ## ⚙️ 2026-06-25 — Queue job resilience (branch `chore/queue-job-resilience`)
 
