@@ -27,6 +27,13 @@ class ExportOrdersJob implements ShouldQueue
     public int $backoff = 300; // 5 minutes
 
     /**
+     * Max seconds the job may run before timing out. Kept below the queue's
+     * retry_after (90s) so a hung job is killed before it can be retried in parallel.
+     * Very large exports should move to chunked/batched processing.
+     */
+    public int $timeout = 75;
+
+    /**
      * Create a new job instance.
      *
      * @param  array<string, mixed>  $filters

@@ -27,6 +27,12 @@ class GenerateInvoiceJob implements ShouldQueue
     public int $backoff = 120;
 
     /**
+     * Max seconds the job may run before timing out. Kept below the queue's
+     * retry_after (90s) so a hung job is killed before it can be retried in parallel.
+     */
+    public int $timeout = 60;
+
+    /**
      * Create a new job instance.
      */
     public function __construct(
