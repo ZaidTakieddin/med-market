@@ -257,14 +257,21 @@ tail -f storage/logs/laravel.log
 
 ## Job Retry Logic
 
-All jobs implement retry logic:
+All jobs declare `$tries`, `$backoff`, **`$timeout`**, and a `failed()` handler:
 
-- **SendOrderNotificationJob**: 3 tries, 60s backoff
-- **GenerateInvoiceJob**: 3 tries, 120s backoff
-- **LowStockAlertJob**: 2 tries, 300s backoff
-- **ExportOrdersJob**: 2 tries, 300s backoff
+- **SendOrderNotificationJob**: 3 tries, 60s backoff, 45s timeout
+- **GenerateInvoiceJob**: 3 tries, 120s backoff, 60s timeout
+- **LowStockAlertJob**: 2 tries, 300s backoff, 45s timeout
+- **ExportOrdersJob**: 2 tries, 300s backoff, 75s timeout
 
-Failed jobs are logged and can be retried manually.
+Every job's `$timeout` is kept **below the queue's `retry_after` (90s,
+`DB_QUEUE_RETRY_AFTER`)** so a hung job is killed before another worker can grab it for
+a parallel retry — `tests/Unit/Jobs/JobRetryConfigTest.php` enforces this invariant. If
+you raise a job's `$timeout` at or above `retry_after`, raise `retry_after` too.
+
+`GenerateInvoiceJob` is **idempotent** — it upserts the invoice by `order_id`, so a retry
+never produces a duplicate invoice. Failed jobs are recorded in the `failed_jobs` table
+(created by the consolidated jobs migration) and can be retried manually.
 
 ## Best Practices
 

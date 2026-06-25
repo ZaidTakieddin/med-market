@@ -1,8 +1,18 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-25 (PHPStan: relation generics + Resource `@mixin` (287 → 6), then **raised Larastan from level 5 → 7** by typing everything + factories for every model + narrowing findOrFail/route unions — baseline now 4; see the typing entry below)
+> Last Updated: 2026-06-25 (Queue: added `$timeout` to all jobs (kept < retry_after) + a guard test. Earlier same day — PHPStan: relation generics + Resource `@mixin` (287 → 6), then **raised Larastan from level 5 → 7**; baseline now 4; see entries below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
+
+## ⚙️ 2026-06-25 — Queue job resilience (branch `chore/queue-job-resilience`)
+
+Audit confirmed all four jobs already declared `$tries`/`$backoff`/`failed()` (an earlier
+register note claiming otherwise was a grep false-negative — they use `public int $tries`).
+`GenerateInvoiceJob` is idempotent (upserts by `order_id`) and the `failed_jobs` table
+exists. The one genuine gap was a missing **`$timeout`**: added to all four jobs (invoice
+60s, notification/alert 45s, export 75s), each kept **below the queue `retry_after` (90s)**
+so a hung job is killed before a parallel retry. `tests/Unit/Jobs/JobRetryConfigTest.php`
+enforces that invariant. Docs: [QUEUE_WORKERS.md](./QUEUE_WORKERS.md).
 
 ### Related Documentation
 
