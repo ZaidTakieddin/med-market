@@ -322,7 +322,7 @@ class SalesmanController extends BaseApiController
         $this->authorize('manageSalesman', $salesman);
 
         try {
-            $pharmacy = Company::findOrFail($request->pharmacy_company_id);
+            $pharmacy = Company::findOrFail((int) $request->pharmacy_company_id);
             if ($pharmacy->buyer_classification !== BuyerClassification::PHARMACY) {
                 return $this->error('The selected company is not a pharmacy', null, 400);
             }
@@ -488,7 +488,7 @@ class SalesmanController extends BaseApiController
         try {
             $user = auth()->user();
 
-            $buyerCompany = Company::findOrFail($request->buyer_company_id);
+            $buyerCompany = Company::findOrFail((int) $request->buyer_company_id);
             if (! $buyerCompany->isBuyer()) {
                 return $this->error('The selected company is not a buyer', null, 400);
             }
@@ -504,7 +504,7 @@ class SalesmanController extends BaseApiController
 
             $items = [];
             foreach ($request->items as $item) {
-                $product = Product::findOrFail($item['product_id']);
+                $product = Product::findOrFail((int) $item['product_id']);
 
                 if ($item['unit_price'] ?? null) {
                     $unitPrice = $item['unit_price'];

@@ -123,7 +123,7 @@ class PriceListController extends BaseApiController
             $user = auth()->user();
             $this->authorize('create', PriceList::class);
 
-            $product = Product::findOrFail($request->product_id);
+            $product = Product::findOrFail((int) $request->product_id);
 
             if (! $user->isAdmin() && $product->supplier_company_id !== $user->company_id) {
                 return $this->error('You can only create price list entries for your own products', null, 403);

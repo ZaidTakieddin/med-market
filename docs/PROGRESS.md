@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-25 (PHPStan: relation generics + Resource `@mixin` (287 → 6), then **raised Larastan to level 6** by typing all models/resources/requests/services/jobs + adding factories for every model — baseline now 5; see the typing entry below)
+> Last Updated: 2026-06-25 (PHPStan: relation generics + Resource `@mixin` (287 → 6), then **raised Larastan from level 5 → 7** by typing everything + factories for every model + narrowing findOrFail/route unions — baseline now 4; see the typing entry below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
 
@@ -32,9 +32,13 @@ Suite green (49 tests, Pint + PHPStan clean; baseline **287 → 5**).
 - Added `@return list<string>` / array-shape docblocks to all `app/Constants/*` and Form Request `rules()` methods; typed service/job array params and returns (`CartOfferService`, `PricingService`, `OrderCreationService`, `ExportOrdersJob`, `PriceResult`); made `BaseApiController::paginateOrAll()` generic (which also fixed the `Support\Collection::load()` residual); typed `PriceList::scopeCurrentlyValid()`, the `Handler` `ModelNotFoundException` generic, and `InvoiceController` user params.
 - Added `@use HasFactory<…>` to every model and **created the 13 missing factories** (Category, Manufacturer, City, Region, Offer, Cart, CartItem, Invoice, StockMovement, SalesmanClient, PriceList, OfferProduct, OrderStatusLog), all smoke-tested in `FactorySmokeTest`.
 
-**Remaining 5** (justified, grandfathered): two defensive route-param `?->id` nullsafes in update requests, a Larastan dynamic-pivot limitation (`Offer::$pivot` in `ProductResource`, ×2), and one `larastan.noUnnecessaryCollectionCall` in `Cart`.
+**Phase 3 — raise to level 7 (fixed all 49 narrowing findings):**
 
-- **Next**: raise `level` toward 7+ (surfaces nullable-safety findings that need real review).
+- The dominant pattern was `Model::findOrFail($mixedId)` / `::find($mixedId)` typed as `Model|Collection<Model>`; cast the id arg to `(int)` at each call site so a single model is returned. Tightened `PricingService` custom-price array shapes; narrowed `route('city'|'region'|'offer')` via `instanceof` in update requests (also retired their nullsafe baseline entries); used `->associate()` instead of raw FK assignment (`CartItem`/`Order`) to dodge the model-key-vs-FK int-type asymmetry; eager-loaded in `CompanyController` instead of `->load()` on the paginated result; misc casts (`auth()->id()`, connection name, `json_encode ?: ''`).
+
+**Remaining 4** (justified, grandfathered): the generic `paginateOrAll` return type (`Builder::get()` drops the method-level template while `getCollection()` keeps it, and `Support\Collection` is invariant — a Larastan limitation), the dynamic-pivot `Offer::$pivot` in `ProductResource` (×2), and one `larastan.noUnnecessaryCollectionCall` in `Cart`.
+
+- **Next**: raise `level` toward 8 (surfaces nullable-safety findings that need real, case-by-case review).
 
 ## 🔒 2026-06-24 — Audit Remediation (branch `fix/register-privilege-escalation`)
 

@@ -110,7 +110,7 @@ class OrderCreationService
         ?string $paymentMethod
     ): Order {
         foreach ($items as $item) {
-            $product = \App\Models\Product::find($item['product_id']);
+            $product = \App\Models\Product::find((int) $item['product_id']);
             if (! $product || $product->supplier_company_id !== $supplierCompanyId) {
                 throw new \InvalidArgumentException(
                     "Product {$item['product_id']} does not belong to supplier {$supplierCompanyId}"

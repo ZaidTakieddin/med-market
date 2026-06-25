@@ -207,7 +207,7 @@ class ExportOrdersJob implements ShouldQueue
             ];
         });
 
-        return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '';
     }
 
     /**

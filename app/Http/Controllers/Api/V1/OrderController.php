@@ -237,14 +237,14 @@ class OrderController extends BaseApiController
 
         $buyerCompany = $user->company;
 
-        $supplierCompany = \App\Models\Company::find($request->supplier_company_id);
+        $supplierCompany = \App\Models\Company::find((int) $request->supplier_company_id);
         if ($buyerCompany && $supplierCompany && ! $this->pricingService->canBuyerSeeSupplier($supplierCompany, $buyerCompany)) {
             return $this->error('This supplier is not available to your account', null, 403);
         }
 
         $items = [];
         foreach ($request->items as $item) {
-            $product = \App\Models\Product::findOrFail($item['product_id']);
+            $product = \App\Models\Product::findOrFail((int) $item['product_id']);
 
             if ($item['unit_price'] ?? null) {
                 $unitPrice = $item['unit_price'];
@@ -279,7 +279,7 @@ class OrderController extends BaseApiController
         // /salesmen/{id}/place-order endpoint. Payment terms + credit reservation are
         // handled inside OrderCreationService (transactional, credit-limit enforced).
         if ($user->isSalesman()) {
-            $order->placed_by_salesman_id = $user->id;
+            $order->salesman()->associate($user);
             $order->save();
         }
 
@@ -423,7 +423,7 @@ class OrderController extends BaseApiController
             $order = $this->orderStateTransitionService->transition(
                 order: $order,
                 newStatus: $request->status,
-                userId: auth()->id(),
+                userId: (int) auth()->id(),
                 notes: $request->notes
             );
 
@@ -505,7 +505,7 @@ class OrderController extends BaseApiController
             $order = $this->orderStateTransitionService->transition(
                 order: $order,
                 newStatus: OrderStatus::CANCELLED,
-                userId: auth()->id(),
+                userId: (int) auth()->id(),
                 notes: $request->reason
             );
 
@@ -579,7 +579,7 @@ class OrderController extends BaseApiController
                 return $this->error('You can only assign drivers to your own orders', null, 403);
             }
 
-            $driver = \App\Models\User::findOrFail($request->driver_id);
+            $driver = \App\Models\User::findOrFail((int) $request->driver_id);
 
             // Verify driver belongs to supplier's company and is actually a driver
             if ($driver->role !== 'driver') {

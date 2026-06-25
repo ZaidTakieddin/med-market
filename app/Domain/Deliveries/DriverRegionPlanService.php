@@ -4,6 +4,7 @@ namespace App\Domain\Deliveries;
 
 use App\Constants\DayOfWeek;
 use App\Constants\RegionPlanType;
+use App\Models\Region;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -104,7 +105,7 @@ class DriverRegionPlanService
      * @return array{
      *     planType: string,
      *     holidays: list<string>,
-     *     regions: list<\Illuminate\Database\Eloquent\Model>,
+     *     regions: array<int, \Illuminate\Database\Eloquent\Model>,
      *     schedule: array<string, \Illuminate\Database\Eloquent\Model|null>
      * }
      */
@@ -117,7 +118,7 @@ class DriverRegionPlanService
         $regions = $driver->driverRegions()->get();
         $regions->load('city');
 
-        $assignments = $regions->map(function ($region) {
+        $assignments = $regions->map(function (Region $region) {
             $pivot = $region->getRelationValue('pivot');
 
             return [
@@ -128,7 +129,8 @@ class DriverRegionPlanService
 
         $fixedRegions = $assignments
             ->whereNull('day')
-            ->pluck('region')
+            ->map(fn ($assignment) => $assignment['region'])
+            ->values()
             ->all();
 
         $schedule = [];

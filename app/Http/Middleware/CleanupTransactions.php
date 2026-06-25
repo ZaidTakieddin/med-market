@@ -37,6 +37,8 @@ class CleanupTransactions
         $connections = array_keys(config('database.connections', []));
 
         foreach ($connections as $connection) {
+            $connection = (string) $connection;
+
             // This workaround targets PostgreSQL's aborted-transaction state only.
             // Skipping other drivers (e.g. the sqlite test connection) keeps
             // RefreshDatabase's wrapping transaction intact during tests.

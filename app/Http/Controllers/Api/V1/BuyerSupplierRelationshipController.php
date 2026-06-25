@@ -118,8 +118,8 @@ class BuyerSupplierRelationshipController extends BaseApiController
             $user = auth()->user();
             $this->authorize('create', BuyerSupplierRelationship::class);
 
-            $buyerCompany = Company::findOrFail($request->buyer_company_id);
-            $supplierCompany = Company::findOrFail($request->supplier_company_id);
+            $buyerCompany = Company::findOrFail((int) $request->buyer_company_id);
+            $supplierCompany = Company::findOrFail((int) $request->supplier_company_id);
 
             if (! $buyerCompany->isBuyer()) {
                 return $this->error('The selected buyer company is not a buyer', null, 400);

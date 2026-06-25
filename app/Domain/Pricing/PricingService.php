@@ -190,7 +190,7 @@ class PricingService
     /**
      * Check custom price list for a specific buyer-supplier-product combination.
      *
-     * @return array<string, mixed>|null
+     * @return array{price: float, note: string|null}|null
      */
     private function checkCustomPriceList(Product $product, Company $supplierCompany, Company $buyerCompany, int $quantity): ?array
     {
@@ -209,7 +209,7 @@ class PricingService
      * Picks the entry with the highest min_qty that the given quantity satisfies.
      *
      * @param  \Illuminate\Database\Eloquent\Collection<int, PriceList>|null  $entries
-     * @return array<string, mixed>|null
+     * @return array{price: float, note: string|null}|null
      */
     private function findBestCustomPrice($entries, int $quantity): ?array
     {

@@ -139,7 +139,7 @@ composer quality      # both: pint --dirty, then phpstan
 
 - **Pint** uses the Laravel preset. The repo is fully normalized, so keep it that way —
   format **changed** files with `--dirty` before finishing; `pint --test` must stay green.
-- **Larastan** runs at **level 6** with a **baseline** (`phpstan-baseline.neon`, **5**
+- **Larastan** runs at **level 7** with a **baseline** (`phpstan-baseline.neon`, **4**
   grandfathered findings — down from 379 at level 5). Only *newly introduced* errors
   fail. Fix the root cause — never add `@phpstan-ignore`/baseline entries to silence new
   errors. Continue raising the `level` in `phpstan.neon` as legacy debt is paid down.
@@ -168,11 +168,11 @@ leak exception messages.
 - Dashboard/statistics depth, user-management (admin), product images, payment
   integration, real-time/notifications infra — see "Missing Features" in docs/PROGRESS.md.
 
-**Known technical debt**: at **level 6** the PHPStan baseline is down to **5**
-grandfathered findings (two defensive route-param nullsafes, a Larastan dynamic-pivot
-limitation, and a collection-count nit). Models, resources, requests, services, and jobs
-are fully typed and every model has a factory; the next step is raising the `level`
-toward 7+ (which surfaces nullable-safety findings needing real review).
+**Known technical debt**: at **level 7** the PHPStan baseline is down to **4**
+grandfathered findings (a generic-paginator helper return type, a Larastan dynamic-pivot
+limitation ×2, and a collection-count nit). Models, resources, requests, services, and
+jobs are fully typed and every model has a factory; the next step is raising the `level`
+toward 8 (which surfaces nullable-safety findings needing real, case-by-case review).
 
 ## Final rule
 

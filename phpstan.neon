@@ -6,5 +6,5 @@ parameters:
     paths:
         - app
 
-    # Raised to 6 after typing all models, resources, requests, services, and jobs.
-    level: 6
+    # Raised to 7 after typing all models, resources, requests, services, and jobs.
+    level: 7

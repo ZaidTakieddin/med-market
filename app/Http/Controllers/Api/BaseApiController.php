@@ -29,7 +29,7 @@ class BaseApiController extends Controller
      * @template TModel of \Illuminate\Database\Eloquent\Model
      *
      * @param  Builder<TModel>  $query
-     * @return array{0: \Illuminate\Database\Eloquent\Collection<int, \Illuminate\Database\Eloquent\Model>, 1: array<string, mixed>|null}
+     * @return array{0: \Illuminate\Support\Collection<int, \Illuminate\Database\Eloquent\Model>, 1: array<string, mixed>|null}
      */
     protected function paginateOrAll(Builder $query, Request $request, int $defaultPerPage = 15): array
     {
