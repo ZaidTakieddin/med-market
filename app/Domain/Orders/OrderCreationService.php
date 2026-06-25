@@ -53,6 +53,8 @@ class OrderCreationService
 
     /**
      * Create order within a transaction (handles uniqueness check inside transaction).
+     *
+     * @param  array<int, array<string, mixed>>  $items
      */
     private function createOrderInTransaction(
         int $buyerCompanyId,
@@ -94,6 +96,8 @@ class OrderCreationService
 
     /**
      * Create order without wrapping in transaction (for use when already in transaction).
+     *
+     * @param  array<int, array<string, mixed>>  $items
      */
     private function createOrderWithoutTransaction(
         int $buyerCompanyId,
@@ -106,7 +110,7 @@ class OrderCreationService
         ?string $paymentMethod
     ): Order {
         foreach ($items as $item) {
-            $product = \App\Models\Product::find($item['product_id']);
+            $product = \App\Models\Product::find((int) $item['product_id']);
             if (! $product || $product->supplier_company_id !== $supplierCompanyId) {
                 throw new \InvalidArgumentException(
                     "Product {$item['product_id']} does not belong to supplier {$supplierCompanyId}"

@@ -10,6 +10,8 @@ class CompanyType
 
     /**
      * Get all valid company types.
+     *
+     * @return list<string>
      */
     public static function all(): array
     {
@@ -29,6 +31,8 @@ class CompanyType
 
     /**
      * Get all valid supplier classifications.
+     *
+     * @return list<string>
      */
     public static function supplierClassifications(): array
     {
@@ -41,6 +45,8 @@ class CompanyType
 
     /**
      * Get all valid buyer classifications.
+     *
+     * @return list<string>
      */
     public static function buyerClassifications(): array
     {

@@ -10,6 +10,8 @@ class DiscountType
 
     /**
      * Get all discount types.
+     *
+     * @return list<string>
      */
     public static function all(): array
     {

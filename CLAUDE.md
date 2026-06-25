@@ -139,10 +139,10 @@ composer quality      # both: pint --dirty, then phpstan
 
 - **Pint** uses the Laravel preset. The repo is fully normalized, so keep it that way —
   format **changed** files with `--dirty` before finishing; `pint --test` must stay green.
-- **Larastan** runs at **level 5** with a **baseline** (`phpstan-baseline.neon`, ~293
-  grandfathered findings and shrinking). Only *newly introduced* errors fail. Fix the
-  root cause — never add `@phpstan-ignore`/baseline entries to silence new errors. Raise
-  the `level` in `phpstan.neon` as legacy debt is paid down.
+- **Larastan** runs at **level 7** with a **baseline** (`phpstan-baseline.neon`, **4**
+  grandfathered findings — down from 379 at level 5). Only *newly introduced* errors
+  fail. Fix the root cause — never add `@phpstan-ignore`/baseline entries to silence new
+  errors. Continue raising the `level` in `phpstan.neon` as legacy debt is paid down.
 - **CI** (`.github/workflows/ci.yml`) runs `pint --test` + Larastan + `php artisan test`
   on push to `main` and every PR.
 - A **Stop hook** (`.claude/hooks/code-quality.php`, wired in `.claude/settings.json`)
@@ -168,9 +168,11 @@ leak exception messages.
 - Dashboard/statistics depth, user-management (admin), product images, payment
   integration, real-time/notifications infra — see "Missing Features" in docs/PROGRESS.md.
 
-**Known technical debt**: the PHPStan baseline still grandfathers ~289 findings
-(mostly un-generic'd Eloquent relation return types); pay these down and raise the
-`level` over time.
+**Known technical debt**: at **level 7** the PHPStan baseline is down to **4**
+grandfathered findings (a generic-paginator helper return type, a Larastan dynamic-pivot
+limitation ×2, and a collection-count nit). Models, resources, requests, services, and
+jobs are fully typed and every model has a factory; the next step is raising the `level`
+toward 8 (which surfaces nullable-safety findings needing real, case-by-case review).
 
 ## Final rule
 

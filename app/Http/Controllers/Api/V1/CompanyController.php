@@ -96,10 +96,8 @@ class CompanyController extends BaseApiController
             });
         }
 
-        [$companies, $pagination] = $this->paginateOrAll($query->latest(), $request);
-
-        // Ensure relationships are loaded even after whereHas filters
-        $companies->load(['categories', 'manufacturers']);
+        // Eager-load relationships in the query so they survive whereHas filters
+        [$companies, $pagination] = $this->paginateOrAll($query->with(['categories', 'manufacturers'])->latest(), $request);
 
         $additional = [
             'success' => true,

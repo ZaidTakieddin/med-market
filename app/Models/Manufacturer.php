@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 
 class Manufacturer extends Model
 {
+    /** @use HasFactory<\Database\Factories\ManufacturerFactory> */
     use CacheableReference, HasFactory, SoftDeletes;
 
     protected $fillable = [
@@ -37,13 +38,13 @@ class Manufacturer extends Model
     {
         parent::boot();
 
-        static::creating(function ($manufacturer) {
+        static::creating(function (Manufacturer $manufacturer) {
             if (empty($manufacturer->slug)) {
                 $manufacturer->slug = Str::slug($manufacturer->name);
             }
         });
 
-        static::updating(function ($manufacturer) {
+        static::updating(function (Manufacturer $manufacturer) {
             if ($manufacturer->isDirty('name') && empty($manufacturer->slug)) {
                 $manufacturer->slug = Str::slug($manufacturer->name);
             }
@@ -52,6 +53,8 @@ class Manufacturer extends Model
 
     /**
      * Get products from this manufacturer.
+     *
+     * @return HasMany<Product, $this>
      */
     public function products(): HasMany
     {

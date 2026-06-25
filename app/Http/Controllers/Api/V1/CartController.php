@@ -166,7 +166,7 @@ class CartController extends BaseApiController
                 return $this->error('Supplier-associated salesmen must use the salesman place-order endpoint instead of the cart', null, 403);
             }
 
-            $product = Product::findOrFail($request->product_id);
+            $product = Product::findOrFail((int) $request->product_id);
 
             if (! $product->is_active) {
                 return $this->error('Product is not available', null, 400);
@@ -509,7 +509,7 @@ class CartController extends BaseApiController
             }
 
             $product = $cartItem->product;
-            $offer = \App\Models\Offer::findOrFail($request->offer_id);
+            $offer = \App\Models\Offer::findOrFail((int) $request->offer_id);
             $buyerCompany = $user->company;
 
             $productOffers = $product->offers()->where('offers.id', $offer->id)->first();
@@ -528,7 +528,7 @@ class CartController extends BaseApiController
 
             $cartItem->unit_price = $offerResult['unit_price'];
             $cartItem->total_price = $offerResult['total_price'];
-            $cartItem->applied_offer_id = $offer->id;
+            $cartItem->appliedOffer()->associate($offer);
             $cartItem->save();
 
             // Recalculate cart totals

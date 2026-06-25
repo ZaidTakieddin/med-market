@@ -5,6 +5,9 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin \App\Models\Product
+ */
 class ProductResource extends JsonResource
 {
     /**
@@ -25,7 +28,7 @@ class ProductResource extends JsonResource
                     'discountValue' => $offer->discount_value ? (float) $offer->discount_value : null,
                     'quantityRequired' => $offer->quantity_required,
                     'quantityFree' => $offer->quantity_free,
-                    'startDate' => $offer->start_date?->toISOString(),
+                    'startDate' => $offer->start_date->toISOString(),
                     'endDate' => $offer->end_date?->toISOString(),
                     'isActive' => $offer->is_active,
                     'isCurrentlyActive' => $offer->isActive(),

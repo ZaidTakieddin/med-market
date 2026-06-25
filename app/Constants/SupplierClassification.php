@@ -12,6 +12,8 @@ class SupplierClassification
 
     /**
      * Get all valid supplier classifications.
+     *
+     * @return list<string>
      */
     public static function all(): array
     {
@@ -32,6 +34,8 @@ class SupplierClassification
 
     /**
      * Classifications that can offer wholesale pricing.
+     *
+     * @return list<string>
      */
     public static function wholesaleCapable(): array
     {
@@ -43,6 +47,8 @@ class SupplierClassification
 
     /**
      * Classifications that can offer retail pricing.
+     *
+     * @return list<string>
      */
     public static function retailCapable(): array
     {

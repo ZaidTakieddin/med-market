@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
+    /** @use HasFactory<\Database\Factories\ProductFactory> */
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
@@ -60,6 +61,8 @@ class Product extends Model
 
     /**
      * Get the category for this product.
+     *
+     * @return BelongsTo<Category, $this>
      */
     public function category(): BelongsTo
     {
@@ -68,6 +71,8 @@ class Product extends Model
 
     /**
      * Get the manufacturer for this product.
+     *
+     * @return BelongsTo<Manufacturer, $this>
      */
     public function manufacturer(): BelongsTo
     {
@@ -76,6 +81,8 @@ class Product extends Model
 
     /**
      * Get order items for this product.
+     *
+     * @return HasMany<OrderItem, $this>
      */
     public function orderItems(): HasMany
     {
@@ -84,6 +91,8 @@ class Product extends Model
 
     /**
      * Get stock movements for this product.
+     *
+     * @return HasMany<StockMovement, $this>
      */
     public function stockMovements(): HasMany
     {
@@ -92,6 +101,8 @@ class Product extends Model
 
     /**
      * Get offers associated with this product.
+     *
+     * @return BelongsToMany<Offer, $this>
      */
     public function offers(): BelongsToMany
     {
@@ -185,6 +196,8 @@ class Product extends Model
 
     /**
      * Get price lists for this product.
+     *
+     * @return HasMany<PriceList, $this>
      */
     public function priceLists(): HasMany
     {

@@ -36,6 +36,9 @@ class PriceResult
         return $this->discountAmount > 0;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return [

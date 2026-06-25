@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CartItem extends Model
 {
+    /** @use HasFactory<\Database\Factories\CartItemFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -29,6 +30,8 @@ class CartItem extends Model
 
     /**
      * Get the cart this item belongs to.
+     *
+     * @return BelongsTo<Cart, $this>
      */
     public function cart(): BelongsTo
     {
@@ -47,6 +50,8 @@ class CartItem extends Model
 
     /**
      * Get the applied offer (if any).
+     *
+     * @return BelongsTo<Offer, $this>
      */
     public function appliedOffer(): BelongsTo
     {

@@ -96,6 +96,8 @@ class SendOrderNotificationJob implements ShouldQueue
 
     /**
      * Get recipients for the notification.
+     *
+     * @return list<array<string, mixed>>
      */
     private function getRecipients(Order $order): array
     {
@@ -154,7 +156,7 @@ class SendOrderNotificationJob implements ShouldQueue
         $content .= "Status Changed: {$oldStatus} → {$newStatus}\n";
         $content .= "Buyer: {$order->buyerCompany->name}\n";
         $content .= "Supplier: {$order->supplierCompany->name}\n";
-        $content .= 'Total Amount: '.number_format($order->total_amount, 2)." SAR\n";
+        $content .= 'Total Amount: '.number_format((float) $order->total_amount, 2)." SAR\n";
         $content .= "Items: {$order->items->count()}\n\n";
 
         if ($order->notes) {

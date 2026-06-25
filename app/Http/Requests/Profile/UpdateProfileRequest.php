@@ -12,6 +12,9 @@ class UpdateProfileRequest extends BaseFormRequest
         return true; // Authorization handled in controller
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $user = auth()->user();

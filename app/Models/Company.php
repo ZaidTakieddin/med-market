@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Company extends Model
 {
+    /** @use HasFactory<\Database\Factories\CompanyFactory> */
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
@@ -61,6 +62,8 @@ class Company extends Model
 
     /**
      * Get products supplied by this company (if supplier).
+     *
+     * @return HasMany<Product, $this>
      */
     public function products(): HasMany
     {
@@ -69,6 +72,8 @@ class Company extends Model
 
     /**
      * Get orders where this company is the buyer.
+     *
+     * @return HasMany<Order, $this>
      */
     public function buyerOrders(): HasMany
     {
@@ -77,6 +82,8 @@ class Company extends Model
 
     /**
      * Get orders where this company is the supplier.
+     *
+     * @return HasMany<Order, $this>
      */
     public function supplierOrders(): HasMany
     {
@@ -208,6 +215,8 @@ class Company extends Model
 
     /**
      * Get offers created by this company (if supplier).
+     *
+     * @return HasMany<Offer, $this>
      */
     public function offers(): HasMany
     {
@@ -216,6 +225,8 @@ class Company extends Model
 
     /**
      * Get carts for this company (if buyer).
+     *
+     * @return HasMany<Cart, $this>
      */
     public function carts(): HasMany
     {
@@ -224,6 +235,8 @@ class Company extends Model
 
     /**
      * Get categories that this supplier deals with (auto-synced from products).
+     *
+     * @return BelongsToMany<Category, $this>
      */
     public function categories(): BelongsToMany
     {
@@ -233,6 +246,8 @@ class Company extends Model
 
     /**
      * Get manufacturers that this supplier deals with (auto-synced from products).
+     *
+     * @return BelongsToMany<Manufacturer, $this>
      */
     public function manufacturers(): BelongsToMany
     {
@@ -242,6 +257,8 @@ class Company extends Model
 
     /**
      * Get the region this company is located in.
+     *
+     * @return BelongsTo<Region, $this>
      */
     public function region(): BelongsTo
     {
@@ -250,6 +267,8 @@ class Company extends Model
 
     /**
      * Get price lists where this company is the supplier.
+     *
+     * @return HasMany<PriceList, $this>
      */
     public function supplierPriceLists(): HasMany
     {
@@ -258,6 +277,8 @@ class Company extends Model
 
     /**
      * Get price lists where this company is the buyer.
+     *
+     * @return HasMany<PriceList, $this>
      */
     public function buyerPriceLists(): HasMany
     {
@@ -266,6 +287,8 @@ class Company extends Model
 
     /**
      * Get buyer relationships where this company is the supplier.
+     *
+     * @return HasMany<BuyerSupplierRelationship, $this>
      */
     public function buyerRelationships(): HasMany
     {
@@ -274,6 +297,8 @@ class Company extends Model
 
     /**
      * Get supplier relationships where this company is the buyer.
+     *
+     * @return HasMany<BuyerSupplierRelationship, $this>
      */
     public function supplierRelationships(): HasMany
     {
@@ -282,6 +307,8 @@ class Company extends Model
 
     /**
      * Get salesman client entries where this company is the pharmacy.
+     *
+     * @return HasMany<SalesmanClient, $this>
      */
     public function salesmanAssignments(): HasMany
     {

@@ -26,7 +26,10 @@ class BaseApiController extends Controller
      * Use per_page=all or paginate=false to get all results without pagination.
      * Returns [items, pagination|null] - pagination is null when unpaginated.
      *
-     * @return array{0: \Illuminate\Support\Collection, 1: array|null}
+     * @template TModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return array{0: \Illuminate\Support\Collection<int, \Illuminate\Database\Eloquent\Model>, 1: array<string, mixed>|null}
      */
     protected function paginateOrAll(Builder $query, Request $request, int $defaultPerPage = 15): array
     {
@@ -52,6 +55,8 @@ class BaseApiController extends Controller
 
     /**
      * Return a successful JSON response.
+     *
+     * @param  mixed  $data
      */
     protected function success($data = null, ?string $message = null, int $statusCode = 200): JsonResponse
     {
@@ -74,7 +79,7 @@ class BaseApiController extends Controller
      * Return an error JSON response.
      *
      * @param  string  $message  Error message
-     * @param  array|string|null  $errors  Validation errors or additional error details
+     * @param  array<string, mixed>|string|null  $errors  Validation errors or additional error details
      * @param  int  $statusCode  HTTP status code
      */
     protected function error(string $message, $errors = null, int $statusCode = 400): JsonResponse
@@ -120,6 +125,8 @@ class BaseApiController extends Controller
 
     /**
      * Return a paginated JSON response.
+     *
+     * @param  \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, mixed>  $data
      */
     protected function paginated($data, ?string $message = null): JsonResponse
     {

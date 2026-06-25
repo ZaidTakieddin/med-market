@@ -4,10 +4,24 @@ namespace Tests\Feature;
 
 use App\Constants\CompanyType;
 use App\Constants\UserRole;
+use App\Models\BuyerSupplierRelationship;
+use App\Models\Cart;
+use App\Models\CartItem;
+use App\Models\Category;
+use App\Models\City;
 use App\Models\Company;
+use App\Models\Invoice;
+use App\Models\Manufacturer;
+use App\Models\Offer;
+use App\Models\OfferProduct;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderStatusLog;
+use App\Models\PriceList;
 use App\Models\Product;
+use App\Models\Region;
+use App\Models\SalesmanClient;
+use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -67,5 +81,26 @@ class FactorySmokeTest extends TestCase
         $this->assertDatabaseCount('order_items', 3);
         $this->assertSame(3, $order->items()->count());
         $this->assertNotNull($order->accepted_at);
+    }
+
+    public function test_reference_and_relational_factories_persist(): void
+    {
+        $this->assertNotNull(Category::factory()->create()->id);
+        $this->assertNotNull(Manufacturer::factory()->create()->id);
+        $this->assertNotNull(City::factory()->create()->id);
+
+        $region = Region::factory()->create();
+        $this->assertNotNull($region->city_id);
+
+        $this->assertNotNull(Offer::factory()->create()->id);
+        $this->assertNotNull(Cart::factory()->create()->id);
+        $this->assertNotNull(CartItem::factory()->create()->id);
+        $this->assertNotNull(Invoice::factory()->create()->id);
+        $this->assertNotNull(StockMovement::factory()->create()->id);
+        $this->assertNotNull(SalesmanClient::factory()->create()->id);
+        $this->assertNotNull(PriceList::factory()->create()->id);
+        $this->assertNotNull(OfferProduct::factory()->create()->id);
+        $this->assertNotNull(OrderStatusLog::factory()->create()->id);
+        $this->assertNotNull(BuyerSupplierRelationship::factory()->create()->id);
     }
 }

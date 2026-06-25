@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Cities;
 
 use App\Http\Requests\BaseFormRequest;
+use App\Models\City;
 use Illuminate\Validation\Rule;
 
 class UpdateCityRequest extends BaseFormRequest
@@ -12,9 +13,13 @@ class UpdateCityRequest extends BaseFormRequest
         return true; // Authorization handled in controller
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
-        $cityId = $this->route('city')?->id ?? $this->route('id');
+        $city = $this->route('city');
+        $cityId = $city instanceof City ? $city->id : $this->route('id');
 
         return [
             'name' => ['sometimes', 'string', 'max:255', Rule::unique('cities', 'name')->ignore($cityId)],

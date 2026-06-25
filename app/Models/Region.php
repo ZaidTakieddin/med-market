@@ -13,6 +13,7 @@ use Illuminate\Support\Str;
 
 class Region extends Model
 {
+    /** @use HasFactory<\Database\Factories\RegionFactory> */
     use CacheableReference, HasFactory, SoftDeletes;
 
     protected $fillable = [
@@ -36,13 +37,13 @@ class Region extends Model
     {
         parent::boot();
 
-        static::creating(function ($region) {
+        static::creating(function (Region $region) {
             if (empty($region->slug)) {
                 $region->slug = Str::slug($region->name);
             }
         });
 
-        static::updating(function ($region) {
+        static::updating(function (Region $region) {
             if ($region->isDirty('name') && empty($region->slug)) {
                 $region->slug = Str::slug($region->name);
             }
@@ -51,6 +52,8 @@ class Region extends Model
 
     /**
      * Get the city this region belongs to.
+     *
+     * @return BelongsTo<City, $this>
      */
     public function city(): BelongsTo
     {
@@ -59,6 +62,8 @@ class Region extends Model
 
     /**
      * Get companies in this region.
+     *
+     * @return HasMany<Company, $this>
      */
     public function companies(): HasMany
     {
@@ -67,6 +72,8 @@ class Region extends Model
 
     /**
      * Get drivers assigned to this region.
+     *
+     * @return BelongsToMany<User, $this>
      */
     public function drivers(): BelongsToMany
     {

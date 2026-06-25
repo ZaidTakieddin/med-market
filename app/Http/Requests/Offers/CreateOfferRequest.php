@@ -42,6 +42,9 @@ class CreateOfferRequest extends BaseFormRequest
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -62,9 +65,9 @@ class CreateOfferRequest extends BaseFormRequest
         ];
     }
 
-    public function withValidator($validator): void
+    public function withValidator(\Illuminate\Validation\Validator $validator): void
     {
-        $validator->after(function ($validator) {
+        $validator->after(function (\Illuminate\Validation\Validator $validator) {
             $isBundle = in_array($this->input('offer_type'), [OfferType::BUNDLE_PERCENTAGE, OfferType::BUNDLE_FIXED], true);
             $products = $this->input('products', []);
             $productIds = $this->input('product_ids', []);

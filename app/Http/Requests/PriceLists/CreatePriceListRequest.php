@@ -6,6 +6,9 @@ use App\Http\Requests\BaseFormRequest;
 
 class CreatePriceListRequest extends BaseFormRequest
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [

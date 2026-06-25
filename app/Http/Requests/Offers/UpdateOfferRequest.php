@@ -4,6 +4,7 @@ namespace App\Http\Requests\Offers;
 
 use App\Constants\OfferType;
 use App\Http\Requests\BaseFormRequest;
+use App\Models\Offer;
 use Illuminate\Validation\Rule;
 
 class UpdateOfferRequest extends BaseFormRequest
@@ -39,10 +40,14 @@ class UpdateOfferRequest extends BaseFormRequest
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
-        $offer = $this->route('offer');
-        $startDate = $this->input('start_date') ?? ($offer?->start_date?->format('Y-m-d'));
+        $routeOffer = $this->route('offer');
+        $offer = $routeOffer instanceof Offer ? $routeOffer : null;
+        $startDate = $this->input('start_date') ?? $offer?->start_date?->format('Y-m-d');
 
         return [
             'name' => ['sometimes', 'string', 'max:255'],

@@ -13,6 +13,9 @@ class UpdateDriverRequest extends BaseFormRequest
         return true; // Authorization handled in controller
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $driverId = $this->route('id');

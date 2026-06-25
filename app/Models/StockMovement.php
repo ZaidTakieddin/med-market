@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class StockMovement extends Model
 {
+    /** @use HasFactory<\Database\Factories\StockMovementFactory> */
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
@@ -32,6 +33,8 @@ class StockMovement extends Model
 
     /**
      * Get the product.
+     *
+     * @return BelongsTo<Product, $this>
      */
     public function product(): BelongsTo
     {
@@ -40,6 +43,8 @@ class StockMovement extends Model
 
     /**
      * Get the order (if applicable).
+     *
+     * @return BelongsTo<Order, $this>
      */
     public function order(): BelongsTo
     {
@@ -48,6 +53,8 @@ class StockMovement extends Model
 
     /**
      * Get the user who made the movement.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {

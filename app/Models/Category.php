@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 
 class Category extends Model
 {
+    /** @use HasFactory<\Database\Factories\CategoryFactory> */
     use CacheableReference, HasFactory, SoftDeletes;
 
     protected $fillable = [
@@ -33,13 +34,13 @@ class Category extends Model
     {
         parent::boot();
 
-        static::creating(function ($category) {
+        static::creating(function (Category $category) {
             if (empty($category->slug)) {
                 $category->slug = Str::slug($category->name);
             }
         });
 
-        static::updating(function ($category) {
+        static::updating(function (Category $category) {
             if ($category->isDirty('name') && empty($category->slug)) {
                 $category->slug = Str::slug($category->name);
             }
@@ -48,6 +49,8 @@ class Category extends Model
 
     /**
      * Get products in this category.
+     *
+     * @return HasMany<Product, $this>
      */
     public function products(): HasMany
     {

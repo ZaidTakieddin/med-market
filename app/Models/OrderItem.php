@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class OrderItem extends Model
 {
+    /** @use HasFactory<\Database\Factories\OrderItemFactory> */
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
@@ -30,6 +31,8 @@ class OrderItem extends Model
 
     /**
      * Get the order this item belongs to.
+     *
+     * @return BelongsTo<Order, $this>
      */
     public function order(): BelongsTo
     {
@@ -38,6 +41,8 @@ class OrderItem extends Model
 
     /**
      * Get the product.
+     *
+     * @return BelongsTo<Product, $this>
      */
     public function product(): BelongsTo
     {
@@ -46,6 +51,8 @@ class OrderItem extends Model
 
     /**
      * Get the applied offer (if any).
+     *
+     * @return BelongsTo<Offer, $this>
      */
     public function appliedOffer(): BelongsTo
     {

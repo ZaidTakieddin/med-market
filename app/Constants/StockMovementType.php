@@ -14,6 +14,8 @@ class StockMovementType
 
     /**
      * Get all valid stock movement types.
+     *
+     * @return list<string>
      */
     public static function all(): array
     {

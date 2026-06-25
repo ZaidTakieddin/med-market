@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BuyerSupplierRelationship extends Model
 {
+    /** @use HasFactory<\Database\Factories\BuyerSupplierRelationshipFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -29,11 +30,17 @@ class BuyerSupplierRelationship extends Model
         'approved_at' => 'datetime',
     ];
 
+    /**
+     * @return BelongsTo<Company, $this>
+     */
     public function buyerCompany(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'buyer_company_id');
     }
 
+    /**
+     * @return BelongsTo<Company, $this>
+     */
     public function supplierCompany(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'supplier_company_id');

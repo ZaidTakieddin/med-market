@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderStatusLog extends Model
 {
+    /** @use HasFactory<\Database\Factories\OrderStatusLogFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -25,6 +26,8 @@ class OrderStatusLog extends Model
 
     /**
      * Get the order.
+     *
+     * @return BelongsTo<Order, $this>
      */
     public function order(): BelongsTo
     {
@@ -33,6 +36,8 @@ class OrderStatusLog extends Model
 
     /**
      * Get the user who made the status change.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {

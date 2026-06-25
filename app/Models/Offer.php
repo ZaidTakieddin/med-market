@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Offer extends Model
 {
+    /** @use HasFactory<\Database\Factories\OfferFactory> */
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
@@ -37,6 +38,8 @@ class Offer extends Model
 
     /**
      * Get the supplier company that owns this offer.
+     *
+     * @return BelongsTo<Company, $this>
      */
     public function supplierCompany(): BelongsTo
     {
@@ -45,6 +48,8 @@ class Offer extends Model
 
     /**
      * Get products associated with this offer.
+     *
+     * @return BelongsToMany<Product, $this>
      */
     public function products(): BelongsToMany
     {

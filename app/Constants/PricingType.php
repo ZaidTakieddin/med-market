@@ -12,6 +12,8 @@ class PricingType
 
     /**
      * Get all valid pricing types.
+     *
+     * @return list<string>
      */
     public static function all(): array
     {

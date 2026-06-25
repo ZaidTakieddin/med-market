@@ -85,6 +85,8 @@ class User extends Authenticatable
 
     /**
      * Get orders created by this user.
+     *
+     * @return HasMany<Order, $this>
      */
     public function createdOrders(): HasMany
     {
@@ -93,6 +95,8 @@ class User extends Authenticatable
 
     /**
      * Get stock movements made by this user.
+     *
+     * @return HasMany<StockMovement, $this>
      */
     public function stockMovements(): HasMany
     {
@@ -101,6 +105,8 @@ class User extends Authenticatable
 
     /**
      * Get order status logs created by this user.
+     *
+     * @return HasMany<OrderStatusLog, $this>
      */
     public function orderStatusLogs(): HasMany
     {
@@ -109,6 +115,8 @@ class User extends Authenticatable
 
     /**
      * Get cart for this user.
+     *
+     * @return HasOne<Cart, $this>
      */
     public function cart(): HasOne
     {
@@ -117,6 +125,8 @@ class User extends Authenticatable
 
     /**
      * Get the user's current cart (one-to-one).
+     *
+     * @return HasOne<Cart, $this>
      */
     public function currentCart(): HasOne
     {
@@ -125,6 +135,8 @@ class User extends Authenticatable
 
     /**
      * Get orders assigned to this driver.
+     *
+     * @return HasMany<Order, $this>
      */
     public function driverOrders(): HasMany
     {
@@ -216,6 +228,8 @@ class User extends Authenticatable
      *
      * The `day_of_week` pivot is null for fixed-plan rows (covered every day) and a
      * weekday for daily-plan rows (one region per weekday).
+     *
+     * @return BelongsToMany<Region, $this>
      */
     public function driverRegions(): BelongsToMany
     {
@@ -256,6 +270,8 @@ class User extends Authenticatable
 
     /**
      * Get regions assigned to this salesman.
+     *
+     * @return BelongsToMany<Region, $this>
      */
     public function salesmanRegions(): BelongsToMany
     {
@@ -265,6 +281,8 @@ class User extends Authenticatable
 
     /**
      * Get pharmacy clients assigned to this salesman.
+     *
+     * @return HasMany<SalesmanClient, $this>
      */
     public function salesmanClients(): HasMany
     {
@@ -273,6 +291,8 @@ class User extends Authenticatable
 
     /**
      * Get orders placed by this salesman on behalf of others.
+     *
+     * @return HasMany<Order, $this>
      */
     public function salesmanOrders(): HasMany
     {

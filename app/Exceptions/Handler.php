@@ -155,6 +155,8 @@ class Handler extends ExceptionHandler
 
     /**
      * Handle model not found exceptions.
+     *
+     * @param  ModelNotFoundException<\Illuminate\Database\Eloquent\Model>  $e
      */
     protected function handleModelNotFoundException(ModelNotFoundException $e): JsonResponse
     {

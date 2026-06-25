@@ -18,6 +18,8 @@ class OrderStatus
 
     /**
      * Get all valid order statuses.
+     *
+     * @return list<string>
      */
     public static function all(): array
     {
@@ -41,6 +43,8 @@ class OrderStatus
 
     /**
      * Get valid transitions from a given status.
+     *
+     * @return list<string>
      */
     public static function getValidTransitions(string $fromStatus): array
     {
