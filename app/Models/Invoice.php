@@ -45,6 +45,8 @@ class Invoice extends Model
 
     /**
      * Get the order this invoice belongs to.
+     *
+     * @return BelongsTo<Order, $this>
      */
     public function order(): BelongsTo
     {
@@ -53,6 +55,8 @@ class Invoice extends Model
 
     /**
      * Get the buyer company.
+     *
+     * @return BelongsTo<Company, $this>
      */
     public function buyerCompany(): BelongsTo
     {
@@ -61,6 +65,8 @@ class Invoice extends Model
 
     /**
      * Get the supplier company.
+     *
+     * @return BelongsTo<Company, $this>
      */
     public function supplierCompany(): BelongsTo
     {

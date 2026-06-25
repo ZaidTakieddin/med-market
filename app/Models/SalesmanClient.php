@@ -25,6 +25,8 @@ class SalesmanClient extends Model
 
     /**
      * Get the salesman user (for supplier-associated salesmen).
+     *
+     * @return BelongsTo<User, $this>
      */
     public function salesmanUser(): BelongsTo
     {
@@ -33,6 +35,8 @@ class SalesmanClient extends Model
 
     /**
      * Get the salesman company (for independent salesmen).
+     *
+     * @return BelongsTo<Company, $this>
      */
     public function salesmanCompany(): BelongsTo
     {
@@ -41,6 +45,8 @@ class SalesmanClient extends Model
 
     /**
      * Get the pharmacy company.
+     *
+     * @return BelongsTo<Company, $this>
      */
     public function pharmacyCompany(): BelongsTo
     {

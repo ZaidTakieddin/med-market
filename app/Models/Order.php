@@ -50,6 +50,8 @@ class Order extends Model
 
     /**
      * Get the buyer company.
+     *
+     * @return BelongsTo<Company, $this>
      */
     public function buyerCompany(): BelongsTo
     {
@@ -58,6 +60,8 @@ class Order extends Model
 
     /**
      * Get the supplier company.
+     *
+     * @return BelongsTo<Company, $this>
      */
     public function supplierCompany(): BelongsTo
     {
@@ -66,6 +70,8 @@ class Order extends Model
 
     /**
      * Get the user who created the order.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function creator(): BelongsTo
     {
@@ -74,6 +80,8 @@ class Order extends Model
 
     /**
      * Get order items.
+     *
+     * @return HasMany<OrderItem, $this>
      */
     public function items(): HasMany
     {
@@ -82,6 +90,8 @@ class Order extends Model
 
     /**
      * Get the driver assigned to this order.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function driver(): BelongsTo
     {
@@ -90,6 +100,8 @@ class Order extends Model
 
     /**
      * Get status logs for this order.
+     *
+     * @return HasMany<OrderStatusLog, $this>
      */
     public function statusLogs(): HasMany
     {
@@ -98,6 +110,8 @@ class Order extends Model
 
     /**
      * Get the invoice for this order.
+     *
+     * @return HasOne<Invoice, $this>
      */
     public function invoice(): HasOne
     {
@@ -114,6 +128,8 @@ class Order extends Model
 
     /**
      * Get the salesman who placed this order (if any).
+     *
+     * @return BelongsTo<User, $this>
      */
     public function salesman(): BelongsTo
     {

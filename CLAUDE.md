@@ -139,8 +139,8 @@ composer quality      # both: pint --dirty, then phpstan
 
 - **Pint** uses the Laravel preset. The repo is fully normalized, so keep it that way —
   format **changed** files with `--dirty` before finishing; `pint --test` must stay green.
-- **Larastan** runs at **level 5** with a **baseline** (`phpstan-baseline.neon`, ~293
-  grandfathered findings and shrinking). Only *newly introduced* errors fail. Fix the
+- **Larastan** runs at **level 5** with a **baseline** (`phpstan-baseline.neon`, **6**
+  grandfathered findings — down from 379). Only *newly introduced* errors fail. Fix the
   root cause — never add `@phpstan-ignore`/baseline entries to silence new errors. Raise
   the `level` in `phpstan.neon` as legacy debt is paid down.
 - **CI** (`.github/workflows/ci.yml`) runs `pint --test` + Larastan + `php artisan test`
@@ -168,9 +168,11 @@ leak exception messages.
 - Dashboard/statistics depth, user-management (admin), product images, payment
   integration, real-time/notifications infra — see "Missing Features" in docs/PROGRESS.md.
 
-**Known technical debt**: the PHPStan baseline still grandfathers ~289 findings
-(mostly un-generic'd Eloquent relation return types); pay these down and raise the
-`level` over time.
+**Known technical debt**: the PHPStan baseline is down to **6** grandfathered findings
+(a loose paginator helper return type, two defensive route-param nullsafes, a Larastan
+dynamic-pivot limitation, and a collection-count nit). With relation generics now on
+every model and `@mixin` on every API Resource, the next step is raising the `level`
+above 5.
 
 ## Final rule
 

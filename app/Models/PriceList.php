@@ -30,16 +30,25 @@ class PriceList extends Model
         'is_active' => 'boolean',
     ];
 
+    /**
+     * @return BelongsTo<Company, $this>
+     */
     public function supplierCompany(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'supplier_company_id');
     }
 
+    /**
+     * @return BelongsTo<Company, $this>
+     */
     public function buyerCompany(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'buyer_company_id');
     }
 
+    /**
+     * @return BelongsTo<Product, $this>
+     */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);

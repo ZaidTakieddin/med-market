@@ -27,6 +27,8 @@ class Cart extends Model
 
     /**
      * Get the user who owns this cart.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -35,6 +37,8 @@ class Cart extends Model
 
     /**
      * Get the buyer company.
+     *
+     * @return BelongsTo<Company, $this>
      */
     public function company(): BelongsTo
     {

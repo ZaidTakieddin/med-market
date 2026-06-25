@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-24 (Audit remediation branch: security + correctness fixes, test suite + CI, docs reorg into `docs/` — see the remediation entry below)
+> Last Updated: 2026-06-25 (PHPStan debt burn-down: relation generics + Resource `@mixin`, baseline 287 → 6 — see the typing entry below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
 
@@ -16,6 +16,16 @@
 - [app/Domain/Companies/README.md](../app/Domain/Companies/README.md) - Company domain
 - [app/Domain/Deliveries/README.md](../app/Domain/Deliveries/README.md) - Deliveries domain
 - [app/Domain/Pricing/README.md](../app/Domain/Pricing/README.md) - Pricing domain
+
+## 🧹 2026-06-25 — PHPStan typing debt burn-down (branch `chore/phpstan-resource-typing`)
+
+Paid down the largest standing debt: the Larastan baseline. Suite green (48 tests, Pint +
+PHPStan clean; baseline **287 → 6**, a 98% reduction).
+
+- **Root cause**: API Resources accessed `$this->id`/`$this->name`/etc. on an underlying type Larastan saw as the base `Eloquent\Model`, and relation-derived collections were un-generic'd (`Collection<int, Model>`), so closures over relations lost element types.
+- **Fix**: added `@return <Relation><Related, $this>` generics to every Eloquent relation across `app/Models` (and typed the `boot()` slug closures), and added `@mixin \App\Models\X` to all 17 `app/Http/Resources/*` so `$this->prop`/`$this->method()` resolve to the concrete model. Two safe root-cause cleanups fell out (non-null `Offer::start_date` nullsafe removed; `number_format((float) …)` in `SendOrderNotificationJob`).
+- **Remaining 6** (justified, grandfathered): loose `paginateOrAll` return type (`Support\Collection::load()`), two defensive route-param `?->id` nullsafes in update requests, a Larastan dynamic-pivot limitation (`Offer::$pivot` in `ProductResource`, ×2), and one `larastan.noUnnecessaryCollectionCall` in `Cart`.
+- **Next**: with models + resources fully typed, raise `phpstan.neon` `level` above 5.
 
 ## 🔒 2026-06-24 — Audit Remediation (branch `fix/register-privilege-escalation`)
 

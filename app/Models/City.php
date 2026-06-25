@@ -33,13 +33,13 @@ class City extends Model
     {
         parent::boot();
 
-        static::creating(function ($city) {
+        static::creating(function (City $city) {
             if (empty($city->slug)) {
                 $city->slug = Str::slug($city->name);
             }
         });
 
-        static::updating(function ($city) {
+        static::updating(function (City $city) {
             if ($city->isDirty('name') && empty($city->slug)) {
                 $city->slug = Str::slug($city->name);
             }
@@ -48,6 +48,8 @@ class City extends Model
 
     /**
      * Get regions in this city.
+     *
+     * @return HasMany<Region, $this>
      */
     public function regions(): HasMany
     {
@@ -56,6 +58,8 @@ class City extends Model
 
     /**
      * Get active regions in this city.
+     *
+     * @return HasMany<Region, $this>
      */
     public function activeRegions(): HasMany
     {
