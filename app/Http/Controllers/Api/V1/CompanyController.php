@@ -85,13 +85,13 @@ class CompanyController extends BaseApiController
         if ($request->has('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                    ->orWhere('email', 'ilike', "%{$search}%")
+                $q->whereLike('name', "%{$search}%")
+                    ->orWhereLike('email', "%{$search}%")
                     ->orWhereHas('categories', function ($categoryQuery) use ($search) {
-                        $categoryQuery->where('categories.name', 'ilike', "%{$search}%");
+                        $categoryQuery->whereLike('categories.name', "%{$search}%");
                     })
                     ->orWhereHas('manufacturers', function ($manufacturerQuery) use ($search) {
-                        $manufacturerQuery->where('manufacturers.name', 'ilike', "%{$search}%");
+                        $manufacturerQuery->whereLike('manufacturers.name', "%{$search}%");
                     });
             });
         }
