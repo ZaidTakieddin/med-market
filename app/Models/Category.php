@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 
 class Category extends Model
 {
+    /** @use HasFactory<\Database\Factories\CategoryFactory> */
     use CacheableReference, HasFactory, SoftDeletes;
 
     protected $fillable = [

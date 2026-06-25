@@ -96,6 +96,8 @@ class SendOrderNotificationJob implements ShouldQueue
 
     /**
      * Get recipients for the notification.
+     *
+     * @return list<array<string, mixed>>
      */
     private function getRecipients(Order $order): array
     {

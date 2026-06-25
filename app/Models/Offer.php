@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Offer extends Model
 {
+    /** @use HasFactory<\Database\Factories\OfferFactory> */
     use HasFactory, SoftDeletes;
 
     protected $fillable = [

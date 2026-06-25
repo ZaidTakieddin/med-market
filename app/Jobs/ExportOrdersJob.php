@@ -28,6 +28,8 @@ class ExportOrdersJob implements ShouldQueue
 
     /**
      * Create a new job instance.
+     *
+     * @param  array<string, mixed>  $filters
      */
     public function __construct(
         public User $user,
@@ -99,6 +101,8 @@ class ExportOrdersJob implements ShouldQueue
 
     /**
      * Generate export file.
+     *
+     * @param  \Illuminate\Database\Eloquent\Collection<int, Order>  $orders
      */
     private function generateExportFile($orders, string $format): string
     {
@@ -125,6 +129,8 @@ class ExportOrdersJob implements ShouldQueue
 
     /**
      * Generate CSV content.
+     *
+     * @param  \Illuminate\Database\Eloquent\Collection<int, Order>  $orders
      */
     private function generateCsvContent($orders): string
     {
@@ -151,9 +157,9 @@ class ExportOrdersJob implements ShouldQueue
                 $order->buyerCompany->name ?? 'N/A',
                 $order->supplierCompany->name ?? 'N/A',
                 $order->status,
-                number_format($order->subtotal, 2),
-                number_format($order->tax_amount, 2),
-                number_format($order->total_amount, 2),
+                number_format((float) $order->subtotal, 2),
+                number_format((float) $order->tax_amount, 2),
+                number_format((float) $order->total_amount, 2),
                 $order->items->count(),
                 $order->created_at->format('Y-m-d H:i:s'),
                 $order->creator->name ?? 'N/A',
@@ -164,7 +170,7 @@ class ExportOrdersJob implements ShouldQueue
         $csv = '';
         foreach ($lines as $line) {
             $csv .= implode(',', array_map(function ($field) {
-                return '"'.str_replace('"', '""', $field).'"';
+                return '"'.str_replace('"', '""', (string) $field).'"';
             }, $line))."\n";
         }
 
@@ -173,6 +179,8 @@ class ExportOrdersJob implements ShouldQueue
 
     /**
      * Generate JSON content.
+     *
+     * @param  \Illuminate\Database\Eloquent\Collection<int, Order>  $orders
      */
     private function generateJsonContent($orders): string
     {
@@ -195,7 +203,7 @@ class ExportOrdersJob implements ShouldQueue
                         'unit_price' => $item->unit_price,
                         'total_price' => $item->total_price,
                     ];
-                }),
+                })->all(),
             ];
         });
 

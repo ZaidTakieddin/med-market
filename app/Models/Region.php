@@ -13,6 +13,7 @@ use Illuminate\Support\Str;
 
 class Region extends Model
 {
+    /** @use HasFactory<\Database\Factories\RegionFactory> */
     use CacheableReference, HasFactory, SoftDeletes;
 
     protected $fillable = [

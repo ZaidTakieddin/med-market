@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class StockMovement extends Model
 {
+    /** @use HasFactory<\Database\Factories\StockMovementFactory> */
     use HasFactory, SoftDeletes;
 
     protected $fillable = [

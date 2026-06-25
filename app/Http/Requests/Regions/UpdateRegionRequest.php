@@ -12,6 +12,9 @@ class UpdateRegionRequest extends BaseFormRequest
         return true; // Authorization handled in controller
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $regionId = $this->route('region')?->id ?? $this->route('id');

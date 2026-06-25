@@ -16,6 +16,8 @@ class UserRole
 
     /**
      * Get all valid roles.
+     *
+     * @return list<string>
      */
     public static function all(): array
     {
@@ -30,6 +32,8 @@ class UserRole
 
     /**
      * Roles that can be associated with a supplier company.
+     *
+     * @return list<string>
      */
     public static function supplierRoles(): array
     {
@@ -42,6 +46,8 @@ class UserRole
 
     /**
      * Roles that can place orders (buy products).
+     *
+     * @return list<string>
      */
     public static function buyerRoles(): array
     {

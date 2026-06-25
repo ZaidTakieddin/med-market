@@ -6,5 +6,5 @@ parameters:
     paths:
         - app
 
-    # Start moderate; raise toward max as the codebase is cleaned up.
-    level: 5
+    # Raised to 6 after typing all models, resources, requests, services, and jobs.
+    level: 6

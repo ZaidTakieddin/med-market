@@ -39,6 +39,9 @@ class UpdateOfferRequest extends BaseFormRequest
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $offer = $this->route('offer');

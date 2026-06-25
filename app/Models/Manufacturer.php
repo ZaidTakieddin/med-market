@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 
 class Manufacturer extends Model
 {
+    /** @use HasFactory<\Database\Factories\ManufacturerFactory> */
     use CacheableReference, HasFactory, SoftDeletes;
 
     protected $fillable = [

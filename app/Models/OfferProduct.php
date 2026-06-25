@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OfferProduct extends Model
 {
+    /** @use HasFactory<\Database\Factories\OfferProductFactory> */
     use HasFactory;
 
     protected $fillable = [

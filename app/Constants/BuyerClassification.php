@@ -10,6 +10,8 @@ class BuyerClassification
 
     /**
      * Get all valid buyer classifications.
+     *
+     * @return list<string>
      */
     public static function all(): array
     {
@@ -29,6 +31,8 @@ class BuyerClassification
 
     /**
      * Classifications eligible for wholesale pricing.
+     *
+     * @return list<string>
      */
     public static function wholesaleEligible(): array
     {

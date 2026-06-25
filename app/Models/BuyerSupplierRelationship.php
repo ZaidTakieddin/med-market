@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BuyerSupplierRelationship extends Model
 {
+    /** @use HasFactory<\Database\Factories\BuyerSupplierRelationshipFactory> */
     use HasFactory;
 
     protected $fillable = [

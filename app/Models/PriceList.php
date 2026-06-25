@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PriceList extends Model
 {
+    /** @use HasFactory<\Database\Factories\PriceListFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -78,14 +80,17 @@ class PriceList extends Model
 
     /**
      * Scope: only active and currently valid entries.
+     *
+     * @param  Builder<PriceList>  $query
+     * @return Builder<PriceList>
      */
-    public function scopeCurrentlyValid($query)
+    public function scopeCurrentlyValid(Builder $query): Builder
     {
         return $query->where('is_active', true)
-            ->where(function ($q) {
+            ->where(function (Builder $q) {
                 $q->whereNull('valid_from')->orWhere('valid_from', '<=', now()->toDateString());
             })
-            ->where(function ($q) {
+            ->where(function (Builder $q) {
                 $q->whereNull('valid_to')->orWhere('valid_to', '>=', now()->toDateString());
             });
     }

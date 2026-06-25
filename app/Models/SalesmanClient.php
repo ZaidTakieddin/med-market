@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SalesmanClient extends Model
 {
+    /** @use HasFactory<\Database\Factories\SalesmanClientFactory> */
     use HasFactory;
 
     protected $fillable = [

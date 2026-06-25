@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 
 class Invoice extends Model
 {
+    /** @use HasFactory<\Database\Factories\InvoiceFactory> */
     use HasFactory, SoftDeletes;
 
     protected $fillable = [

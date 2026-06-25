@@ -14,6 +14,8 @@ class PaymentTerms
 
     /**
      * Get all valid payment terms.
+     *
+     * @return list<string>
      */
     public static function all(): array
     {

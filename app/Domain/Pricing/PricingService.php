@@ -157,6 +157,8 @@ class PricingService
     /**
      * Get a pricing summary for a product visible to a specific buyer.
      * Useful for product listing pages to show the applicable price.
+     *
+     * @return array<string, mixed>
      */
     public function getDisplayPrice(Product $product, Company $buyerCompany, int $quantity = 1): array
     {
@@ -187,6 +189,8 @@ class PricingService
 
     /**
      * Check custom price list for a specific buyer-supplier-product combination.
+     *
+     * @return array<string, mixed>|null
      */
     private function checkCustomPriceList(Product $product, Company $supplierCompany, Company $buyerCompany, int $quantity): ?array
     {
@@ -203,6 +207,9 @@ class PricingService
     /**
      * Find the best matching custom price from a collection of price list entries.
      * Picks the entry with the highest min_qty that the given quantity satisfies.
+     *
+     * @param  \Illuminate\Database\Eloquent\Collection<int, PriceList>|null  $entries
+     * @return array<string, mixed>|null
      */
     private function findBestCustomPrice($entries, int $quantity): ?array
     {

@@ -12,6 +12,9 @@ class UpdateCityRequest extends BaseFormRequest
         return true; // Authorization handled in controller
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $cityId = $this->route('city')?->id ?? $this->route('id');

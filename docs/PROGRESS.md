@@ -1,6 +1,6 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-25 (PHPStan debt burn-down: relation generics + Resource `@mixin`, baseline 287 → 6 — see the typing entry below)
+> Last Updated: 2026-06-25 (PHPStan: relation generics + Resource `@mixin` (287 → 6), then **raised Larastan to level 6** by typing all models/resources/requests/services/jobs + adding factories for every model — baseline now 5; see the typing entry below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
 
@@ -19,13 +19,22 @@
 
 ## 🧹 2026-06-25 — PHPStan typing debt burn-down (branch `chore/phpstan-resource-typing`)
 
-Paid down the largest standing debt: the Larastan baseline. Suite green (48 tests, Pint +
-PHPStan clean; baseline **287 → 6**, a 98% reduction).
+Paid down the largest standing debt and **raised Larastan from level 5 to level 6**.
+Suite green (49 tests, Pint + PHPStan clean; baseline **287 → 5**).
+
+**Phase 1 — Resource/relation typing (287 → 6 at level 5):**
 
 - **Root cause**: API Resources accessed `$this->id`/`$this->name`/etc. on an underlying type Larastan saw as the base `Eloquent\Model`, and relation-derived collections were un-generic'd (`Collection<int, Model>`), so closures over relations lost element types.
 - **Fix**: added `@return <Relation><Related, $this>` generics to every Eloquent relation across `app/Models` (and typed the `boot()` slug closures), and added `@mixin \App\Models\X` to all 17 `app/Http/Resources/*` so `$this->prop`/`$this->method()` resolve to the concrete model. Two safe root-cause cleanups fell out (non-null `Offer::start_date` nullsafe removed; `number_format((float) …)` in `SendOrderNotificationJob`).
-- **Remaining 6** (justified, grandfathered): loose `paginateOrAll` return type (`Support\Collection::load()`), two defensive route-param `?->id` nullsafes in update requests, a Larastan dynamic-pivot limitation (`Offer::$pivot` in `ProductResource`, ×2), and one `larastan.noUnnecessaryCollectionCall` in `Cart`.
-- **Next**: with models + resources fully typed, raise `phpstan.neon` `level` above 5.
+
+**Phase 2 — raise to level 6 (fixed all 109 `missingType.*` findings):**
+
+- Added `@return list<string>` / array-shape docblocks to all `app/Constants/*` and Form Request `rules()` methods; typed service/job array params and returns (`CartOfferService`, `PricingService`, `OrderCreationService`, `ExportOrdersJob`, `PriceResult`); made `BaseApiController::paginateOrAll()` generic (which also fixed the `Support\Collection::load()` residual); typed `PriceList::scopeCurrentlyValid()`, the `Handler` `ModelNotFoundException` generic, and `InvoiceController` user params.
+- Added `@use HasFactory<…>` to every model and **created the 13 missing factories** (Category, Manufacturer, City, Region, Offer, Cart, CartItem, Invoice, StockMovement, SalesmanClient, PriceList, OfferProduct, OrderStatusLog), all smoke-tested in `FactorySmokeTest`.
+
+**Remaining 5** (justified, grandfathered): two defensive route-param `?->id` nullsafes in update requests, a Larastan dynamic-pivot limitation (`Offer::$pivot` in `ProductResource`, ×2), and one `larastan.noUnnecessaryCollectionCall` in `Cart`.
+
+- **Next**: raise `level` toward 7+ (surfaces nullable-safety findings that need real review).
 
 ## 🔒 2026-06-24 — Audit Remediation (branch `fix/register-privilege-escalation`)
 

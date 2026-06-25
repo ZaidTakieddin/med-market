@@ -139,10 +139,10 @@ composer quality      # both: pint --dirty, then phpstan
 
 - **Pint** uses the Laravel preset. The repo is fully normalized, so keep it that way —
   format **changed** files with `--dirty` before finishing; `pint --test` must stay green.
-- **Larastan** runs at **level 5** with a **baseline** (`phpstan-baseline.neon`, **6**
-  grandfathered findings — down from 379). Only *newly introduced* errors fail. Fix the
-  root cause — never add `@phpstan-ignore`/baseline entries to silence new errors. Raise
-  the `level` in `phpstan.neon` as legacy debt is paid down.
+- **Larastan** runs at **level 6** with a **baseline** (`phpstan-baseline.neon`, **5**
+  grandfathered findings — down from 379 at level 5). Only *newly introduced* errors
+  fail. Fix the root cause — never add `@phpstan-ignore`/baseline entries to silence new
+  errors. Continue raising the `level` in `phpstan.neon` as legacy debt is paid down.
 - **CI** (`.github/workflows/ci.yml`) runs `pint --test` + Larastan + `php artisan test`
   on push to `main` and every PR.
 - A **Stop hook** (`.claude/hooks/code-quality.php`, wired in `.claude/settings.json`)
@@ -168,11 +168,11 @@ leak exception messages.
 - Dashboard/statistics depth, user-management (admin), product images, payment
   integration, real-time/notifications infra — see "Missing Features" in docs/PROGRESS.md.
 
-**Known technical debt**: the PHPStan baseline is down to **6** grandfathered findings
-(a loose paginator helper return type, two defensive route-param nullsafes, a Larastan
-dynamic-pivot limitation, and a collection-count nit). With relation generics now on
-every model and `@mixin` on every API Resource, the next step is raising the `level`
-above 5.
+**Known technical debt**: at **level 6** the PHPStan baseline is down to **5**
+grandfathered findings (two defensive route-param nullsafes, a Larastan dynamic-pivot
+limitation, and a collection-count nit). Models, resources, requests, services, and jobs
+are fully typed and every model has a factory; the next step is raising the `level`
+toward 7+ (which surfaces nullable-safety findings needing real review).
 
 ## Final rule
 

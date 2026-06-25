@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderStatusLog extends Model
 {
+    /** @use HasFactory<\Database\Factories\OrderStatusLogFactory> */
     use HasFactory;
 
     protected $fillable = [

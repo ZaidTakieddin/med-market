@@ -15,6 +15,9 @@ class CreateCompanyRequest extends BaseFormRequest
         return true;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [

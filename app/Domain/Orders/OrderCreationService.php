@@ -53,6 +53,8 @@ class OrderCreationService
 
     /**
      * Create order within a transaction (handles uniqueness check inside transaction).
+     *
+     * @param  array<int, array<string, mixed>>  $items
      */
     private function createOrderInTransaction(
         int $buyerCompanyId,
@@ -94,6 +96,8 @@ class OrderCreationService
 
     /**
      * Create order without wrapping in transaction (for use when already in transaction).
+     *
+     * @param  array<int, array<string, mixed>>  $items
      */
     private function createOrderWithoutTransaction(
         int $buyerCompanyId,

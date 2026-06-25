@@ -9,6 +9,9 @@ use Illuminate\Validation\Rule;
 
 class PlaceOrderOnBehalfRequest extends BaseFormRequest
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [

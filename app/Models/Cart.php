@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Cart extends Model
 {
+    /** @use HasFactory<\Database\Factories\CartFactory> */
     use HasFactory;
 
     protected $fillable = [

@@ -12,6 +12,9 @@ class UpdateCategoryRequest extends BaseFormRequest
         return true; // Authorization handled in controller
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $categoryId = $this->route('category')->id ?? null;

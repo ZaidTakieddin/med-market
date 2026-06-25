@@ -8,6 +8,9 @@ use Illuminate\Validation\Rule;
 
 class CreateBuyerSupplierRelationshipRequest extends BaseFormRequest
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [

@@ -16,6 +16,8 @@ class OfferType
 
     /**
      * Get all offer types.
+     *
+     * @return list<string>
      */
     public static function all(): array
     {

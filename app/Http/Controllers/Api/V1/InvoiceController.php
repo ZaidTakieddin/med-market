@@ -9,6 +9,7 @@ use App\Http\Requests\Invoices\MarkInvoicePaidRequest;
 use App\Http\Resources\InvoiceResource;
 use App\Models\Invoice;
 use App\Models\Order;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -312,7 +313,7 @@ class InvoiceController extends BaseApiController
         return $this->success(new InvoiceResource($invoice->load(['order.driver', 'buyerCompany', 'supplierCompany'])), 'Invoice marked as paid successfully');
     }
 
-    private function canAccessInvoice($user, Invoice $invoice): bool
+    private function canAccessInvoice(User $user, Invoice $invoice): bool
     {
         if ($user->isAdmin()) {
             return true;
@@ -334,7 +335,7 @@ class InvoiceController extends BaseApiController
         return false;
     }
 
-    private function canAccessOrder($user, Order $order): bool
+    private function canAccessOrder(User $user, Order $order): bool
     {
         if ($user->isAdmin()) {
             return true;

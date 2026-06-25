@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 
 class City extends Model
 {
+    /** @use HasFactory<\Database\Factories\CityFactory> */
     use CacheableReference, HasFactory, SoftDeletes;
 
     protected $fillable = [

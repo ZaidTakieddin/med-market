@@ -3,6 +3,7 @@
 namespace App\Domain\Cart\Services;
 
 use App\Constants\OfferType;
+use App\Models\CartItem;
 use App\Models\Offer;
 use App\Models\Product;
 use Illuminate\Support\Collection;
@@ -12,9 +13,9 @@ class CartOfferService
     /**
      * Get all available offers for a product based on cart quantity.
      *
-     * @param  Collection|null  $cartItems  Optional: other cart items for bundle offers
+     * @param  Collection<int, CartItem>|null  $cartItems  Optional: other cart items for bundle offers
      * @param  float|null  $basePrice  Optional: tier-resolved price from PricingService. Falls back to pharmacist price.
-     * @return array Returns array of ['offer' => Offer, 'unit_price' => float, 'total_price' => float, 'savings' => float]
+     * @return array<int, array<string, mixed>> Each: ['offer' => Offer, 'unit_price' => float, 'total_price' => float, 'savings' => float]
      */
     public function getAvailableOffers(Product $product, int $quantity, ?Collection $cartItems = null, ?float $basePrice = null): array
     {
@@ -68,9 +69,9 @@ class CartOfferService
     /**
      * Find and apply the best offer for a product based on cart quantity.
      *
-     * @param  Collection|null  $cartItems  Optional: other cart items for bundle offers
+     * @param  Collection<int, CartItem>|null  $cartItems  Optional: other cart items for bundle offers
      * @param  float|null  $basePrice  Optional: tier-resolved price from PricingService. Falls back to pharmacist price.
-     * @return array|null Returns ['offer' => Offer, 'unit_price' => float, 'total_price' => float] or null
+     * @return array<string, mixed>|null Returns ['offer' => Offer, 'unit_price' => float, 'total_price' => float] or null
      */
     public function findBestOffer(Product $product, int $quantity, ?Collection $cartItems = null, ?float $basePrice = null): ?array
     {
@@ -122,8 +123,9 @@ class CartOfferService
     /**
      * Calculate the price after applying an offer.
      *
+     * @param  Collection<int, CartItem>|null  $cartItems  Optional: other cart items for bundle offers
      * @param  float|null  $basePrice  Tier-resolved price. Falls back to pharmacist price.
-     * @return array|null Returns ['unit_price' => float, 'total_price' => float] or null
+     * @return array<string, float>|null Returns ['unit_price' => float, 'total_price' => float] or null
      */
     protected function calculateOfferPrice(Offer $offer, Product $product, int $quantity, ?Collection $cartItems = null, ?float $basePrice = null): ?array
     {
@@ -156,6 +158,8 @@ class CartOfferService
 
     /**
      * Calculate price for Buy X Get Y offer.
+     *
+     * @return array<string, float>
      */
     protected function calculateBuyXGetY(Offer $offer, float $basePrice, int $quantity, int $quantityRequired): array
     {
@@ -177,6 +181,8 @@ class CartOfferService
 
     /**
      * Calculate price for Percentage Discount offer (discount_value is always percentage).
+     *
+     * @return array<string, float>|null
      */
     protected function calculatePercentageDiscount(Offer $offer, float $basePrice, int $quantity, int $quantityRequired): ?array
     {
@@ -200,6 +206,8 @@ class CartOfferService
 
     /**
      * Calculate price for Fixed Discount offer.
+     *
+     * @return array<string, float>|null
      */
     protected function calculateFixedDiscount(Offer $offer, float $basePrice, int $quantity, int $quantityRequired): ?array
     {
@@ -227,6 +235,9 @@ class CartOfferService
     /**
      * Calculate price for Bundle offer.
      * Bundle offers require multiple products, so we check if all required products are in cart.
+     *
+     * @param  Collection<int, CartItem>|null  $cartItems
+     * @return array<string, float>|null
      */
     protected function calculateBundle(Offer $offer, Product $product, int $quantity, ?Collection $cartItems, int $quantityRequired, ?float $basePrice = null): ?array
     {
@@ -282,9 +293,9 @@ class CartOfferService
     /**
      * Apply a specific offer to a product.
      *
-     * @param  Collection|null  $cartItems  Optional: other cart items for bundle offers
+     * @param  Collection<int, CartItem>|null  $cartItems  Optional: other cart items for bundle offers
      * @param  float|null  $basePrice  Optional: tier-resolved price from PricingService.
-     * @return array|null Returns ['unit_price' => float, 'total_price' => float] or null if offer cannot be applied
+     * @return array<string, float>|null Returns ['unit_price' => float, 'total_price' => float] or null if offer cannot be applied
      */
     public function applyOffer(Offer $offer, Product $product, int $quantity, ?Collection $cartItems = null, ?float $basePrice = null): ?array
     {
