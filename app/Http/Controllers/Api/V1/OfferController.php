@@ -9,7 +9,6 @@ use App\Http\Resources\OfferResource;
 use App\Models\Offer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(
@@ -49,63 +48,52 @@ class OfferController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
-            $query = Offer::with('supplierCompany:id,name,type');
+        $user = $this->currentUser();
+        $query = Offer::with('supplierCompany:id,name,type');
 
-            if ($user->isSupplier() || ($user->isSalesman() && $user->isSupplierSalesman())) {
-                $query->where('supplier_company_id', $user->company_id);
-            } else {
-                // Buyers see only active offers (end_date null = no time limit)
-                $query->where('is_active', true)
-                    ->where('start_date', '<=', now())
-                    ->where(function ($q) {
-                        $q->whereNull('end_date')
-                            ->orWhere('end_date', '>=', now());
-                    });
-            }
-
-            // Filter by supplier
-            if ($request->has('supplier_company_id')) {
-                $query->where('supplier_company_id', $request->supplier_company_id);
-            }
-
-            // Filter by offer type
-            if ($request->has('offer_type')) {
-                $query->where('offer_type', $request->offer_type);
-            }
-
-            // Filter by active status
-            if ($request->has('is_active')) {
-                $query->where('is_active', $request->boolean('is_active'));
-            }
-
-            [$offers, $pagination] = $this->paginateOrAll(
-                $query->with('products')->latest(),
-                $request
-            );
-
-            $additional = [
-                'success' => true,
-                'message' => 'Offers retrieved successfully',
-            ];
-            if ($pagination !== null) {
-                $additional['pagination'] = $pagination;
-            }
-
-            return OfferResource::collection($offers)
-                ->additional($additional)
-                ->response();
-        } catch (\Throwable $e) {
-            Log::error('Offer list error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ]);
-
-            return $this->error('Failed to retrieve offers. Please try again later.', null, 500);
+        if ($user->isSupplier() || ($user->isSalesman() && $user->isSupplierSalesman())) {
+            $query->where('supplier_company_id', $user->company_id);
+        } else {
+            // Buyers see only active offers (end_date null = no time limit)
+            $query->where('is_active', true)
+                ->where('start_date', '<=', now())
+                ->where(function ($q) {
+                    $q->whereNull('end_date')
+                        ->orWhere('end_date', '>=', now());
+                });
         }
+
+        // Filter by supplier
+        if ($request->has('supplier_company_id')) {
+            $query->where('supplier_company_id', $request->supplier_company_id);
+        }
+
+        // Filter by offer type
+        if ($request->has('offer_type')) {
+            $query->where('offer_type', $request->offer_type);
+        }
+
+        // Filter by active status
+        if ($request->has('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        [$offers, $pagination] = $this->paginateOrAll(
+            $query->with('products')->latest(),
+            $request
+        );
+
+        $additional = [
+            'success' => true,
+            'message' => 'Offers retrieved successfully',
+        ];
+        if ($pagination !== null) {
+            $additional['pagination'] = $pagination;
+        }
+
+        return OfferResource::collection($offers)
+            ->additional($additional)
+            ->response();
     }
 
     /**
@@ -152,40 +140,31 @@ class OfferController extends BaseApiController
     {
         $this->authorize('create', Offer::class);
 
-        try {
-            $user = $this->currentUser();
+        $user = $this->currentUser();
 
-            $offer = Offer::create([
-                'supplier_company_id' => $user->company_id,
-                'name' => $request->name,
-                'description' => $request->description,
-                'offer_type' => $request->offer_type,
-                'discount_value' => $request->discount_value,
-                'quantity_required' => $request->quantity_required,
-                'quantity_free' => $request->quantity_free,
-                'start_date' => $request->start_date,
-                'end_date' => $request->end_date,
-                'is_active' => $request->is_active ?? true,
-            ]);
+        $offer = Offer::create([
+            'supplier_company_id' => $user->company_id,
+            'name' => $request->name,
+            'description' => $request->description,
+            'offer_type' => $request->offer_type,
+            'discount_value' => $request->discount_value,
+            'quantity_required' => $request->quantity_required,
+            'quantity_free' => $request->quantity_free,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+            'is_active' => $request->is_active ?? true,
+        ]);
 
-            // Attach products (with per-product quantity for bundles)
-            $this->syncOfferProducts($offer, $request);
+        // Attach products (with per-product quantity for bundles)
+        $this->syncOfferProducts($offer, $request);
 
-            $offer->load(['supplierCompany', 'products']);
+        $offer->load(['supplierCompany', 'products']);
 
-            return $this->success(
-                new OfferResource($offer),
-                'Offer created successfully',
-                201
-            );
-        } catch (\Exception $e) {
-            Log::error('Create offer error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to create offer. Please try again later.', null, 500);
-        }
+        return $this->success(
+            new OfferResource($offer),
+            'Offer created successfully',
+            201
+        );
     }
 
     /**
@@ -233,18 +212,9 @@ class OfferController extends BaseApiController
     )]
     public function show(Offer $offer): JsonResponse
     {
-        try {
-            $offer->load(['supplierCompany', 'products']);
+        $offer->load(['supplierCompany', 'products']);
 
-            return $this->success(new OfferResource($offer));
-        } catch (\Exception $e) {
-            Log::error('Get offer error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to retrieve offer. Please try again later.', null, 500);
-        }
+        return $this->success(new OfferResource($offer));
     }
 
     /**
@@ -293,28 +263,19 @@ class OfferController extends BaseApiController
     {
         $this->authorize('update', $offer);
 
-        try {
-            $offer->update($request->validated());
+        $offer->update($request->validated());
 
-            // Update products if provided
-            if ($request->has('product_ids') || $request->has('products')) {
-                $this->syncOfferProducts($offer, $request);
-            }
-
-            $offer->load(['supplierCompany', 'products']);
-
-            return $this->success(
-                new OfferResource($offer),
-                'Offer updated successfully'
-            );
-        } catch (\Exception $e) {
-            Log::error('Update offer error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to update offer. Please try again later.', null, 500);
+        // Update products if provided
+        if ($request->has('product_ids') || $request->has('products')) {
+            $this->syncOfferProducts($offer, $request);
         }
+
+        $offer->load(['supplierCompany', 'products']);
+
+        return $this->success(
+            new OfferResource($offer),
+            'Offer updated successfully'
+        );
     }
 
     /**
@@ -340,17 +301,8 @@ class OfferController extends BaseApiController
     {
         $this->authorize('delete', $offer);
 
-        try {
-            $offer->delete();
+        $offer->delete();
 
-            return $this->success(null, 'Offer deleted successfully');
-        } catch (\Exception $e) {
-            Log::error('Delete offer error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to delete offer. Please try again later.', null, 500);
-        }
+        return $this->success(null, 'Offer deleted successfully');
     }
 }

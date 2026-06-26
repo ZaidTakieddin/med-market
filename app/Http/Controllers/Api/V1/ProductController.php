@@ -10,7 +10,6 @@ use App\Models\Company;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Products', description: 'Product management endpoints')]
@@ -164,50 +163,41 @@ class ProductController extends BaseApiController
     )]
     public function store(CreateProductRequest $request): JsonResponse
     {
-        try {
-            $this->authorize('create', Product::class);
+        $this->authorize('create', Product::class);
 
-            $user = $this->currentUser();
-            $supplierCompanyId = $user->isSupplier()
-                ? $user->company_id
-                : $request->supplier_company_id;
+        $user = $this->currentUser();
+        $supplierCompanyId = $user->isSupplier()
+            ? $user->company_id
+            : $request->supplier_company_id;
 
-            $pharmacistPrice = $request->pharmacist_price;
-            $product = Product::create([
-                'supplier_company_id' => $supplierCompanyId,
-                'name' => $request->name,
-                'description' => $request->description,
-                'category_id' => $request->category_id,
-                'manufacturer_id' => $request->manufacturer_id,
-                'sku' => $request->sku,
-                'barcode' => $request->barcode,
-                'unit' => $request->unit ?? 'piece',
-                'price' => $pharmacistPrice,
-                'wholesale_price' => $request->wholesale_price,
-                'wholesale_min_qty' => $request->wholesale_min_qty,
-                'pharmacist_price' => $pharmacistPrice,
-                'customer_price' => $request->customer_price,
-                'discount' => $request->discount,
-                'discount_type' => $request->discount_type,
-                'stock_quantity' => $request->stock_quantity ?? 0,
-                'min_stock_level' => $request->min_stock_level ?? 0,
-                'is_active' => $request->is_active ?? true,
-                'metadata' => $request->metadata,
-            ]);
+        $pharmacistPrice = $request->pharmacist_price;
+        $product = Product::create([
+            'supplier_company_id' => $supplierCompanyId,
+            'name' => $request->name,
+            'description' => $request->description,
+            'category_id' => $request->category_id,
+            'manufacturer_id' => $request->manufacturer_id,
+            'sku' => $request->sku,
+            'barcode' => $request->barcode,
+            'unit' => $request->unit ?? 'piece',
+            'price' => $pharmacistPrice,
+            'wholesale_price' => $request->wholesale_price,
+            'wholesale_min_qty' => $request->wholesale_min_qty,
+            'pharmacist_price' => $pharmacistPrice,
+            'customer_price' => $request->customer_price,
+            'discount' => $request->discount,
+            'discount_type' => $request->discount_type,
+            'stock_quantity' => $request->stock_quantity ?? 0,
+            'min_stock_level' => $request->min_stock_level ?? 0,
+            'is_active' => $request->is_active ?? true,
+            'metadata' => $request->metadata,
+        ]);
 
-            return $this->success(
-                new ProductResource($product->load(['supplierCompany', 'category', 'manufacturer', 'offers'])),
-                'Product created successfully',
-                201
-            );
-        } catch (\Throwable $e) {
-            Log::error('Product create error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to create product. Please try again later.', null, 500);
-        }
+        return $this->success(
+            new ProductResource($product->load(['supplierCompany', 'category', 'manufacturer', 'offers'])),
+            'Product created successfully',
+            201
+        );
     }
 
     /**

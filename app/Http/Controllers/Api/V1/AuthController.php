@@ -10,7 +10,6 @@ use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Authentication', description: 'User authentication endpoints')]
@@ -119,27 +118,18 @@ class AuthController extends BaseApiController
     )]
     public function login(LoginRequest $request): JsonResponse
     {
-        try {
-            $user = User::where('email', $request->email)->first();
+        $user = User::where('email', $request->email)->first();
 
-            if (! $user || ! Hash::check($request->password, $user->password)) {
-                return $this->error('Invalid credentials', null, 401);
-            }
-
-            $token = $user->createToken('auth-token')->plainTextToken;
-
-            return $this->success([
-                'user' => new UserResource($user->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])])),
-                'token' => $token,
-            ], 'Login successful');
-        } catch (\Exception $e) {
-            Log::error('Login error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Login failed. Please try again later.', null, 500);
+        if (! $user || ! Hash::check($request->password, $user->password)) {
+            return $this->error('Invalid credentials', null, 401);
         }
+
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        return $this->success([
+            'user' => new UserResource($user->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])])),
+            'token' => $token,
+        ], 'Login successful');
     }
 
     /**

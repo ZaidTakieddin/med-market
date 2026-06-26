@@ -1,8 +1,31 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-26 (**Larastan raised to level 8** (nullable-safety) via a non-null `currentUser()` accessor + null guards — baseline still 4. Removed dead `Handler.php`. Recent: DomainException → 422; portable search; queue `$timeout`. See entries below)
+> Last Updated: 2026-06-26 (**Controllers fully defer to the central handler**: removed 55 generic `try/catch` blocks across 11 API controllers; `bootstrap/app.php` now renders every error type in the nested `{success,error}` contract — fixes silent 404/403→500. Also: Larastan level 8; InvoiceStatus/PaymentStatus constants. See entries below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
+
+## 🧯 2026-06-26 — Controllers defer to central handler; unified error contract (branch `main`)
+
+A full-codebase review found that 11 API controllers still wrapped their actions in a generic
+`try { … } catch (\Exception|\Throwable) { … 500 }`. Because `findOrFail()` and `$this->authorize()`
+ran *inside* those blocks, **missing models returned 500 instead of 404 and policy denials returned
+500 instead of 403** — and the bodies leaked nothing useful. Only the DomainException-throwing
+methods (orders/stock/drivers/salesmen) had been cleaned previously, so the behaviour was
+inconsistent across the API.
+
+- **Removed all 55 generic `try/catch` blocks** (Cart, Auth, BuyerSupplierRelationship, Driver,
+  Invoice, Order, Offer, Salesman, PriceList, Profile, Product) so controllers stay thin and let
+  exceptions reach the handler. Unused `Log` imports stripped by Pint.
+- **`bootstrap/app.php`** now renders the full set in the standardized nested body
+  (`{ success:false, error:{title,message}, errors? }`): `DomainException`→422,
+  `ValidationException`→422 (+errors), `AuthenticationException`→401, and an
+  `HttpExceptionInterface` catch-all (covers 403/404/405/429/… — Laravel's `prepareException()`
+  has already mapped `ModelNotFoundException`→404 and `AuthorizationException`→403 by then).
+  Messages are **generic per status** (never `$e->getMessage()`) so a 404 can't leak the model class.
+- **Behaviour change**: not-found → **404**, policy denial → **403**, validation → **422**,
+  unexpected → **500** — all in the same shape, regardless of endpoint.
+- Tests: new `ErrorContractTest` locks the 401 / unknown-route-404 / missing-model-404 (no class
+  leak) contract. Suite green: **69 tests**, Pint clean, PHPStan clean at level 8.
 
 ## 🛡️ 2026-06-26 — Larastan level 8: nullable safety (branch `chore/phpstan-level-8`)
 

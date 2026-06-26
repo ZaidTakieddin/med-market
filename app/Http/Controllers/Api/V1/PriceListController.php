@@ -10,7 +10,6 @@ use App\Models\PriceList;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(
@@ -40,52 +39,46 @@ class PriceListController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
-            $query = PriceList::with(['supplierCompany', 'buyerCompany', 'product.category', 'product.manufacturer']);
+        $user = $this->currentUser();
+        $query = PriceList::with(['supplierCompany', 'buyerCompany', 'product.category', 'product.manufacturer']);
 
-            if ($user->isAdmin()) {
-                // Admin sees all
-            } elseif ($user->isSupplier() || ($user->isSalesman() && $user->isSupplierSalesman())) {
-                $query->where('supplier_company_id', $user->company_id);
-            } else {
-                $query->where('buyer_company_id', $user->company_id);
-            }
-
-            if ($request->has('buyer_company_id')) {
-                $query->where('buyer_company_id', $request->buyer_company_id);
-            }
-
-            if ($request->has('product_id')) {
-                $query->where('product_id', $request->product_id);
-            }
-
-            if ($request->has('is_active')) {
-                $query->where('is_active', $request->boolean('is_active'));
-            }
-
-            if ($request->boolean('currently_valid', false)) {
-                $query->currentlyValid();
-            }
-
-            [$entries, $pagination] = $this->paginateOrAll($query->latest(), $request);
-
-            $additional = [
-                'success' => true,
-                'message' => 'Price list entries retrieved successfully',
-            ];
-            if ($pagination !== null) {
-                $additional['pagination'] = $pagination;
-            }
-
-            return PriceListResource::collection($entries)
-                ->additional($additional)
-                ->response();
-        } catch (\Exception $e) {
-            Log::error('Price list index error', ['message' => $e->getMessage()]);
-
-            return $this->error('Failed to retrieve price list entries. Please try again later.', null, 500);
+        if ($user->isAdmin()) {
+            // Admin sees all
+        } elseif ($user->isSupplier() || ($user->isSalesman() && $user->isSupplierSalesman())) {
+            $query->where('supplier_company_id', $user->company_id);
+        } else {
+            $query->where('buyer_company_id', $user->company_id);
         }
+
+        if ($request->has('buyer_company_id')) {
+            $query->where('buyer_company_id', $request->buyer_company_id);
+        }
+
+        if ($request->has('product_id')) {
+            $query->where('product_id', $request->product_id);
+        }
+
+        if ($request->has('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        if ($request->boolean('currently_valid', false)) {
+            $query->currentlyValid();
+        }
+
+        [$entries, $pagination] = $this->paginateOrAll($query->latest(), $request);
+
+        $additional = [
+            'success' => true,
+            'message' => 'Price list entries retrieved successfully',
+        ];
+        if ($pagination !== null) {
+            $additional['pagination'] = $pagination;
+        }
+
+        return PriceListResource::collection($entries)
+            ->additional($additional)
+            ->response();
     }
 
     #[OA\Post(
@@ -119,43 +112,37 @@ class PriceListController extends BaseApiController
     )]
     public function store(CreatePriceListRequest $request): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
-            $this->authorize('create', PriceList::class);
+        $user = $this->currentUser();
+        $this->authorize('create', PriceList::class);
 
-            $product = Product::findOrFail((int) $request->product_id);
+        $product = Product::findOrFail((int) $request->product_id);
 
-            if (! $user->isAdmin() && $product->supplier_company_id !== $user->company_id) {
-                return $this->error('You can only create price list entries for your own products', null, 403);
-            }
-
-            $exists = PriceList::where('supplier_company_id', $product->supplier_company_id)
-                ->where('buyer_company_id', $request->buyer_company_id)
-                ->where('product_id', $request->product_id)
-                ->where('min_qty', $request->min_qty)
-                ->exists();
-
-            if ($exists) {
-                return $this->error('A price list entry for this buyer, product, and quantity already exists', null, 409);
-            }
-
-            $data = $request->validated();
-            $data['supplier_company_id'] = $product->supplier_company_id;
-            $data['is_active'] = $request->boolean('is_active', true);
-
-            $entry = PriceList::create($data);
-            $entry->load(['supplierCompany', 'buyerCompany', 'product.category', 'product.manufacturer']);
-
-            return $this->success(
-                new PriceListResource($entry),
-                'Price list entry created successfully',
-                201
-            );
-        } catch (\Exception $e) {
-            Log::error('Price list create error', ['message' => $e->getMessage()]);
-
-            return $this->error('Failed to create price list entry. Please try again later.', null, 500);
+        if (! $user->isAdmin() && $product->supplier_company_id !== $user->company_id) {
+            return $this->error('You can only create price list entries for your own products', null, 403);
         }
+
+        $exists = PriceList::where('supplier_company_id', $product->supplier_company_id)
+            ->where('buyer_company_id', $request->buyer_company_id)
+            ->where('product_id', $request->product_id)
+            ->where('min_qty', $request->min_qty)
+            ->exists();
+
+        if ($exists) {
+            return $this->error('A price list entry for this buyer, product, and quantity already exists', null, 409);
+        }
+
+        $data = $request->validated();
+        $data['supplier_company_id'] = $product->supplier_company_id;
+        $data['is_active'] = $request->boolean('is_active', true);
+
+        $entry = PriceList::create($data);
+        $entry->load(['supplierCompany', 'buyerCompany', 'product.category', 'product.manufacturer']);
+
+        return $this->success(
+            new PriceListResource($entry),
+            'Price list entry created successfully',
+            201
+        );
     }
 
     #[OA\Get(
@@ -175,19 +162,13 @@ class PriceListController extends BaseApiController
     )]
     public function show(int $id): JsonResponse
     {
-        try {
-            $entry = PriceList::with(['supplierCompany', 'buyerCompany', 'product.category', 'product.manufacturer'])->findOrFail($id);
-            $this->authorize('view', $entry);
+        $entry = PriceList::with(['supplierCompany', 'buyerCompany', 'product.category', 'product.manufacturer'])->findOrFail($id);
+        $this->authorize('view', $entry);
 
-            return $this->success(
-                new PriceListResource($entry),
-                'Price list entry retrieved successfully'
-            );
-        } catch (\Exception $e) {
-            Log::error('Price list show error', ['message' => $e->getMessage()]);
-
-            return $this->error('Failed to retrieve price list entry. Please try again later.', null, 500);
-        }
+        return $this->success(
+            new PriceListResource($entry),
+            'Price list entry retrieved successfully'
+        );
     }
 
     #[OA\Put(
@@ -219,22 +200,16 @@ class PriceListController extends BaseApiController
     )]
     public function update(UpdatePriceListRequest $request, int $id): JsonResponse
     {
-        try {
-            $entry = PriceList::findOrFail($id);
-            $this->authorize('update', $entry);
+        $entry = PriceList::findOrFail($id);
+        $this->authorize('update', $entry);
 
-            $entry->update($request->validated());
-            $entry->load(['supplierCompany', 'buyerCompany', 'product.category', 'product.manufacturer']);
+        $entry->update($request->validated());
+        $entry->load(['supplierCompany', 'buyerCompany', 'product.category', 'product.manufacturer']);
 
-            return $this->success(
-                new PriceListResource($entry),
-                'Price list entry updated successfully'
-            );
-        } catch (\Exception $e) {
-            Log::error('Price list update error', ['message' => $e->getMessage()]);
-
-            return $this->error('Failed to update price list entry. Please try again later.', null, 500);
-        }
+        return $this->success(
+            new PriceListResource($entry),
+            'Price list entry updated successfully'
+        );
     }
 
     #[OA\Delete(
@@ -254,18 +229,12 @@ class PriceListController extends BaseApiController
     )]
     public function destroy(int $id): JsonResponse
     {
-        try {
-            $entry = PriceList::findOrFail($id);
-            $this->authorize('delete', $entry);
+        $entry = PriceList::findOrFail($id);
+        $this->authorize('delete', $entry);
 
-            $entry->delete();
+        $entry->delete();
 
-            return $this->success(null, 'Price list entry deleted successfully');
-        } catch (\Exception $e) {
-            Log::error('Price list delete error', ['message' => $e->getMessage()]);
-
-            return $this->error('Failed to delete price list entry. Please try again later.', null, 500);
-        }
+        return $this->success(null, 'Price list entry deleted successfully');
     }
 
     #[OA\Get(
@@ -286,42 +255,36 @@ class PriceListController extends BaseApiController
     )]
     public function forBuyer(Request $request, int $buyerCompanyId): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
+        $user = $this->currentUser();
 
-            $isSupplierSide = $user->isSupplier() || ($user->isSalesman() && $user->isSupplierSalesman());
+        $isSupplierSide = $user->isSupplier() || ($user->isSalesman() && $user->isSupplierSalesman());
 
-            if (! $user->isAdmin() && $user->company_id !== $buyerCompanyId) {
-                if (! $isSupplierSide) {
-                    return $this->error('You can only view your own price list', null, 403);
-                }
+        if (! $user->isAdmin() && $user->company_id !== $buyerCompanyId) {
+            if (! $isSupplierSide) {
+                return $this->error('You can only view your own price list', null, 403);
             }
-
-            $query = PriceList::with(['supplierCompany', 'buyerCompany', 'product.category', 'product.manufacturer'])
-                ->where('buyer_company_id', $buyerCompanyId)
-                ->currentlyValid();
-
-            if ($isSupplierSide) {
-                $query->where('supplier_company_id', $user->company_id);
-            }
-
-            [$entries, $pagination] = $this->paginateOrAll($query->latest(), $request);
-
-            $additional = [
-                'success' => true,
-                'message' => 'Buyer price list retrieved successfully',
-            ];
-            if ($pagination !== null) {
-                $additional['pagination'] = $pagination;
-            }
-
-            return PriceListResource::collection($entries)
-                ->additional($additional)
-                ->response();
-        } catch (\Exception $e) {
-            Log::error('Price list for buyer error', ['message' => $e->getMessage()]);
-
-            return $this->error('Failed to retrieve buyer price list. Please try again later.', null, 500);
         }
+
+        $query = PriceList::with(['supplierCompany', 'buyerCompany', 'product.category', 'product.manufacturer'])
+            ->where('buyer_company_id', $buyerCompanyId)
+            ->currentlyValid();
+
+        if ($isSupplierSide) {
+            $query->where('supplier_company_id', $user->company_id);
+        }
+
+        [$entries, $pagination] = $this->paginateOrAll($query->latest(), $request);
+
+        $additional = [
+            'success' => true,
+            'message' => 'Buyer price list retrieved successfully',
+        ];
+        if ($pagination !== null) {
+            $additional['pagination'] = $pagination;
+        }
+
+        return PriceListResource::collection($entries)
+            ->additional($additional)
+            ->response();
     }
 }

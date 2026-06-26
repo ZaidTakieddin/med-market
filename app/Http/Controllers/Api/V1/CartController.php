@@ -18,7 +18,6 @@ use App\Models\Offer;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(
@@ -93,36 +92,27 @@ class CartController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
+        $user = $this->currentUser();
 
-            $cart = Cart::firstOrCreate(
-                ['user_id' => $user->id],
-                ['company_id' => $user->company_id]
-            );
+        $cart = Cart::firstOrCreate(
+            ['user_id' => $user->id],
+            ['company_id' => $user->company_id]
+        );
 
-            $cart->load([
-                'items.product.supplierCompany',
-                'items.product.category',
-                'items.product.manufacturer',
-                'items.product.offers',
-                'items.appliedOffer',
-                'user',
-                'company',
-            ]);
+        $cart->load([
+            'items.product.supplierCompany',
+            'items.product.category',
+            'items.product.manufacturer',
+            'items.product.offers',
+            'items.appliedOffer',
+            'user',
+            'company',
+        ]);
 
-            return $this->success(
-                new CartResource($cart),
-                'Cart retrieved successfully'
-            );
-        } catch (\Exception $e) {
-            Log::error('Cart retrieval error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to retrieve cart. Please try again later.', null, 500);
-        }
+        return $this->success(
+            new CartResource($cart),
+            'Cart retrieved successfully'
+        );
     }
 
     /**
@@ -155,120 +145,111 @@ class CartController extends BaseApiController
     )]
     public function addItem(AddCartItemRequest $request): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
+        $user = $this->currentUser();
 
-            if (! $user->canBuy()) {
-                return $this->error('Only buyers and salesmen can add items to cart', null, 403);
-            }
-
-            if ($user->isSupplierSalesman()) {
-                return $this->error('Supplier-associated salesmen must use the salesman place-order endpoint instead of the cart', null, 403);
-            }
-
-            $product = Product::findOrFail((int) $request->product_id);
-
-            if (! $product->is_active) {
-                return $this->error('Product is not available', null, 400);
-            }
-
-            $buyerCompany = $user->company;
-            if (! $buyerCompany) {
-                return $this->error('User has no company assigned', null, 400);
-            }
-
-            if (! $this->pricingService->canBuyerSeeSupplier($product->supplierCompany, $buyerCompany)) {
-                return $this->error('This product is not available for your account type', null, 403);
-            }
-
-            $cart = Cart::firstOrCreate(
-                ['user_id' => $user->id],
-                ['company_id' => $user->company_id]
-            );
-
-            $product->load('offers');
-            $currentCartItems = $cart->items()->with('product')->get();
-            $existingItem = $cart->items()->where('product_id', $product->id)->first();
-
-            if ($existingItem) {
-                $newQuantity = $existingItem->quantity + $request->quantity;
-
-                $priceResult = $this->pricingService->resolve($product, $buyerCompany, $newQuantity);
-                $tierPrice = $priceResult->unitPrice;
-
-                $offerResult = $this->cartOfferService->findBestOffer($product, $newQuantity, $currentCartItems, $tierPrice);
-
-                if ($offerResult) {
-                    $existingItem->quantity = $newQuantity;
-                    $existingItem->unit_price = $offerResult['unit_price'];
-                    $existingItem->total_price = $offerResult['total_price'];
-                    $existingItem->applied_offer_id = $offerResult['offer']->id;
-                } else {
-                    $existingItem->quantity = $newQuantity;
-                    $existingItem->unit_price = $tierPrice;
-                    $existingItem->total_price = $newQuantity * $tierPrice;
-                    $existingItem->applied_offer_id = null;
-                }
-
-                $existingItem->pricing_type = $priceResult->pricingType;
-                $existingItem->notes = $request->notes ?? $existingItem->notes;
-                $existingItem->save();
-            } else {
-                $priceResult = $this->pricingService->resolve($product, $buyerCompany, $request->quantity);
-                $tierPrice = $priceResult->unitPrice;
-
-                $offerResult = $this->cartOfferService->findBestOffer($product, $request->quantity, $currentCartItems, $tierPrice);
-
-                if ($offerResult) {
-                    $cartItem = CartItem::create([
-                        'cart_id' => $cart->id,
-                        'product_id' => $product->id,
-                        'quantity' => $request->quantity,
-                        'unit_price' => $offerResult['unit_price'],
-                        'total_price' => $offerResult['total_price'],
-                        'pricing_type' => $priceResult->pricingType,
-                        'applied_offer_id' => $offerResult['offer']->id,
-                        'notes' => $request->notes,
-                    ]);
-                } else {
-                    $cartItem = CartItem::create([
-                        'cart_id' => $cart->id,
-                        'product_id' => $product->id,
-                        'quantity' => $request->quantity,
-                        'unit_price' => $tierPrice,
-                        'total_price' => $request->quantity * $tierPrice,
-                        'pricing_type' => $priceResult->pricingType,
-                        'applied_offer_id' => null,
-                        'notes' => $request->notes,
-                    ]);
-                }
-            }
-
-            // Recalculate cart totals
-            $cart->calculateTotals();
-
-            $cart->load([
-                'items.product.supplierCompany',
-                'items.product.category',
-                'items.product.manufacturer',
-                'items.product.offers',
-                'items.appliedOffer',
-                'user',
-                'company',
-            ]);
-
-            return $this->success(
-                new CartResource($cart),
-                'Item added to cart successfully'
-            );
-        } catch (\Exception $e) {
-            Log::error('Add cart item error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to add item to cart. Please try again later.', null, 500);
+        if (! $user->canBuy()) {
+            return $this->error('Only buyers and salesmen can add items to cart', null, 403);
         }
+
+        if ($user->isSupplierSalesman()) {
+            return $this->error('Supplier-associated salesmen must use the salesman place-order endpoint instead of the cart', null, 403);
+        }
+
+        $product = Product::findOrFail((int) $request->product_id);
+
+        if (! $product->is_active) {
+            return $this->error('Product is not available', null, 400);
+        }
+
+        $buyerCompany = $user->company;
+        if (! $buyerCompany) {
+            return $this->error('User has no company assigned', null, 400);
+        }
+
+        if (! $this->pricingService->canBuyerSeeSupplier($product->supplierCompany, $buyerCompany)) {
+            return $this->error('This product is not available for your account type', null, 403);
+        }
+
+        $cart = Cart::firstOrCreate(
+            ['user_id' => $user->id],
+            ['company_id' => $user->company_id]
+        );
+
+        $product->load('offers');
+        $currentCartItems = $cart->items()->with('product')->get();
+        $existingItem = $cart->items()->where('product_id', $product->id)->first();
+
+        if ($existingItem) {
+            $newQuantity = $existingItem->quantity + $request->quantity;
+
+            $priceResult = $this->pricingService->resolve($product, $buyerCompany, $newQuantity);
+            $tierPrice = $priceResult->unitPrice;
+
+            $offerResult = $this->cartOfferService->findBestOffer($product, $newQuantity, $currentCartItems, $tierPrice);
+
+            if ($offerResult) {
+                $existingItem->quantity = $newQuantity;
+                $existingItem->unit_price = $offerResult['unit_price'];
+                $existingItem->total_price = $offerResult['total_price'];
+                $existingItem->applied_offer_id = $offerResult['offer']->id;
+            } else {
+                $existingItem->quantity = $newQuantity;
+                $existingItem->unit_price = $tierPrice;
+                $existingItem->total_price = $newQuantity * $tierPrice;
+                $existingItem->applied_offer_id = null;
+            }
+
+            $existingItem->pricing_type = $priceResult->pricingType;
+            $existingItem->notes = $request->notes ?? $existingItem->notes;
+            $existingItem->save();
+        } else {
+            $priceResult = $this->pricingService->resolve($product, $buyerCompany, $request->quantity);
+            $tierPrice = $priceResult->unitPrice;
+
+            $offerResult = $this->cartOfferService->findBestOffer($product, $request->quantity, $currentCartItems, $tierPrice);
+
+            if ($offerResult) {
+                $cartItem = CartItem::create([
+                    'cart_id' => $cart->id,
+                    'product_id' => $product->id,
+                    'quantity' => $request->quantity,
+                    'unit_price' => $offerResult['unit_price'],
+                    'total_price' => $offerResult['total_price'],
+                    'pricing_type' => $priceResult->pricingType,
+                    'applied_offer_id' => $offerResult['offer']->id,
+                    'notes' => $request->notes,
+                ]);
+            } else {
+                $cartItem = CartItem::create([
+                    'cart_id' => $cart->id,
+                    'product_id' => $product->id,
+                    'quantity' => $request->quantity,
+                    'unit_price' => $tierPrice,
+                    'total_price' => $request->quantity * $tierPrice,
+                    'pricing_type' => $priceResult->pricingType,
+                    'applied_offer_id' => null,
+                    'notes' => $request->notes,
+                ]);
+            }
+        }
+
+        // Recalculate cart totals
+        $cart->calculateTotals();
+
+        $cart->load([
+            'items.product.supplierCompany',
+            'items.product.category',
+            'items.product.manufacturer',
+            'items.product.offers',
+            'items.appliedOffer',
+            'user',
+            'company',
+        ]);
+
+        return $this->success(
+            new CartResource($cart),
+            'Item added to cart successfully'
+        );
     }
 
     /**
@@ -301,68 +282,59 @@ class CartController extends BaseApiController
     )]
     public function updateItem(UpdateCartItemRequest $request, int $id): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
-            $cartItem = CartItem::findOrFail($id);
+        $user = $this->currentUser();
+        $cartItem = CartItem::findOrFail($id);
 
-            // Verify cart belongs to user
-            $cart = $cartItem->cart;
-            if ($cart === null || $cart->user_id !== $user->id) {
-                return $this->error('Unauthorized', null, 403);
-            }
-
-            if ($request->has('quantity')) {
-                $newQuantity = $request->quantity;
-                $product = $cartItem->product;
-                $buyerCompany = $user->company;
-                if ($product === null || $buyerCompany === null) {
-                    return $this->error('This product is no longer available.', null, 422);
-                }
-                $product->load('offers');
-
-                $cartItems = $cart->items()->with('product')->get();
-
-                $priceResult = $this->pricingService->resolve($product, $buyerCompany, $newQuantity);
-                $tierPrice = $priceResult->unitPrice;
-
-                $offerResult = $this->cartOfferService->findBestOffer($product, $newQuantity, $cartItems, $tierPrice);
-
-                $cartItem->quantity = $newQuantity;
-                $cartItem->pricing_type = $priceResult->pricingType;
-
-                if ($offerResult) {
-                    $cartItem->unit_price = $offerResult['unit_price'];
-                    $cartItem->total_price = $offerResult['total_price'];
-                    $cartItem->applied_offer_id = $offerResult['offer']->id;
-                } else {
-                    $cartItem->unit_price = $tierPrice;
-                    $cartItem->total_price = $newQuantity * $tierPrice;
-                    $cartItem->applied_offer_id = null;
-                }
-            }
-
-            if ($request->has('notes')) {
-                $cartItem->notes = $request->notes;
-            }
-
-            $cartItem->save();
-
-            // Recalculate cart totals
-            $cart->calculateTotals();
-            $cartItem->load(['product', 'appliedOffer']);
-
-            return $this->success(
-                \App\Http\Resources\CartItemResource::make($cartItem),
-                'Cart item updated successfully'
-            );
-        } catch (\Exception $e) {
-            Log::error('Update cart item error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to update cart item. Please try again later.', null, 500);
+        // Verify cart belongs to user
+        $cart = $cartItem->cart;
+        if ($cart === null || $cart->user_id !== $user->id) {
+            return $this->error('Unauthorized', null, 403);
         }
+
+        if ($request->has('quantity')) {
+            $newQuantity = $request->quantity;
+            $product = $cartItem->product;
+            $buyerCompany = $user->company;
+            if ($product === null || $buyerCompany === null) {
+                return $this->error('This product is no longer available.', null, 422);
+            }
+            $product->load('offers');
+
+            $cartItems = $cart->items()->with('product')->get();
+
+            $priceResult = $this->pricingService->resolve($product, $buyerCompany, $newQuantity);
+            $tierPrice = $priceResult->unitPrice;
+
+            $offerResult = $this->cartOfferService->findBestOffer($product, $newQuantity, $cartItems, $tierPrice);
+
+            $cartItem->quantity = $newQuantity;
+            $cartItem->pricing_type = $priceResult->pricingType;
+
+            if ($offerResult) {
+                $cartItem->unit_price = $offerResult['unit_price'];
+                $cartItem->total_price = $offerResult['total_price'];
+                $cartItem->applied_offer_id = $offerResult['offer']->id;
+            } else {
+                $cartItem->unit_price = $tierPrice;
+                $cartItem->total_price = $newQuantity * $tierPrice;
+                $cartItem->applied_offer_id = null;
+            }
+        }
+
+        if ($request->has('notes')) {
+            $cartItem->notes = $request->notes;
+        }
+
+        $cartItem->save();
+
+        // Recalculate cart totals
+        $cart->calculateTotals();
+        $cartItem->load(['product', 'appliedOffer']);
+
+        return $this->success(
+            \App\Http\Resources\CartItemResource::make($cartItem),
+            'Cart item updated successfully'
+        );
     }
 
     /**
@@ -420,60 +392,51 @@ class CartController extends BaseApiController
     )]
     public function getAvailableOffers(int $id): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
-            $cartItem = CartItem::findOrFail($id);
+        $user = $this->currentUser();
+        $cartItem = CartItem::findOrFail($id);
 
-            // Verify cart belongs to user
-            $cart = $cartItem->cart;
-            if ($cart === null || $cart->user_id !== $user->id) {
-                return $this->error('Unauthorized', null, 403);
-            }
-
-            $product = $cartItem->product;
-            $buyerCompany = $user->company;
-            if ($product === null || $buyerCompany === null) {
-                return $this->error('This product is no longer available.', null, 422);
-            }
-            $product->load('offers');
-
-            $cartItems = $cart->items()->with('product')->get();
-
-            $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
-            $basePrice = $priceResult->unitPrice;
-
-            $availableOffers = $this->cartOfferService->getAvailableOffers($product, $cartItem->quantity, $cartItems, $basePrice);
-
-            $baseTotal = $cartItem->quantity * $basePrice;
-
-            // Format offers for response
-            $formattedOffers = array_map(function ($offerData) {
-                return [
-                    'offer' => new \App\Http\Resources\OfferResource($offerData['offer']),
-                    'unitPrice' => $offerData['unit_price'],
-                    'totalPrice' => $offerData['total_price'],
-                    'savings' => $offerData['savings'],
-                    'savingsPercentage' => $offerData['savings_percentage'],
-                ];
-            }, $availableOffers);
-
-            return $this->success([
-                'cartItemId' => $cartItem->id,
-                'productId' => $product->id,
-                'quantity' => $cartItem->quantity,
-                'basePrice' => (float) $basePrice,
-                'baseTotal' => (float) $baseTotal,
-                'currentOfferId' => $cartItem->applied_offer_id,
-                'availableOffers' => $formattedOffers,
-            ], 'Available offers retrieved successfully');
-        } catch (\Exception $e) {
-            Log::error('Get available offers error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to retrieve available offers. Please try again later.', null, 500);
+        // Verify cart belongs to user
+        $cart = $cartItem->cart;
+        if ($cart === null || $cart->user_id !== $user->id) {
+            return $this->error('Unauthorized', null, 403);
         }
+
+        $product = $cartItem->product;
+        $buyerCompany = $user->company;
+        if ($product === null || $buyerCompany === null) {
+            return $this->error('This product is no longer available.', null, 422);
+        }
+        $product->load('offers');
+
+        $cartItems = $cart->items()->with('product')->get();
+
+        $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
+        $basePrice = $priceResult->unitPrice;
+
+        $availableOffers = $this->cartOfferService->getAvailableOffers($product, $cartItem->quantity, $cartItems, $basePrice);
+
+        $baseTotal = $cartItem->quantity * $basePrice;
+
+        // Format offers for response
+        $formattedOffers = array_map(function ($offerData) {
+            return [
+                'offer' => new \App\Http\Resources\OfferResource($offerData['offer']),
+                'unitPrice' => $offerData['unit_price'],
+                'totalPrice' => $offerData['total_price'],
+                'savings' => $offerData['savings'],
+                'savingsPercentage' => $offerData['savings_percentage'],
+            ];
+        }, $availableOffers);
+
+        return $this->success([
+            'cartItemId' => $cartItem->id,
+            'productId' => $product->id,
+            'quantity' => $cartItem->quantity,
+            'basePrice' => (float) $basePrice,
+            'baseTotal' => (float) $baseTotal,
+            'currentOfferId' => $cartItem->applied_offer_id,
+            'availableOffers' => $formattedOffers,
+        ], 'Available offers retrieved successfully');
     }
 
     /**
@@ -507,58 +470,49 @@ class CartController extends BaseApiController
     )]
     public function applyOffer(ApplyOfferRequest $request, int $id): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
-            $cartItem = CartItem::findOrFail($id);
+        $user = $this->currentUser();
+        $cartItem = CartItem::findOrFail($id);
 
-            // Verify cart belongs to user
-            $cart = $cartItem->cart;
-            if ($cart === null || $cart->user_id !== $user->id) {
-                return $this->error('Unauthorized', null, 403);
-            }
-
-            $product = $cartItem->product;
-            $buyerCompany = $user->company;
-            if ($product === null || $buyerCompany === null) {
-                return $this->error('This product is no longer available.', null, 422);
-            }
-            $offer = \App\Models\Offer::findOrFail((int) $request->offer_id);
-
-            $productOffers = $product->offers()->where('offers.id', $offer->id)->first();
-            if (! $productOffers) {
-                return $this->error('This offer is not available for this product', null, 400);
-            }
-
-            $cartItems = $cart->items()->with('product')->get();
-
-            $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
-            $offerResult = $this->cartOfferService->applyOffer($offer, $product, $cartItem->quantity, $cartItems, $priceResult->unitPrice);
-
-            if (! $offerResult) {
-                return $this->error('Offer cannot be applied. Quantity requirement may not be met or offer is not valid for this cart.', null, 400);
-            }
-
-            $cartItem->unit_price = $offerResult['unit_price'];
-            $cartItem->total_price = $offerResult['total_price'];
-            $cartItem->appliedOffer()->associate($offer);
-            $cartItem->save();
-
-            // Recalculate cart totals
-            $cart->calculateTotals();
-            $cartItem->load(['product.offers', 'appliedOffer']);
-
-            return $this->success(
-                \App\Http\Resources\CartItemResource::make($cartItem),
-                'Offer applied successfully'
-            );
-        } catch (\Exception $e) {
-            Log::error('Apply offer error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to apply offer. Please try again later.', null, 500);
+        // Verify cart belongs to user
+        $cart = $cartItem->cart;
+        if ($cart === null || $cart->user_id !== $user->id) {
+            return $this->error('Unauthorized', null, 403);
         }
+
+        $product = $cartItem->product;
+        $buyerCompany = $user->company;
+        if ($product === null || $buyerCompany === null) {
+            return $this->error('This product is no longer available.', null, 422);
+        }
+        $offer = \App\Models\Offer::findOrFail((int) $request->offer_id);
+
+        $productOffers = $product->offers()->where('offers.id', $offer->id)->first();
+        if (! $productOffers) {
+            return $this->error('This offer is not available for this product', null, 400);
+        }
+
+        $cartItems = $cart->items()->with('product')->get();
+
+        $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
+        $offerResult = $this->cartOfferService->applyOffer($offer, $product, $cartItem->quantity, $cartItems, $priceResult->unitPrice);
+
+        if (! $offerResult) {
+            return $this->error('Offer cannot be applied. Quantity requirement may not be met or offer is not valid for this cart.', null, 400);
+        }
+
+        $cartItem->unit_price = $offerResult['unit_price'];
+        $cartItem->total_price = $offerResult['total_price'];
+        $cartItem->appliedOffer()->associate($offer);
+        $cartItem->save();
+
+        // Recalculate cart totals
+        $cart->calculateTotals();
+        $cartItem->load(['product.offers', 'appliedOffer']);
+
+        return $this->success(
+            \App\Http\Resources\CartItemResource::make($cartItem),
+            'Offer applied successfully'
+        );
     }
 
     /**
@@ -582,59 +536,50 @@ class CartController extends BaseApiController
     )]
     public function removeOffer(int $id): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
-            $cartItem = CartItem::findOrFail($id);
+        $user = $this->currentUser();
+        $cartItem = CartItem::findOrFail($id);
 
-            // Verify cart belongs to user
-            $cart = $cartItem->cart;
-            if ($cart === null || $cart->user_id !== $user->id) {
-                return $this->error('Unauthorized', null, 403);
-            }
-
-            $product = $cartItem->product;
-            $buyerCompany = $user->company;
-            if ($product === null || $buyerCompany === null) {
-                return $this->error('This product is no longer available.', null, 422);
-            }
-            $product->load('offers');
-
-            $cartItems = $cart->items()->with('product')->get();
-
-            $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
-            $tierPrice = $priceResult->unitPrice;
-
-            $offerResult = $this->cartOfferService->findBestOffer($product, $cartItem->quantity, $cartItems, $tierPrice);
-
-            if ($offerResult) {
-                $cartItem->unit_price = $offerResult['unit_price'];
-                $cartItem->total_price = $offerResult['total_price'];
-                $cartItem->applied_offer_id = $offerResult['offer']->id;
-            } else {
-                $cartItem->unit_price = $tierPrice;
-                $cartItem->total_price = $cartItem->quantity * $tierPrice;
-                $cartItem->applied_offer_id = null;
-            }
-            $cartItem->pricing_type = $priceResult->pricingType;
-
-            $cartItem->save();
-
-            // Recalculate cart totals
-            $cart->calculateTotals();
-            $cartItem->load(['product.offers', 'appliedOffer']);
-
-            return $this->success(
-                \App\Http\Resources\CartItemResource::make($cartItem),
-                'Offer removed successfully. Reverted to best available offer.'
-            );
-        } catch (\Exception $e) {
-            Log::error('Remove offer error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to remove offer. Please try again later.', null, 500);
+        // Verify cart belongs to user
+        $cart = $cartItem->cart;
+        if ($cart === null || $cart->user_id !== $user->id) {
+            return $this->error('Unauthorized', null, 403);
         }
+
+        $product = $cartItem->product;
+        $buyerCompany = $user->company;
+        if ($product === null || $buyerCompany === null) {
+            return $this->error('This product is no longer available.', null, 422);
+        }
+        $product->load('offers');
+
+        $cartItems = $cart->items()->with('product')->get();
+
+        $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
+        $tierPrice = $priceResult->unitPrice;
+
+        $offerResult = $this->cartOfferService->findBestOffer($product, $cartItem->quantity, $cartItems, $tierPrice);
+
+        if ($offerResult) {
+            $cartItem->unit_price = $offerResult['unit_price'];
+            $cartItem->total_price = $offerResult['total_price'];
+            $cartItem->applied_offer_id = $offerResult['offer']->id;
+        } else {
+            $cartItem->unit_price = $tierPrice;
+            $cartItem->total_price = $cartItem->quantity * $tierPrice;
+            $cartItem->applied_offer_id = null;
+        }
+        $cartItem->pricing_type = $priceResult->pricingType;
+
+        $cartItem->save();
+
+        // Recalculate cart totals
+        $cart->calculateTotals();
+        $cartItem->load(['product.offers', 'appliedOffer']);
+
+        return $this->success(
+            \App\Http\Resources\CartItemResource::make($cartItem),
+            'Offer removed successfully. Reverted to best available offer.'
+        );
     }
 
     /**
@@ -658,60 +603,51 @@ class CartController extends BaseApiController
     )]
     public function removeItem(int $id): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
-            $cartItem = CartItem::findOrFail($id);
+        $user = $this->currentUser();
+        $cartItem = CartItem::findOrFail($id);
 
-            // Verify cart belongs to user
-            $cart = $cartItem->cart;
-            if ($cart === null || $cart->user_id !== $user->id) {
-                return $this->error('Unauthorized', null, 403);
-            }
-
-            $buyerCompany = $user->company;
-            if ($buyerCompany === null) {
-                return $this->error('Your account is not linked to a company.', null, 422);
-            }
-            $cartItem->delete();
-
-            $remainingItems = $cart->items()->with('product.offers')->get();
-            foreach ($remainingItems as $item) {
-                $itemProduct = $item->product;
-                if ($itemProduct === null) {
-                    continue;
-                }
-                $itemProduct->load('offers');
-
-                $priceResult = $this->pricingService->resolve($itemProduct, $buyerCompany, $item->quantity);
-                $tierPrice = $priceResult->unitPrice;
-
-                $offerResult = $this->cartOfferService->findBestOffer($itemProduct, $item->quantity, $remainingItems, $tierPrice);
-
-                if ($offerResult) {
-                    $item->unit_price = $offerResult['unit_price'];
-                    $item->total_price = $offerResult['total_price'];
-                    $item->applied_offer_id = $offerResult['offer']->id;
-                } else {
-                    $item->unit_price = $tierPrice;
-                    $item->total_price = $item->quantity * $tierPrice;
-                    $item->applied_offer_id = null;
-                }
-                $item->pricing_type = $priceResult->pricingType;
-                $item->save();
-            }
-
-            // Recalculate cart totals
-            $cart->calculateTotals();
-
-            return $this->success(null, 'Item removed from cart successfully');
-        } catch (\Exception $e) {
-            Log::error('Remove cart item error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to remove item from cart. Please try again later.', null, 500);
+        // Verify cart belongs to user
+        $cart = $cartItem->cart;
+        if ($cart === null || $cart->user_id !== $user->id) {
+            return $this->error('Unauthorized', null, 403);
         }
+
+        $buyerCompany = $user->company;
+        if ($buyerCompany === null) {
+            return $this->error('Your account is not linked to a company.', null, 422);
+        }
+        $cartItem->delete();
+
+        $remainingItems = $cart->items()->with('product.offers')->get();
+        foreach ($remainingItems as $item) {
+            $itemProduct = $item->product;
+            if ($itemProduct === null) {
+                continue;
+            }
+            $itemProduct->load('offers');
+
+            $priceResult = $this->pricingService->resolve($itemProduct, $buyerCompany, $item->quantity);
+            $tierPrice = $priceResult->unitPrice;
+
+            $offerResult = $this->cartOfferService->findBestOffer($itemProduct, $item->quantity, $remainingItems, $tierPrice);
+
+            if ($offerResult) {
+                $item->unit_price = $offerResult['unit_price'];
+                $item->total_price = $offerResult['total_price'];
+                $item->applied_offer_id = $offerResult['offer']->id;
+            } else {
+                $item->unit_price = $tierPrice;
+                $item->total_price = $item->quantity * $tierPrice;
+                $item->applied_offer_id = null;
+            }
+            $item->pricing_type = $priceResult->pricingType;
+            $item->save();
+        }
+
+        // Recalculate cart totals
+        $cart->calculateTotals();
+
+        return $this->success(null, 'Item removed from cart successfully');
     }
 
     /**
@@ -730,28 +666,19 @@ class CartController extends BaseApiController
     )]
     public function clear(Request $request): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
-            $cart = Cart::where('user_id', $user->id)->first();
+        $user = $this->currentUser();
+        $cart = Cart::where('user_id', $user->id)->first();
 
-            if ($cart) {
-                $cart->items()->delete();
-                $cart->update([
-                    'subtotal' => 0,
-                    'tax_amount' => 0,
-                    'total_amount' => 0,
-                ]);
-            }
-
-            return $this->success(null, 'Cart cleared successfully');
-        } catch (\Exception $e) {
-            Log::error('Clear cart error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+        if ($cart) {
+            $cart->items()->delete();
+            $cart->update([
+                'subtotal' => 0,
+                'tax_amount' => 0,
+                'total_amount' => 0,
             ]);
-
-            return $this->error('Failed to clear cart. Please try again later.', null, 500);
         }
+
+        return $this->success(null, 'Cart cleared successfully');
     }
 
     /**

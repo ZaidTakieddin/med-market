@@ -21,7 +21,6 @@ use App\Models\SalesmanClient;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(
@@ -54,48 +53,42 @@ class SalesmanController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
-            $query = User::where('role', UserRole::SALESMAN)->with('company');
+        $user = $this->currentUser();
+        $query = User::where('role', UserRole::SALESMAN)->with('company');
 
-            if ($user->isAdmin()) {
-                // Admin sees all
-            } elseif ($user->isSupplier()) {
-                $query->where('company_id', $user->company_id);
-            } elseif ($user->isSalesman()) {
-                $query->where('id', $user->id);
-            } else {
-                return $this->error('You do not have access to salesmen', null, 403);
-            }
-
-            if ($request->has('company_id')) {
-                $query->where('company_id', $request->company_id);
-            }
-
-            if ($request->has('search')) {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->whereLike('name', "%{$search}%")
-                        ->orWhereLike('email', "%{$search}%")
-                        ->orWhereLike('phone', "%{$search}%");
-                });
-            }
-
-            [$salesmen, $pagination] = $this->paginateOrAll($query->latest(), $request);
-
-            $additional = ['success' => true, 'message' => 'Salesmen retrieved successfully'];
-            if ($pagination !== null) {
-                $additional['pagination'] = $pagination;
-            }
-
-            return UserResource::collection($salesmen)
-                ->additional($additional)
-                ->response();
-        } catch (\Exception $e) {
-            Log::error('Salesman list error', ['message' => $e->getMessage()]);
-
-            return $this->error('Failed to retrieve salesmen. Please try again later.', null, 500);
+        if ($user->isAdmin()) {
+            // Admin sees all
+        } elseif ($user->isSupplier()) {
+            $query->where('company_id', $user->company_id);
+        } elseif ($user->isSalesman()) {
+            $query->where('id', $user->id);
+        } else {
+            return $this->error('You do not have access to salesmen', null, 403);
         }
+
+        if ($request->has('company_id')) {
+            $query->where('company_id', $request->company_id);
+        }
+
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereLike('name', "%{$search}%")
+                    ->orWhereLike('email', "%{$search}%")
+                    ->orWhereLike('phone', "%{$search}%");
+            });
+        }
+
+        [$salesmen, $pagination] = $this->paginateOrAll($query->latest(), $request);
+
+        $additional = ['success' => true, 'message' => 'Salesmen retrieved successfully'];
+        if ($pagination !== null) {
+            $additional['pagination'] = $pagination;
+        }
+
+        return UserResource::collection($salesmen)
+            ->additional($additional)
+            ->response();
     }
 
     #[OA\Get(
@@ -120,21 +113,15 @@ class SalesmanController extends BaseApiController
             ->findOrFail($id);
         $this->authorize('accessSalesman', $salesman);
 
-        try {
-            $data = (new UserResource($salesman))->toArray(request());
-            $data['regions'] = RegionResource::collection($salesman->salesmanRegions);
-            $data['clients'] = SalesmanClientResource::collection($salesman->salesmanClients);
-            $data['clientCount'] = $salesman->salesmanClients()->where('is_active', true)->count();
-            $data['orderCount'] = $salesman->salesmanOrders()->count();
-            $data['isSupplierSalesman'] = $salesman->isSupplierSalesman();
-            $data['isIndependentSalesman'] = $salesman->isIndependentSalesman();
+        $data = (new UserResource($salesman))->toArray(request());
+        $data['regions'] = RegionResource::collection($salesman->salesmanRegions);
+        $data['clients'] = SalesmanClientResource::collection($salesman->salesmanClients);
+        $data['clientCount'] = $salesman->salesmanClients()->where('is_active', true)->count();
+        $data['orderCount'] = $salesman->salesmanOrders()->count();
+        $data['isSupplierSalesman'] = $salesman->isSupplierSalesman();
+        $data['isIndependentSalesman'] = $salesman->isIndependentSalesman();
 
-            return $this->success($data, 'Salesman retrieved successfully');
-        } catch (\Exception $e) {
-            Log::error('Salesman show error', ['message' => $e->getMessage()]);
-
-            return $this->error('Failed to retrieve salesman. Please try again later.', null, 500);
-        }
+        return $this->success($data, 'Salesman retrieved successfully');
     }
 
     #[OA\Get(
@@ -157,18 +144,12 @@ class SalesmanController extends BaseApiController
         $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
         $this->authorize('accessSalesman', $salesman);
 
-        try {
-            $regions = $salesman->salesmanRegions()->with('city')->get();
+        $regions = $salesman->salesmanRegions()->with('city')->get();
 
-            return $this->success(
-                RegionResource::collection($regions),
-                'Salesman regions retrieved successfully'
-            );
-        } catch (\Exception $e) {
-            Log::error('Salesman regions error', ['message' => $e->getMessage()]);
-
-            return $this->error('Failed to retrieve regions. Please try again later.', null, 500);
-        }
+        return $this->success(
+            RegionResource::collection($regions),
+            'Salesman regions retrieved successfully'
+        );
     }
 
     #[OA\Post(
@@ -200,19 +181,13 @@ class SalesmanController extends BaseApiController
         $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
         $this->authorize('manageSalesman', $salesman);
 
-        try {
-            $salesman->salesmanRegions()->sync($request->region_ids);
-            $regions = $salesman->salesmanRegions()->with('city')->get();
+        $salesman->salesmanRegions()->sync($request->region_ids);
+        $regions = $salesman->salesmanRegions()->with('city')->get();
 
-            return $this->success(
-                RegionResource::collection($regions),
-                'Regions assigned to salesman successfully'
-            );
-        } catch (\Exception $e) {
-            Log::error('Salesman assign regions error', ['message' => $e->getMessage()]);
-
-            return $this->error('Failed to assign regions. Please try again later.', null, 500);
-        }
+        return $this->success(
+            RegionResource::collection($regions),
+            'Regions assigned to salesman successfully'
+        );
     }
 
     #[OA\Delete(
@@ -236,18 +211,12 @@ class SalesmanController extends BaseApiController
         $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
         $this->authorize('manageSalesman', $salesman);
 
-        try {
-            $detached = $salesman->salesmanRegions()->detach($regionId);
-            if ($detached === 0) {
-                return $this->error('Region was not assigned to this salesman', null, 404);
-            }
-
-            return $this->success(null, 'Region removed from salesman successfully');
-        } catch (\Exception $e) {
-            Log::error('Salesman remove region error', ['message' => $e->getMessage()]);
-
-            return $this->error('Failed to remove region. Please try again later.', null, 500);
+        $detached = $salesman->salesmanRegions()->detach($regionId);
+        if ($detached === 0) {
+            return $this->error('Region was not assigned to this salesman', null, 404);
         }
+
+        return $this->success(null, 'Region removed from salesman successfully');
     }
 
     #[OA\Get(
@@ -271,24 +240,18 @@ class SalesmanController extends BaseApiController
         $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
         $this->authorize('accessSalesman', $salesman);
 
-        try {
-            $query = $salesman->salesmanClients()->with(['pharmacyCompany', 'salesmanUser', 'salesmanCompany']);
+        $query = $salesman->salesmanClients()->with(['pharmacyCompany', 'salesmanUser', 'salesmanCompany']);
 
-            if ($request->has('is_active')) {
-                $query->where('is_active', $request->boolean('is_active'));
-            }
-
-            $clients = $query->latest()->get();
-
-            return $this->success(
-                SalesmanClientResource::collection($clients),
-                'Salesman clients retrieved successfully'
-            );
-        } catch (\Exception $e) {
-            Log::error('Salesman clients error', ['message' => $e->getMessage()]);
-
-            return $this->error('Failed to retrieve clients. Please try again later.', null, 500);
+        if ($request->has('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
         }
+
+        $clients = $query->latest()->get();
+
+        return $this->success(
+            SalesmanClientResource::collection($clients),
+            'Salesman clients retrieved successfully'
+        );
     }
 
     #[OA\Post(
@@ -321,40 +284,34 @@ class SalesmanController extends BaseApiController
         $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
         $this->authorize('manageSalesman', $salesman);
 
-        try {
-            $pharmacy = Company::findOrFail((int) $request->pharmacy_company_id);
-            if ($pharmacy->buyer_classification !== BuyerClassification::PHARMACY) {
-                return $this->error('The selected company is not a pharmacy', null, 400);
-            }
-
-            $exists = SalesmanClient::where('salesman_user_id', $salesman->id)
-                ->where('pharmacy_company_id', $pharmacy->id)
-                ->exists();
-
-            if ($exists) {
-                return $this->error('This pharmacy is already assigned to this salesman', null, 409);
-            }
-
-            $client = SalesmanClient::create([
-                'salesman_user_id' => $salesman->id,
-                'salesman_company_id' => $salesman->isSupplierSalesman() ? $salesman->company_id : null,
-                'pharmacy_company_id' => $pharmacy->id,
-                'is_active' => true,
-                'assigned_at' => now(),
-            ]);
-
-            $client->load(['pharmacyCompany', 'salesmanUser', 'salesmanCompany']);
-
-            return $this->success(
-                new SalesmanClientResource($client),
-                'Client assigned to salesman successfully',
-                201
-            );
-        } catch (\Exception $e) {
-            Log::error('Salesman assign client error', ['message' => $e->getMessage()]);
-
-            return $this->error('Failed to assign client. Please try again later.', null, 500);
+        $pharmacy = Company::findOrFail((int) $request->pharmacy_company_id);
+        if ($pharmacy->buyer_classification !== BuyerClassification::PHARMACY) {
+            return $this->error('The selected company is not a pharmacy', null, 400);
         }
+
+        $exists = SalesmanClient::where('salesman_user_id', $salesman->id)
+            ->where('pharmacy_company_id', $pharmacy->id)
+            ->exists();
+
+        if ($exists) {
+            return $this->error('This pharmacy is already assigned to this salesman', null, 409);
+        }
+
+        $client = SalesmanClient::create([
+            'salesman_user_id' => $salesman->id,
+            'salesman_company_id' => $salesman->isSupplierSalesman() ? $salesman->company_id : null,
+            'pharmacy_company_id' => $pharmacy->id,
+            'is_active' => true,
+            'assigned_at' => now(),
+        ]);
+
+        $client->load(['pharmacyCompany', 'salesmanUser', 'salesmanCompany']);
+
+        return $this->success(
+            new SalesmanClientResource($client),
+            'Client assigned to salesman successfully',
+            201
+        );
     }
 
     #[OA\Delete(
@@ -378,19 +335,13 @@ class SalesmanController extends BaseApiController
         $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
         $this->authorize('manageSalesman', $salesman);
 
-        try {
-            $client = SalesmanClient::where('salesman_user_id', $salesman->id)
-                ->where('id', $clientId)
-                ->firstOrFail();
+        $client = SalesmanClient::where('salesman_user_id', $salesman->id)
+            ->where('id', $clientId)
+            ->firstOrFail();
 
-            $client->update(['is_active' => false]);
+        $client->update(['is_active' => false]);
 
-            return $this->success(null, 'Client removed from salesman successfully');
-        } catch (\Exception $e) {
-            Log::error('Salesman remove client error', ['message' => $e->getMessage()]);
-
-            return $this->error('Failed to remove client. Please try again later.', null, 500);
-        }
+        return $this->success(null, 'Client removed from salesman successfully');
     }
 
     #[OA\Get(
@@ -415,31 +366,25 @@ class SalesmanController extends BaseApiController
         $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
         $this->authorize('accessSalesman', $salesman);
 
-        try {
-            $query = Order::where('placed_by_salesman_id', $salesman->id)
-                ->with([
-                    'buyerCompany',
-                    'supplierCompany',
-                    'items.product',
-                    'salesman',
-                ])
-                ->latest();
+        $query = Order::where('placed_by_salesman_id', $salesman->id)
+            ->with([
+                'buyerCompany',
+                'supplierCompany',
+                'items.product',
+                'salesman',
+            ])
+            ->latest();
 
-            [$orders, $pagination] = $this->paginateOrAll($query, $request);
+        [$orders, $pagination] = $this->paginateOrAll($query, $request);
 
-            $additional = ['success' => true, 'message' => 'Salesman orders retrieved successfully'];
-            if ($pagination !== null) {
-                $additional['pagination'] = $pagination;
-            }
-
-            return OrderResource::collection($orders)
-                ->additional($additional)
-                ->response();
-        } catch (\Exception $e) {
-            Log::error('Salesman orders error', ['message' => $e->getMessage()]);
-
-            return $this->error('Failed to retrieve salesman orders. Please try again later.', null, 500);
+        $additional = ['success' => true, 'message' => 'Salesman orders retrieved successfully'];
+        if ($pagination !== null) {
+            $additional['pagination'] = $pagination;
         }
+
+        return OrderResource::collection($orders)
+            ->additional($additional)
+            ->response();
     }
 
     #[OA\Post(

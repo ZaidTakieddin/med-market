@@ -12,7 +12,6 @@ use App\Models\Order;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use OpenApi\Attributes as OA;
 
@@ -49,67 +48,58 @@ class InvoiceController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
-            $query = Invoice::with(['order.driver', 'buyerCompany', 'supplierCompany']);
+        $user = $this->currentUser();
+        $query = Invoice::with(['order.driver', 'buyerCompany', 'supplierCompany']);
 
-            if ($user->isBuyer() || ($user->isSalesman() && $user->isIndependentSalesman())) {
-                $query->where('buyer_company_id', $user->company_id);
-            } elseif ($user->isSalesman() && $user->isSupplierSalesman()) {
-                $query->where(function ($q) use ($user) {
-                    $q->where('supplier_company_id', $user->company_id)
-                        ->orWhereHas('order', fn ($oq) => $oq->where('placed_by_salesman_id', $user->id));
-                });
-            } elseif ($user->isSupplier()) {
-                $query->where('supplier_company_id', $user->company_id);
-            }
-            // Admins see all invoices
-
-            // Filter by order
-            if ($request->has('order_id')) {
-                $query->where('order_id', $request->order_id);
-            }
-
-            // Filter by status
-            if ($request->has('status')) {
-                $query->where('status', $request->status);
-            }
-
-            // Filter by payment status
-            if ($request->has('payment_status')) {
-                $query->where('payment_status', $request->payment_status);
-            }
-
-            // Filter by date range
-            if ($request->has('from_date')) {
-                $query->whereDate('generated_at', '>=', $request->from_date);
-            }
-
-            if ($request->has('to_date')) {
-                $query->whereDate('generated_at', '<=', $request->to_date);
-            }
-
-            [$invoices, $pagination] = $this->paginateOrAll($query->latest('generated_at'), $request);
-
-            $additional = [
-                'success' => true,
-                'message' => 'Invoices retrieved successfully',
-            ];
-            if ($pagination !== null) {
-                $additional['pagination'] = $pagination;
-            }
-
-            return InvoiceResource::collection($invoices)
-                ->additional($additional)
-                ->response();
-        } catch (\Exception $e) {
-            Log::error('Invoice list error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to retrieve invoices. Please try again later.', null, 500);
+        if ($user->isBuyer() || ($user->isSalesman() && $user->isIndependentSalesman())) {
+            $query->where('buyer_company_id', $user->company_id);
+        } elseif ($user->isSalesman() && $user->isSupplierSalesman()) {
+            $query->where(function ($q) use ($user) {
+                $q->where('supplier_company_id', $user->company_id)
+                    ->orWhereHas('order', fn ($oq) => $oq->where('placed_by_salesman_id', $user->id));
+            });
+        } elseif ($user->isSupplier()) {
+            $query->where('supplier_company_id', $user->company_id);
         }
+        // Admins see all invoices
+
+        // Filter by order
+        if ($request->has('order_id')) {
+            $query->where('order_id', $request->order_id);
+        }
+
+        // Filter by status
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filter by payment status
+        if ($request->has('payment_status')) {
+            $query->where('payment_status', $request->payment_status);
+        }
+
+        // Filter by date range
+        if ($request->has('from_date')) {
+            $query->whereDate('generated_at', '>=', $request->from_date);
+        }
+
+        if ($request->has('to_date')) {
+            $query->whereDate('generated_at', '<=', $request->to_date);
+        }
+
+        [$invoices, $pagination] = $this->paginateOrAll($query->latest('generated_at'), $request);
+
+        $additional = [
+            'success' => true,
+            'message' => 'Invoices retrieved successfully',
+        ];
+        if ($pagination !== null) {
+            $additional['pagination'] = $pagination;
+        }
+
+        return InvoiceResource::collection($invoices)
+            ->additional($additional)
+            ->response();
     }
 
     /**

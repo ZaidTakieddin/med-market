@@ -23,7 +23,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Drivers', description: 'Driver management endpoints')]
@@ -57,40 +56,31 @@ class DriverController extends BaseApiController
     {
         $this->authorize('viewDrivers', User::class);
 
-        try {
-            $user = $this->currentUser();
+        $user = $this->currentUser();
 
-            $query = User::where('role', UserRole::DRIVER);
+        $query = User::where('role', UserRole::DRIVER);
 
-            // Suppliers see only their company drivers
-            if ($user->isSupplier() && ! $user->isAdmin()) {
-                $query->where('company_id', $user->company_id);
-            }
-
-            [$drivers, $pagination] = $this->paginateOrAll(
-                $this->withOrderCounts($query->with('company'))->latest(),
-                $request
-            );
-
-            $additional = [
-                'success' => true,
-                'message' => 'Drivers retrieved successfully',
-            ];
-            if ($pagination !== null) {
-                $additional['pagination'] = $pagination;
-            }
-
-            return UserResource::collection($drivers)
-                ->additional($additional)
-                ->response();
-        } catch (\Exception $e) {
-            Log::error('Driver list error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to retrieve drivers. Please try again later.', null, 500);
+        // Suppliers see only their company drivers
+        if ($user->isSupplier() && ! $user->isAdmin()) {
+            $query->where('company_id', $user->company_id);
         }
+
+        [$drivers, $pagination] = $this->paginateOrAll(
+            $this->withOrderCounts($query->with('company'))->latest(),
+            $request
+        );
+
+        $additional = [
+            'success' => true,
+            'message' => 'Drivers retrieved successfully',
+        ];
+        if ($pagination !== null) {
+            $additional['pagination'] = $pagination;
+        }
+
+        return UserResource::collection($drivers)
+            ->additional($additional)
+            ->response();
     }
 
     /**
@@ -129,36 +119,27 @@ class DriverController extends BaseApiController
     {
         $this->authorize('createDriver', User::class);
 
-        try {
-            $user = $this->currentUser();
+        $user = $this->currentUser();
 
-            $driver = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'password' => Hash::make($request->password),
-                'company_id' => $user->company_id,
-                'role' => UserRole::DRIVER,
-                'work_start_time' => $request->work_start_time,
-                'work_end_time' => $request->work_end_time,
-                'employment_start_date' => $request->employment_start_date,
-                'employment_end_date' => $request->employment_end_date,
-                'driver_status' => $request->driver_status ?? DriverStatus::AVAILABLE,
-            ]);
+        $driver = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'password' => Hash::make($request->password),
+            'company_id' => $user->company_id,
+            'role' => UserRole::DRIVER,
+            'work_start_time' => $request->work_start_time,
+            'work_end_time' => $request->work_end_time,
+            'employment_start_date' => $request->employment_start_date,
+            'employment_end_date' => $request->employment_end_date,
+            'driver_status' => $request->driver_status ?? DriverStatus::AVAILABLE,
+        ]);
 
-            return $this->success(
-                new UserResource($this->withOrderCounts(User::whereKey($driver->id))->with('company')->first()),
-                'Driver created successfully',
-                201
-            );
-        } catch (\Exception $e) {
-            Log::error('Create driver error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to create driver. Please try again later.', null, 500);
-        }
+        return $this->success(
+            new UserResource($this->withOrderCounts(User::whereKey($driver->id))->with('company')->first()),
+            'Driver created successfully',
+            201
+        );
     }
 
     /**
@@ -185,18 +166,9 @@ class DriverController extends BaseApiController
         $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('viewDriver', $driver);
 
-        try {
-            $driver->load('company')->loadCount($this->orderCountRelations());
+        $driver->load('company')->loadCount($this->orderCountRelations());
 
-            return $this->success(new UserResource($driver));
-        } catch (\Exception $e) {
-            Log::error('Get driver error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to retrieve driver. Please try again later.', null, 500);
-        }
+        return $this->success(new UserResource($driver));
     }
 
     /**
@@ -223,23 +195,14 @@ class DriverController extends BaseApiController
         $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('manageDriver', $driver);
 
-        try {
-            $driver->update($request->validated());
+        $driver->update($request->validated());
 
-            $driver->load('company')->loadCount($this->orderCountRelations());
+        $driver->load('company')->loadCount($this->orderCountRelations());
 
-            return $this->success(
-                new UserResource($driver),
-                'Driver updated successfully'
-            );
-        } catch (\Exception $e) {
-            Log::error('Update driver error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to update driver. Please try again later.', null, 500);
-        }
+        return $this->success(
+            new UserResource($driver),
+            'Driver updated successfully'
+        );
     }
 
     /**
@@ -266,18 +229,9 @@ class DriverController extends BaseApiController
         $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('manageDriver', $driver);
 
-        try {
-            $driver->delete();
+        $driver->delete();
 
-            return $this->success(null, 'Driver deleted successfully');
-        } catch (\Exception $e) {
-            Log::error('Delete driver error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to delete driver. Please try again later.', null, 500);
-        }
+        return $this->success(null, 'Driver deleted successfully');
     }
 
     /**
@@ -308,43 +262,34 @@ class DriverController extends BaseApiController
         $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('viewDriver', $driver);
 
-        try {
-            $query = Order::where('driver_id', $id)
-                ->with([
-                    'buyerCompany.region.city',
-                    'supplierCompany.categories',
-                    'supplierCompany.manufacturers',
-                    'driver',
-                    'items.product.category',
-                    'items.product.manufacturer',
-                    'items.product.supplierCompany',
-                ]);
-
-            if ($request->has('status')) {
-                $query->where('status', $request->status);
-            }
-
-            [$orders, $pagination] = $this->paginateOrAll($query->latest(), $request);
-
-            $additional = [
-                'success' => true,
-                'message' => 'Driver orders retrieved successfully',
-            ];
-            if ($pagination !== null) {
-                $additional['pagination'] = $pagination;
-            }
-
-            return OrderResource::collection($orders)
-                ->additional($additional)
-                ->response();
-        } catch (\Exception $e) {
-            Log::error('Get driver orders error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+        $query = Order::where('driver_id', $id)
+            ->with([
+                'buyerCompany.region.city',
+                'supplierCompany.categories',
+                'supplierCompany.manufacturers',
+                'driver',
+                'items.product.category',
+                'items.product.manufacturer',
+                'items.product.supplierCompany',
             ]);
 
-            return $this->error('Failed to retrieve driver orders. Please try again later.', null, 500);
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
         }
+
+        [$orders, $pagination] = $this->paginateOrAll($query->latest(), $request);
+
+        $additional = [
+            'success' => true,
+            'message' => 'Driver orders retrieved successfully',
+        ];
+        if ($pagination !== null) {
+            $additional['pagination'] = $pagination;
+        }
+
+        return OrderResource::collection($orders)
+            ->additional($additional)
+            ->response();
     }
 
     /**
@@ -371,19 +316,10 @@ class DriverController extends BaseApiController
         $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('viewDriver', $driver);
 
-        try {
-            return $this->success(
-                $this->buildPlanResponse($driver),
-                'Driver region plan retrieved successfully'
-            );
-        } catch (\Exception $e) {
-            Log::error('Get driver regions error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to retrieve driver region plan. Please try again later.', null, 500);
-        }
+        return $this->success(
+            $this->buildPlanResponse($driver),
+            'Driver region plan retrieved successfully'
+        );
     }
 
     /**
@@ -536,21 +472,12 @@ class DriverController extends BaseApiController
         $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('manageDriver', $driver);
 
-        try {
-            $driver = $this->regionPlanService->setFixedPlan($driver, $request->validated()['region_ids']);
+        $driver = $this->regionPlanService->setFixedPlan($driver, $request->validated()['region_ids']);
 
-            return $this->success(
-                $this->buildPlanResponse($driver),
-                'Regions assigned successfully'
-            );
-        } catch (\Exception $e) {
-            Log::error('Assign driver regions error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to assign regions. Please try again later.', null, 500);
-        }
+        return $this->success(
+            $this->buildPlanResponse($driver),
+            'Regions assigned successfully'
+        );
     }
 
     /**
@@ -578,21 +505,12 @@ class DriverController extends BaseApiController
         $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('manageDriver', $driver);
 
-        try {
-            // Verify region exists
-            Region::findOrFail($region_id);
+        // Verify region exists
+        Region::findOrFail($region_id);
 
-            $driver->driverRegions()->detach($region_id);
+        $driver->driverRegions()->detach($region_id);
 
-            return $this->success(null, 'Region removed successfully');
-        } catch (\Exception $e) {
-            Log::error('Remove driver region error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to remove region. Please try again later.', null, 500);
-        }
+        return $this->success(null, 'Region removed successfully');
     }
 
     /**

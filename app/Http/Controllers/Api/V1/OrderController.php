@@ -86,86 +86,77 @@ class OrderController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
-            $query = Order::with([
-                'buyerCompany.region.city',
-                'supplierCompany.categories',
-                'supplierCompany.manufacturers',
-                'driver',
-                'salesman',
-                'invoice',
-                'items',
-                'items.product.category',
-                'items.product.manufacturer',
-                'items.product.supplierCompany',
-                'items.appliedOffer',
-            ]);
+        $user = $this->currentUser();
+        $query = Order::with([
+            'buyerCompany.region.city',
+            'supplierCompany.categories',
+            'supplierCompany.manufacturers',
+            'driver',
+            'salesman',
+            'invoice',
+            'items',
+            'items.product.category',
+            'items.product.manufacturer',
+            'items.product.supplierCompany',
+            'items.appliedOffer',
+        ]);
 
-            if ($user->isAdmin()) {
-                // Admin sees all orders
-            } elseif ($user->isBuyer() || ($user->isSalesman() && $user->isIndependentSalesman())) {
-                $query->where('buyer_company_id', $user->company_id);
-            } elseif ($user->isSalesman() && $user->isSupplierSalesman()) {
-                $query->where(function ($q) use ($user) {
-                    $q->where('supplier_company_id', $user->company_id)
-                        ->orWhere('placed_by_salesman_id', $user->id);
-                });
-            } elseif ($user->isSupplier()) {
-                $query->where('supplier_company_id', $user->company_id);
-            } elseif ($user->isDriver()) {
-                $query->where('driver_id', $user->id);
-            } else {
-                return $this->error('Unauthorized', null, 403);
-            }
-
-            // Filter by status
-            if ($request->has('status')) {
-                $query->where('status', $request->status);
-            }
-
-            // Filter by supplier (for buyers)
-            if ($request->has('supplier_company_id')) {
-                $query->where('supplier_company_id', $request->supplier_company_id);
-            }
-
-            // Filter by buyer (for suppliers)
-            if ($request->has('buyer_company_id')) {
-                $query->where('buyer_company_id', $request->buyer_company_id);
-            }
-
-            // Filter by date range
-            if ($request->has('from_date')) {
-                $fromDate = Carbon::parse($request->from_date)->startOfDay();
-                $query->where('created_at', '>=', $fromDate);
-            }
-
-            if ($request->has('to_date')) {
-                $toDate = Carbon::parse($request->to_date)->endOfDay();
-                $query->where('created_at', '<=', $toDate);
-            }
-
-            [$orders, $pagination] = $this->paginateOrAll($query->latest(), $request);
-
-            $additional = [
-                'success' => true,
-                'message' => 'Orders retrieved successfully',
-            ];
-            if ($pagination !== null) {
-                $additional['pagination'] = $pagination;
-            }
-
-            return OrderResource::collection($orders)
-                ->additional($additional)
-                ->response();
-        } catch (\Exception $e) {
-            Log::error('Order list error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to retrieve orders. Please try again later.', null, 500);
+        if ($user->isAdmin()) {
+            // Admin sees all orders
+        } elseif ($user->isBuyer() || ($user->isSalesman() && $user->isIndependentSalesman())) {
+            $query->where('buyer_company_id', $user->company_id);
+        } elseif ($user->isSalesman() && $user->isSupplierSalesman()) {
+            $query->where(function ($q) use ($user) {
+                $q->where('supplier_company_id', $user->company_id)
+                    ->orWhere('placed_by_salesman_id', $user->id);
+            });
+        } elseif ($user->isSupplier()) {
+            $query->where('supplier_company_id', $user->company_id);
+        } elseif ($user->isDriver()) {
+            $query->where('driver_id', $user->id);
+        } else {
+            return $this->error('Unauthorized', null, 403);
         }
+
+        // Filter by status
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filter by supplier (for buyers)
+        if ($request->has('supplier_company_id')) {
+            $query->where('supplier_company_id', $request->supplier_company_id);
+        }
+
+        // Filter by buyer (for suppliers)
+        if ($request->has('buyer_company_id')) {
+            $query->where('buyer_company_id', $request->buyer_company_id);
+        }
+
+        // Filter by date range
+        if ($request->has('from_date')) {
+            $fromDate = Carbon::parse($request->from_date)->startOfDay();
+            $query->where('created_at', '>=', $fromDate);
+        }
+
+        if ($request->has('to_date')) {
+            $toDate = Carbon::parse($request->to_date)->endOfDay();
+            $query->where('created_at', '<=', $toDate);
+        }
+
+        [$orders, $pagination] = $this->paginateOrAll($query->latest(), $request);
+
+        $additional = [
+            'success' => true,
+            'message' => 'Orders retrieved successfully',
+        ];
+        if ($pagination !== null) {
+            $additional['pagination'] = $pagination;
+        }
+
+        return OrderResource::collection($orders)
+            ->additional($additional)
+            ->response();
     }
 
     /**
@@ -554,68 +545,59 @@ class OrderController extends BaseApiController
     )]
     public function assignDriver(AssignDriverRequest $request, Order $order): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
+        $user = $this->currentUser();
 
-            // Only suppliers can assign drivers to their orders
-            if (! $user->isSupplier() && ! $user->isAdmin()) {
-                return $this->error('Only suppliers can assign drivers', null, 403);
-            }
-
-            // Verify order belongs to supplier's company
-            if ($order->supplier_company_id !== $user->company_id && ! $user->isAdmin()) {
-                return $this->error('You can only assign drivers to your own orders', null, 403);
-            }
-
-            $driver = \App\Models\User::findOrFail((int) $request->driver_id);
-
-            // Verify driver belongs to supplier's company and is actually a driver
-            if (! $driver->isDriver()) {
-                return $this->error('User is not a driver', null, 400);
-            }
-
-            if ($driver->company_id !== $user->company_id && ! $user->isAdmin()) {
-                return $this->error('Driver must belong to your company', null, 403);
-            }
-
-            // Check if driver serves the pharmacy's region (optional warning, not blocking)
-            $buyerCompany = $order->buyerCompany;
-            if ($buyerCompany && $buyerCompany->region_id) {
-                if (! $driver->servesRegion($buyerCompany->region_id)) {
-                    // Log warning but don't block assignment
-                    Log::warning('Driver assigned to order outside their region', [
-                        'driver_id' => $driver->id,
-                        'order_id' => $order->id,
-                        'pharmacy_region_id' => $buyerCompany->region_id,
-                    ]);
-                }
-            }
-
-            $order->update(['driver_id' => $driver->id]);
-
-            $order->load([
-                'buyerCompany.region.city',
-                'supplierCompany.categories',
-                'supplierCompany.manufacturers',
-                'driver',
-                'invoice',
-                'items.product.category',
-                'items.product.manufacturer',
-                'items.product.supplierCompany',
-                'items.appliedOffer',
-            ]);
-
-            return $this->success(
-                new OrderResource($order),
-                'Driver assigned successfully'
-            );
-        } catch (\Exception $e) {
-            Log::error('Assign driver error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to assign driver. Please try again later.', null, 500);
+        // Only suppliers can assign drivers to their orders
+        if (! $user->isSupplier() && ! $user->isAdmin()) {
+            return $this->error('Only suppliers can assign drivers', null, 403);
         }
+
+        // Verify order belongs to supplier's company
+        if ($order->supplier_company_id !== $user->company_id && ! $user->isAdmin()) {
+            return $this->error('You can only assign drivers to your own orders', null, 403);
+        }
+
+        $driver = \App\Models\User::findOrFail((int) $request->driver_id);
+
+        // Verify driver belongs to supplier's company and is actually a driver
+        if (! $driver->isDriver()) {
+            return $this->error('User is not a driver', null, 400);
+        }
+
+        if ($driver->company_id !== $user->company_id && ! $user->isAdmin()) {
+            return $this->error('Driver must belong to your company', null, 403);
+        }
+
+        // Check if driver serves the pharmacy's region (optional warning, not blocking)
+        $buyerCompany = $order->buyerCompany;
+        if ($buyerCompany && $buyerCompany->region_id) {
+            if (! $driver->servesRegion($buyerCompany->region_id)) {
+                // Log warning but don't block assignment
+                Log::warning('Driver assigned to order outside their region', [
+                    'driver_id' => $driver->id,
+                    'order_id' => $order->id,
+                    'pharmacy_region_id' => $buyerCompany->region_id,
+                ]);
+            }
+        }
+
+        $order->update(['driver_id' => $driver->id]);
+
+        $order->load([
+            'buyerCompany.region.city',
+            'supplierCompany.categories',
+            'supplierCompany.manufacturers',
+            'driver',
+            'invoice',
+            'items.product.category',
+            'items.product.manufacturer',
+            'items.product.supplierCompany',
+            'items.appliedOffer',
+        ]);
+
+        return $this->success(
+            new OrderResource($order),
+            'Driver assigned successfully'
+        );
     }
 }

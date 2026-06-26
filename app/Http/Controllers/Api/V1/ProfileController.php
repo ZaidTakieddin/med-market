@@ -10,7 +10,6 @@ use App\Http\Resources\CompanyResource;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Profile', description: 'User profile management endpoints')]
@@ -32,18 +31,9 @@ class ProfileController extends BaseApiController
     )]
     public function show(): JsonResponse
     {
-        try {
-            $user = $this->currentUser()->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])]);
+        $user = $this->currentUser()->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])]);
 
-            return $this->success(new UserResource($user));
-        } catch (\Exception $e) {
-            Log::error('Get profile error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to retrieve profile. Please try again later.', null, 500);
-        }
+        return $this->success(new UserResource($user));
     }
 
     /**
@@ -72,21 +62,12 @@ class ProfileController extends BaseApiController
     )]
     public function update(UpdateProfileRequest $request): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
-            $user->update($request->validated());
+        $user = $this->currentUser();
+        $user->update($request->validated());
 
-            return $this->success([
-                'user' => new UserResource($user->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])])),
-            ], 'Profile updated successfully');
-        } catch (\Exception $e) {
-            Log::error('Update profile error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to update profile. Please try again later.', null, 500);
-        }
+        return $this->success([
+            'user' => new UserResource($user->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])])),
+        ], 'Profile updated successfully');
     }
 
     /**
@@ -117,26 +98,17 @@ class ProfileController extends BaseApiController
     )]
     public function changePassword(ChangePasswordRequest $request): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
+        $user = $this->currentUser();
 
-            if (! Hash::check($request->current_password, $user->password)) {
-                return $this->error('Current password is incorrect', null, 422);
-            }
-
-            $user->update([
-                'password' => Hash::make($request->password),
-            ]);
-
-            return $this->success(null, 'Password changed successfully');
-        } catch (\Exception $e) {
-            Log::error('Change password error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to change password. Please try again later.', null, 500);
+        if (! Hash::check($request->current_password, $user->password)) {
+            return $this->error('Current password is incorrect', null, 422);
         }
+
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        return $this->success(null, 'Password changed successfully');
     }
 
     /**
@@ -174,32 +146,23 @@ class ProfileController extends BaseApiController
     )]
     public function updateCompany(UpdateCompanyRequest $request): JsonResponse
     {
-        try {
-            $user = $this->currentUser();
+        $user = $this->currentUser();
 
-            if (! $user->isAdmin() && ! $user->isSupplier() && ! $user->isBuyer() && ! $user->isSalesman()) {
-                return $this->error('You do not have permission to update company information', null, 403);
-            }
-
-            $company = $user->company;
-            if (! $company) {
-                return $this->error('User does not belong to a company', null, 404);
-            }
-
-            $company->update($request->validated());
-            $company->load(['categories', 'manufacturers']);
-
-            return $this->success(
-                new CompanyResource($company),
-                'Company updated successfully'
-            );
-        } catch (\Exception $e) {
-            Log::error('Update company error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to update company. Please try again later.', null, 500);
+        if (! $user->isAdmin() && ! $user->isSupplier() && ! $user->isBuyer() && ! $user->isSalesman()) {
+            return $this->error('You do not have permission to update company information', null, 403);
         }
+
+        $company = $user->company;
+        if (! $company) {
+            return $this->error('User does not belong to a company', null, 404);
+        }
+
+        $company->update($request->validated());
+        $company->load(['categories', 'manufacturers']);
+
+        return $this->success(
+            new CompanyResource($company),
+            'Company updated successfully'
+        );
     }
 }
