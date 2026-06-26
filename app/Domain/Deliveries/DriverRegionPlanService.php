@@ -4,6 +4,7 @@ namespace App\Domain\Deliveries;
 
 use App\Constants\DayOfWeek;
 use App\Constants\RegionPlanType;
+use App\Exceptions\DomainException;
 use App\Models\Region;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -46,11 +47,11 @@ class DriverRegionPlanService
     {
         foreach (array_keys($schedule) as $weekday) {
             if (! DayOfWeek::isValid($weekday)) {
-                throw new \InvalidArgumentException("Invalid weekday: {$weekday}");
+                throw new DomainException("Invalid weekday: {$weekday}");
             }
 
             if ($driver->isHoliday($weekday)) {
-                throw new \InvalidArgumentException("Cannot assign a region to a holiday ({$weekday}).");
+                throw new DomainException("Cannot assign a region to a holiday ({$weekday}).");
             }
         }
 
@@ -82,7 +83,7 @@ class DriverRegionPlanService
 
         foreach ($weekdays as $weekday) {
             if (! DayOfWeek::isValid($weekday)) {
-                throw new \InvalidArgumentException("Invalid weekday: {$weekday}");
+                throw new DomainException("Invalid weekday: {$weekday}");
             }
         }
 

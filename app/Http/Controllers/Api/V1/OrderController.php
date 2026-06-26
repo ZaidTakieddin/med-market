@@ -419,31 +419,27 @@ class OrderController extends BaseApiController
     {
         $this->authorize('updateStatus', [$order, $request->status]);
 
-        try {
-            $order = $this->orderStateTransitionService->transition(
-                order: $order,
-                newStatus: $request->status,
-                userId: (int) auth()->id(),
-                notes: $request->notes
-            );
+        $order = $this->orderStateTransitionService->transition(
+            order: $order,
+            newStatus: $request->status,
+            userId: (int) auth()->id(),
+            notes: $request->notes
+        );
 
-            return $this->success(
-                new OrderResource($order->load([
-                    'buyerCompany.region.city',
-                    'supplierCompany.categories',
-                    'supplierCompany.manufacturers',
-                    'driver',
-                    'invoice',
-                    'items.product.category',
-                    'items.product.manufacturer',
-                    'items.product.supplierCompany',
-                    'items.appliedOffer',
-                ])),
-                'Order status updated successfully'
-            );
-        } catch (\InvalidArgumentException $e) {
-            return $this->error($e->getMessage(), null, 400);
-        }
+        return $this->success(
+            new OrderResource($order->load([
+                'buyerCompany.region.city',
+                'supplierCompany.categories',
+                'supplierCompany.manufacturers',
+                'driver',
+                'invoice',
+                'items.product.category',
+                'items.product.manufacturer',
+                'items.product.supplierCompany',
+                'items.appliedOffer',
+            ])),
+            'Order status updated successfully'
+        );
     }
 
     /**
@@ -498,41 +494,30 @@ class OrderController extends BaseApiController
     {
         $this->authorize('cancel', $order);
 
-        try {
-            $order->cancellation_reason = $request->reason;
-            $order->save();
+        $order->cancellation_reason = $request->reason;
+        $order->save();
 
-            $order = $this->orderStateTransitionService->transition(
-                order: $order,
-                newStatus: OrderStatus::CANCELLED,
-                userId: (int) auth()->id(),
-                notes: $request->reason
-            );
+        $order = $this->orderStateTransitionService->transition(
+            order: $order,
+            newStatus: OrderStatus::CANCELLED,
+            userId: (int) auth()->id(),
+            notes: $request->reason
+        );
 
-            return $this->success(
-                new OrderResource($order->load([
-                    'buyerCompany.region.city',
-                    'supplierCompany.categories',
-                    'supplierCompany.manufacturers',
-                    'driver',
-                    'invoice',
-                    'items.product.category',
-                    'items.product.manufacturer',
-                    'items.product.supplierCompany',
-                    'items.appliedOffer',
-                ])),
-                'Order cancelled successfully'
-            );
-        } catch (\InvalidArgumentException $e) {
-            return $this->error($e->getMessage(), null, 400);
-        } catch (\Exception $e) {
-            Log::error('Cancel order error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to cancel order. Please try again later.', null, 500);
-        }
+        return $this->success(
+            new OrderResource($order->load([
+                'buyerCompany.region.city',
+                'supplierCompany.categories',
+                'supplierCompany.manufacturers',
+                'driver',
+                'invoice',
+                'items.product.category',
+                'items.product.manufacturer',
+                'items.product.supplierCompany',
+                'items.appliedOffer',
+            ])),
+            'Order cancelled successfully'
+        );
     }
 
     /**

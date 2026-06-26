@@ -2,6 +2,7 @@
 
 namespace App\Domain\Inventory;
 
+use App\Exceptions\DomainException;
 use App\Models\Product;
 use App\Models\StockMovement;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +28,7 @@ class StockMovementService
         ?string $referenceId = null
     ): StockMovement {
         if ($quantity === 0) {
-            throw new \InvalidArgumentException('Stock movement quantity cannot be zero');
+            throw new DomainException('Stock movement quantity cannot be zero');
         }
 
         return DB::transaction(function () use (
@@ -46,14 +47,14 @@ class StockMovementService
             $lockedProduct = Product::whereKey($product->getKey())->lockForUpdate()->first();
 
             if ($lockedProduct === null) {
-                throw new \InvalidArgumentException("Product {$product->getKey()} not found for stock movement");
+                throw new DomainException("Product {$product->getKey()} not found for stock movement");
             }
 
             $quantityBefore = $lockedProduct->stock_quantity;
             $quantityAfter = $quantityBefore + $quantity;
 
             if ($quantityAfter < 0) {
-                throw new \InvalidArgumentException(
+                throw new DomainException(
                     "Insufficient stock. Available: {$quantityBefore}, Requested: ".abs($quantity)
                 );
             }

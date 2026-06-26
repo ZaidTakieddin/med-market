@@ -4,6 +4,7 @@ namespace App\Domain\Cart\Services;
 
 use App\Domain\Orders\OrderCreationService;
 use App\Domain\Pricing\PricingService;
+use App\Exceptions\DomainException;
 use App\Models\Cart;
 use App\Models\Company;
 use App\Models\Offer;
@@ -92,7 +93,7 @@ class CheckoutService
 
         $supplier = Company::find($supplierId);
         if ($supplier === null || ! $supplier->isSupplier()) {
-            throw new \InvalidArgumentException('The specified company is not a supplier.');
+            throw new DomainException('The specified company is not a supplier.');
         }
         $this->assertSupplierVisible($supplierId, $buyerCompany);
 
@@ -102,7 +103,7 @@ class CheckoutService
         );
 
         if ($supplierItems->isEmpty()) {
-            throw new \InvalidArgumentException('No items found for the specified supplier in your cart.');
+            throw new DomainException('No items found for the specified supplier in your cart.');
         }
 
         return DB::transaction(function () use ($user, $buyerCompany, $cart, $supplierId, $supplierItems, $notes, $taxRate): array {
@@ -133,7 +134,7 @@ class CheckoutService
     {
         $company = $user->company;
         if ($company === null) {
-            throw new \InvalidArgumentException('Your account is not linked to a company.');
+            throw new DomainException('Your account is not linked to a company.');
         }
 
         return $company;
@@ -143,7 +144,7 @@ class CheckoutService
     {
         $cart = Cart::where('user_id', $user->id)->with('items.product')->first();
         if ($cart === null || $cart->items->isEmpty()) {
-            throw new \InvalidArgumentException('Cart is empty.');
+            throw new DomainException('Cart is empty.');
         }
 
         return $cart;
@@ -153,7 +154,7 @@ class CheckoutService
     {
         $supplierCompany = Company::find($supplierId);
         if ($supplierCompany !== null && ! $this->pricingService->canBuyerSeeSupplier($supplierCompany, $buyerCompany)) {
-            throw new \InvalidArgumentException('A supplier in your cart is not available to your account.');
+            throw new DomainException('A supplier in your cart is not available to your account.');
         }
     }
 

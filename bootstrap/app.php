@@ -33,7 +33,20 @@ return Application::configure(basePath: dirname(__DIR__))
             return $request->is('api/*') || $request->expectsJson();
         });
 
-        // Enhanced exception handling for API routes
-        // The Handler class (app/Exceptions/Handler.php) provides comprehensive exception handling
-        // with standardized JSON responses for all API routes
+        // Domain business-rule violations (App\Exceptions\DomainException thrown by domain
+        // services) render as 422 with the standardized nested error body. Controllers do
+        // not catch these — error handling stays here.
+        $exceptions->render(function (\App\Exceptions\DomainException $e, $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'title' => 'Unprocessable',
+                        'message' => $e->getMessage(),
+                    ],
+                ], 422);
+            }
+
+            return null;
+        });
     })->create();

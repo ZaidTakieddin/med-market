@@ -6,6 +6,7 @@ use App\Constants\OrderStatus;
 use App\Constants\PaymentTerms;
 use App\Domain\Companies\CreditService;
 use App\Domain\Inventory\StockMovementService;
+use App\Exceptions\DomainException;
 use App\Jobs\GenerateInvoiceJob;
 use App\Jobs\SendOrderNotificationJob;
 use App\Models\Order;
@@ -29,11 +30,11 @@ class OrderStateTransitionService
     public function transition(Order $order, string $newStatus, ?int $userId = null, ?string $notes = null): Order
     {
         if (! OrderStatus::isValid($newStatus)) {
-            throw new \InvalidArgumentException("Invalid order state: {$newStatus}");
+            throw new DomainException("Invalid order state: {$newStatus}");
         }
 
         if (! $order->canTransitionTo($newStatus)) {
-            throw new \InvalidArgumentException(
+            throw new DomainException(
                 "Cannot transition order from {$order->status} to {$newStatus}"
             );
         }

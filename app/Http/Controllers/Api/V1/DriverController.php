@@ -433,29 +433,18 @@ class DriverController extends BaseApiController
         $driver = User::where('role', 'driver')->findOrFail($id);
         $this->authorize('manageDriver', $driver);
 
-        try {
-            $validated = $request->validated();
+        $validated = $request->validated();
 
-            if ($validated['plan_type'] === RegionPlanType::FIXED) {
-                $driver = $this->regionPlanService->setFixedPlan($driver, $validated['region_ids']);
-            } else {
-                $driver = $this->regionPlanService->setDailyPlan($driver, $validated['schedule']);
-            }
-
-            return $this->success(
-                $this->buildPlanResponse($driver),
-                'Region plan saved successfully'
-            );
-        } catch (\InvalidArgumentException $e) {
-            return $this->error($e->getMessage(), null, 422);
-        } catch (\Exception $e) {
-            Log::error('Set driver region plan error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to save region plan. Please try again later.', null, 500);
+        if ($validated['plan_type'] === RegionPlanType::FIXED) {
+            $driver = $this->regionPlanService->setFixedPlan($driver, $validated['region_ids']);
+        } else {
+            $driver = $this->regionPlanService->setDailyPlan($driver, $validated['schedule']);
         }
+
+        return $this->success(
+            $this->buildPlanResponse($driver),
+            'Region plan saved successfully'
+        );
     }
 
     /**
@@ -498,23 +487,12 @@ class DriverController extends BaseApiController
         $driver = User::where('role', 'driver')->findOrFail($id);
         $this->authorize('manageDriver', $driver);
 
-        try {
-            $driver = $this->regionPlanService->setHolidays($driver, $request->validated()['holidays']);
+        $driver = $this->regionPlanService->setHolidays($driver, $request->validated()['holidays']);
 
-            return $this->success(
-                $this->buildPlanResponse($driver),
-                'Holidays saved successfully'
-            );
-        } catch (\InvalidArgumentException $e) {
-            return $this->error($e->getMessage(), null, 422);
-        } catch (\Exception $e) {
-            Log::error('Set driver holidays error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return $this->error('Failed to save holidays. Please try again later.', null, 500);
-        }
+        return $this->success(
+            $this->buildPlanResponse($driver),
+            'Holidays saved successfully'
+        );
     }
 
     /**

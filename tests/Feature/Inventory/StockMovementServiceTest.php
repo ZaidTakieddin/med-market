@@ -35,8 +35,8 @@ class StockMovementServiceTest extends TestCase
 
         try {
             $this->service()->recordOut($product, 20);
-            $this->fail('Expected InvalidArgumentException for overselling.');
-        } catch (\InvalidArgumentException) {
+            $this->fail('Expected DomainException for overselling.');
+        } catch (\App\Exceptions\DomainException) {
             // expected
         }
 
@@ -57,7 +57,7 @@ class StockMovementServiceTest extends TestCase
     {
         $product = Product::factory()->withStock(10)->create();
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(\App\Exceptions\DomainException::class);
         $this->service()->recordMovement($product, 'in', 0);
     }
 }
