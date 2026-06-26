@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Constants\DiscountType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -145,7 +146,7 @@ class Product extends Model
         $price = $this->getEffectivePharmacistPrice();
 
         if ($this->discount && $this->discount_type) {
-            if ($this->discount_type === 'percentage') {
+            if ($this->discount_type === DiscountType::PERCENTAGE) {
                 return max(0, $price * (1 - (min($this->discount, 100) / 100)));
             } else {
                 return max(0, $price - $this->discount);

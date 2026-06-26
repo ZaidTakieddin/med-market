@@ -570,7 +570,7 @@ class OrderController extends BaseApiController
             $driver = \App\Models\User::findOrFail((int) $request->driver_id);
 
             // Verify driver belongs to supplier's company and is actually a driver
-            if ($driver->role !== 'driver') {
+            if (! $driver->isDriver()) {
                 return $this->error('User is not a driver', null, 400);
             }
 

@@ -177,7 +177,7 @@ class ProfileController extends BaseApiController
         try {
             $user = $this->currentUser();
 
-            if (! $user->isAdmin() && $user->role !== 'supplier' && $user->role !== 'buyer' && $user->role !== 'salesman') {
+            if (! $user->isAdmin() && ! $user->isSupplier() && ! $user->isBuyer() && ! $user->isSalesman()) {
                 return $this->error('You do not have permission to update company information', null, 403);
             }
 

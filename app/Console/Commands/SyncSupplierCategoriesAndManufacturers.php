@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Constants\CompanyType;
 use App\Models\Company;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -34,7 +35,7 @@ class SyncSupplierCategoriesAndManufacturers extends Command
         $buyerId = $this->option('buyer-id');
 
         if ($supplierId) {
-            $supplier = Company::where('type', 'supplier')->find($supplierId);
+            $supplier = Company::where('type', CompanyType::SUPPLIER)->find($supplierId);
             if (! $supplier) {
                 $this->error("Supplier with ID {$supplierId} not found.");
 
@@ -47,7 +48,7 @@ class SyncSupplierCategoriesAndManufacturers extends Command
         }
 
         if ($buyerId) {
-            $buyer = Company::where('type', 'buyer')->find($buyerId);
+            $buyer = Company::where('type', CompanyType::BUYER)->find($buyerId);
             if (! $buyer) {
                 $this->error("Buyer with ID {$buyerId} not found.");
 
@@ -60,8 +61,8 @@ class SyncSupplierCategoriesAndManufacturers extends Command
         }
 
         // Sync all suppliers and buyers
-        $suppliers = Company::where('type', 'supplier')->get();
-        $buyers = Company::where('type', 'buyer')->get();
+        $suppliers = Company::where('type', CompanyType::SUPPLIER)->get();
+        $buyers = Company::where('type', CompanyType::BUYER)->get();
         $total = $suppliers->count() + $buyers->count();
 
         $this->info("Syncing categories and manufacturers for {$total} companies...");

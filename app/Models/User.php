@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Constants\UserRole;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -156,7 +157,7 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->role === UserRole::ADMIN;
     }
 
     /**
@@ -164,7 +165,7 @@ class User extends Authenticatable
      */
     public function isSupplier(): bool
     {
-        return $this->role === 'supplier';
+        return $this->role === UserRole::SUPPLIER;
     }
 
     /**
@@ -172,7 +173,7 @@ class User extends Authenticatable
      */
     public function isBuyer(): bool
     {
-        return $this->role === 'buyer';
+        return $this->role === UserRole::BUYER;
     }
 
     /**
@@ -180,7 +181,7 @@ class User extends Authenticatable
      */
     public function isDriver(): bool
     {
-        return $this->role === 'driver';
+        return $this->role === UserRole::DRIVER;
     }
 
     /**
@@ -188,7 +189,7 @@ class User extends Authenticatable
      */
     public function isSalesman(): bool
     {
-        return $this->role === 'salesman';
+        return $this->role === UserRole::SALESMAN;
     }
 
     /**

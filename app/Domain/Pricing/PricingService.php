@@ -3,6 +3,7 @@
 namespace App\Domain\Pricing;
 
 use App\Constants\BuyerClassification;
+use App\Constants\DiscountType;
 use App\Constants\PricingType;
 use App\Constants\SupplierClassification;
 use App\Models\Company;
@@ -250,7 +251,7 @@ class PricingService
             return $price;
         }
 
-        if ($product->discount_type === 'percentage') {
+        if ($product->discount_type === DiscountType::PERCENTAGE) {
             return max(0, $price * (1 - (min($product->discount, 100) / 100)));
         }
 

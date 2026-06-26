@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Constants\DriverStatus;
 use App\Constants\OrderStatus;
 use App\Constants\RegionPlanType;
+use App\Constants\UserRole;
 use App\Domain\Deliveries\DriverRegionPlanService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Drivers\AssignDriverRegionsRequest;
@@ -59,7 +60,7 @@ class DriverController extends BaseApiController
         try {
             $user = $this->currentUser();
 
-            $query = User::where('role', 'driver');
+            $query = User::where('role', UserRole::DRIVER);
 
             // Suppliers see only their company drivers
             if ($user->isSupplier() && ! $user->isAdmin()) {
@@ -137,7 +138,7 @@ class DriverController extends BaseApiController
                 'phone' => $request->phone,
                 'password' => Hash::make($request->password),
                 'company_id' => $user->company_id,
-                'role' => 'driver',
+                'role' => UserRole::DRIVER,
                 'work_start_time' => $request->work_start_time,
                 'work_end_time' => $request->work_end_time,
                 'employment_start_date' => $request->employment_start_date,
@@ -181,7 +182,7 @@ class DriverController extends BaseApiController
     )]
     public function show(int $id): JsonResponse
     {
-        $driver = User::where('role', 'driver')->findOrFail($id);
+        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('viewDriver', $driver);
 
         try {
@@ -219,7 +220,7 @@ class DriverController extends BaseApiController
     )]
     public function update(UpdateDriverRequest $request, int $id): JsonResponse
     {
-        $driver = User::where('role', 'driver')->findOrFail($id);
+        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('manageDriver', $driver);
 
         try {
@@ -262,7 +263,7 @@ class DriverController extends BaseApiController
     )]
     public function destroy(int $id): JsonResponse
     {
-        $driver = User::where('role', 'driver')->findOrFail($id);
+        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('manageDriver', $driver);
 
         try {
@@ -304,7 +305,7 @@ class DriverController extends BaseApiController
     )]
     public function orders(Request $request, int $id): JsonResponse
     {
-        $driver = User::where('role', 'driver')->findOrFail($id);
+        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('viewDriver', $driver);
 
         try {
@@ -367,7 +368,7 @@ class DriverController extends BaseApiController
     )]
     public function regions(int $id): JsonResponse
     {
-        $driver = User::where('role', 'driver')->findOrFail($id);
+        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('viewDriver', $driver);
 
         try {
@@ -430,7 +431,7 @@ class DriverController extends BaseApiController
     )]
     public function setRegionPlan(SetDriverRegionPlanRequest $request, int $id): JsonResponse
     {
-        $driver = User::where('role', 'driver')->findOrFail($id);
+        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('manageDriver', $driver);
 
         $validated = $request->validated();
@@ -484,7 +485,7 @@ class DriverController extends BaseApiController
     )]
     public function setHolidays(SetDriverHolidaysRequest $request, int $id): JsonResponse
     {
-        $driver = User::where('role', 'driver')->findOrFail($id);
+        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('manageDriver', $driver);
 
         $driver = $this->regionPlanService->setHolidays($driver, $request->validated()['holidays']);
@@ -532,7 +533,7 @@ class DriverController extends BaseApiController
     )]
     public function assignRegions(AssignDriverRegionsRequest $request, int $id): JsonResponse
     {
-        $driver = User::where('role', 'driver')->findOrFail($id);
+        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('manageDriver', $driver);
 
         try {
@@ -574,7 +575,7 @@ class DriverController extends BaseApiController
     )]
     public function removeRegion(int $id, int $region_id): JsonResponse
     {
-        $driver = User::where('role', 'driver')->findOrFail($id);
+        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('manageDriver', $driver);
 
         try {

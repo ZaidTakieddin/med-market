@@ -95,7 +95,7 @@ class Company extends Model
      */
     public function isSupplier(): bool
     {
-        return $this->type === 'supplier';
+        return $this->type === CompanyType::SUPPLIER;
     }
 
     /**
@@ -103,7 +103,7 @@ class Company extends Model
      */
     public function isBuyer(): bool
     {
-        return $this->type === 'buyer';
+        return $this->type === CompanyType::BUYER;
     }
 
     /**
@@ -111,7 +111,7 @@ class Company extends Model
      */
     public function isWholesale(): bool
     {
-        return in_array($this->supplier_classification, ['wholesale', 'hybrid'], true);
+        return in_array($this->supplier_classification, SupplierClassification::wholesaleCapable(), true);
     }
 
     /**
@@ -119,7 +119,7 @@ class Company extends Model
      */
     public function isRetail(): bool
     {
-        return in_array($this->supplier_classification, ['retail', 'hybrid'], true);
+        return in_array($this->supplier_classification, SupplierClassification::retailCapable(), true);
     }
 
     /**
@@ -127,7 +127,7 @@ class Company extends Model
      */
     public function isHybrid(): bool
     {
-        return $this->supplier_classification === 'hybrid';
+        return $this->supplier_classification === SupplierClassification::HYBRID;
     }
 
     /**
@@ -135,7 +135,7 @@ class Company extends Model
      */
     public function isPharmacy(): bool
     {
-        return $this->buyer_classification === 'pharmacy';
+        return $this->buyer_classification === BuyerClassification::PHARMACY;
     }
 
     /**
@@ -143,7 +143,7 @@ class Company extends Model
      */
     public function isSalesmanCompany(): bool
     {
-        return $this->buyer_classification === 'salesman';
+        return $this->buyer_classification === BuyerClassification::SALESMAN;
     }
 
     /**

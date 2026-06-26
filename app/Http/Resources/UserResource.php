@@ -21,10 +21,10 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
-            'phone' => $this->when(in_array($this->role, ['driver', 'salesman']), $this->phone),
+            'phone' => $this->when($this->isDriver() || $this->isSalesman(), $this->phone),
             'role' => $this->role,
             'company' => new CompanyResource($this->whenLoaded('company')),
-            ...($this->role === 'driver' ? [
+            ...($this->isDriver() ? [
                 'workStartTime' => $this->work_start_time,
                 'workEndTime' => $this->work_end_time,
                 'employmentStartDate' => $this->employment_start_date?->toDateString(),

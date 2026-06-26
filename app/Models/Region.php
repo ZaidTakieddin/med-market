@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Constants\UserRole;
 use App\Support\Concerns\CacheableReference;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -78,7 +79,7 @@ class Region extends Model
     public function drivers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'driver_regions', 'region_id', 'driver_id')
-            ->where('role', 'driver')
+            ->where('role', UserRole::DRIVER)
             ->withTimestamps();
     }
 }
