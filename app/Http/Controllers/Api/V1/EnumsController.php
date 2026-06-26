@@ -7,8 +7,10 @@ use App\Constants\CompanyType;
 use App\Constants\DayOfWeek;
 use App\Constants\DiscountType;
 use App\Constants\DriverStatus;
+use App\Constants\InvoiceStatus;
 use App\Constants\OfferType;
 use App\Constants\OrderStatus;
+use App\Constants\PaymentStatus;
 use App\Constants\PaymentTerms;
 use App\Constants\PricingType;
 use App\Constants\RegionPlanType;
@@ -42,7 +44,7 @@ class EnumsController extends BaseApiController
                 required: false,
                 schema: new OA\Schema(
                     type: 'string',
-                    enum: ['offerType', 'orderStatus', 'userRole', 'companyType', 'stockMovementType', 'discountType', 'supplierClassification', 'buyerClassification', 'pricingType', 'paymentTerms', 'driverStatus', 'regionPlanType', 'dayOfWeek']
+                    enum: ['offerType', 'orderStatus', 'userRole', 'companyType', 'stockMovementType', 'discountType', 'supplierClassification', 'buyerClassification', 'pricingType', 'paymentTerms', 'driverStatus', 'regionPlanType', 'dayOfWeek', 'invoiceStatus', 'paymentStatus']
                 ),
                 description: 'Optional. Return only this enum type.'
             ),
@@ -118,6 +120,8 @@ class EnumsController extends BaseApiController
             'driverStatus' => DriverStatus::all(),
             'regionPlanType' => RegionPlanType::all(),
             'dayOfWeek' => DayOfWeek::all(),
+            'invoiceStatus' => InvoiceStatus::all(),
+            'paymentStatus' => PaymentStatus::all(),
         ];
 
         $type = $request->query('type');
@@ -149,6 +153,10 @@ class EnumsController extends BaseApiController
                 'region_plan_type' => 'regionPlanType',
                 'dayOfWeek' => 'dayOfWeek',
                 'day_of_week' => 'dayOfWeek',
+                'invoiceStatus' => 'invoiceStatus',
+                'invoice_status' => 'invoiceStatus',
+                'paymentStatus' => 'paymentStatus',
+                'payment_status' => 'paymentStatus',
             ];
             $key = $typeMap[$type] ?? $type;
             if (isset($enums[$key])) {

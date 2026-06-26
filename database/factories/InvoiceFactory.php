@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Constants\InvoiceStatus;
+use App\Constants\PaymentStatus;
 use App\Models\Company;
 use App\Models\Invoice;
 use App\Models\Order;
@@ -27,8 +29,8 @@ class InvoiceFactory extends Factory
             'order_id' => Order::factory(),
             'buyer_company_id' => Company::factory(),
             'supplier_company_id' => Company::factory()->supplier(),
-            'status' => 'generated',
-            'payment_status' => 'pending',
+            'status' => InvoiceStatus::GENERATED,
+            'payment_status' => PaymentStatus::PENDING,
             'subtotal' => $subtotal,
             'tax_amount' => $tax,
             'total_amount' => $subtotal + $tax,

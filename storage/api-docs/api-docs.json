@@ -3297,7 +3297,9 @@
                                 "paymentTerms",
                                 "driverStatus",
                                 "regionPlanType",
-                                "dayOfWeek"
+                                "dayOfWeek",
+                                "invoiceStatus",
+                                "paymentStatus"
                             ]
                         }
                     }

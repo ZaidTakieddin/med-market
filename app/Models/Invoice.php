@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Constants\InvoiceStatus;
+use App\Constants\PaymentStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -79,7 +81,7 @@ class Invoice extends Model
      */
     public function isPaid(): bool
     {
-        return $this->payment_status === 'paid' || $this->paid_amount >= $this->total_amount;
+        return $this->payment_status === PaymentStatus::PAID || $this->paid_amount >= $this->total_amount;
     }
 
     /**
@@ -123,7 +125,7 @@ class Invoice extends Model
     public function markAsSent(): void
     {
         $this->update([
-            'status' => 'sent',
+            'status' => InvoiceStatus::SENT,
             'sent_at' => now(),
         ]);
     }
@@ -136,10 +138,10 @@ class Invoice extends Model
         $paidAmount = $amount ?? $this->total_amount;
 
         $this->update([
-            'payment_status' => $paidAmount >= $this->total_amount ? 'paid' : 'partial',
+            'payment_status' => $paidAmount >= $this->total_amount ? PaymentStatus::PAID : PaymentStatus::PARTIAL,
             'paid_amount' => $paidAmount,
             'paid_at' => now(),
-            'status' => 'paid',
+            'status' => InvoiceStatus::PAID,
         ]);
     }
 
@@ -150,8 +152,8 @@ class Invoice extends Model
     {
         if (! $this->isPaid()) {
             $this->update([
-                'payment_status' => 'overdue',
-                'status' => 'overdue',
+                'payment_status' => PaymentStatus::OVERDUE,
+                'status' => InvoiceStatus::OVERDUE,
             ]);
         }
     }

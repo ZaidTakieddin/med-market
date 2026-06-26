@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Constants\InvoiceStatus;
+use App\Constants\PaymentStatus;
 use App\Models\Invoice;
 use App\Models\Order;
 use Illuminate\Bus\Queueable;
@@ -79,8 +81,8 @@ class GenerateInvoiceJob implements ShouldQueue
                     'order_id' => $this->order->id,
                     'buyer_company_id' => $this->order->buyer_company_id,
                     'supplier_company_id' => $this->order->supplier_company_id,
-                    'status' => 'generated',
-                    'payment_status' => 'pending',
+                    'status' => InvoiceStatus::GENERATED,
+                    'payment_status' => PaymentStatus::PENDING,
                     'subtotal' => $this->order->subtotal,
                     'tax_amount' => $this->order->tax_amount,
                     'total_amount' => $this->order->total_amount,

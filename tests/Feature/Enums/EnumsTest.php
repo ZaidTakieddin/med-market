@@ -25,6 +25,7 @@ class EnumsTest extends TestCase
                     'supplierClassification', 'buyerClassification', 'pricingType',
                     'paymentTerms', 'stockMovementType', 'discountType',
                     'driverStatus', 'regionPlanType', 'dayOfWeek',
+                    'invoiceStatus', 'paymentStatus',
                 ],
             ]);
     }
