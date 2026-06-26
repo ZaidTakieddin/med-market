@@ -169,11 +169,19 @@ leak exception messages.
 - Dashboard/statistics depth, user-management (admin), product images, payment
   integration, real-time/notifications infra — see "Missing Features" in docs/PROGRESS.md.
 
-**Known technical debt**: at **level 8** the PHPStan baseline is down to **4**
-grandfathered findings (a generic-paginator helper return type, a Larastan dynamic-pivot
-limitation ×2, and a collection-count nit). The codebase is fully typed and nullable-safe
-through level 8. Remaining: level 9 (strict `mixed` handling — likely impractical given
-framework magic) and broader caching (needs a visibility-aware cache-key design).
+**Known technical debt**: largely paid down. At **level 8** the PHPStan baseline is down
+to **4** grandfathered findings (a generic-paginator helper return type, a Larastan
+dynamic-pivot limitation ×2, and a collection-count nit). The codebase is fully typed and
+nullable-safe through level 8.
+
+Two items are **deliberately not pursued** (decisions, not gaps):
+- **PHPStan level 9/10** (strict explicit/implicit `mixed`) — declined: ~130+ findings are
+  Laravel's already-validated `mixed` request data; the casts cost readability for little
+  real-bug value. **Level 8 is the chosen ceiling.**
+- **Broader caching** (product/company/order lists) — deferred as premature optimization:
+  lists are per-buyer visibility-scoped + paginated (low cache hit rate, heavy
+  invalidation), and dashboard aggregates are already efficient. The high-value static
+  reference lists are already cached. Revisit only on a profiled bottleneck.
 
 ## Final rule
 
