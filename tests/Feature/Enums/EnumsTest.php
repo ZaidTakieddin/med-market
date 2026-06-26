@@ -24,8 +24,32 @@ class EnumsTest extends TestCase
                     'offerType', 'orderStatus', 'userRole', 'companyType',
                     'supplierClassification', 'buyerClassification', 'pricingType',
                     'paymentTerms', 'stockMovementType', 'discountType',
+                    'driverStatus', 'regionPlanType', 'dayOfWeek',
                 ],
             ]);
+    }
+
+    /**
+     * Guard against the endpoint drifting out of sync with app/Constants: every constant
+     * class exposing all() must be returned by the enums endpoint.
+     */
+    public function test_exposes_every_constant_class_with_an_all_method(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        $returned = array_keys($this->getJson('/api/v1/enums')->assertOk()->json('data'));
+
+        $expected = [];
+        foreach (glob(app_path('Constants/*.php')) as $file) {
+            $class = 'App\\Constants\\'.basename($file, '.php');
+            if (method_exists($class, 'all')) {
+                $expected[] = lcfirst(class_basename($class));
+            }
+        }
+
+        sort($expected);
+        sort($returned);
+        $this->assertSame($expected, $returned, 'EnumsController must return every Constants class that has an all() method');
     }
 
     public function test_filters_to_a_single_enum_type(): void

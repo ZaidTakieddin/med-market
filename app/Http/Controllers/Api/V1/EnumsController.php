@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Constants\BuyerClassification;
 use App\Constants\CompanyType;
+use App\Constants\DayOfWeek;
 use App\Constants\DiscountType;
+use App\Constants\DriverStatus;
 use App\Constants\OfferType;
 use App\Constants\OrderStatus;
 use App\Constants\PaymentTerms;
 use App\Constants\PricingType;
+use App\Constants\RegionPlanType;
 use App\Constants\StockMovementType;
 use App\Constants\SupplierClassification;
 use App\Constants\UserRole;
@@ -39,7 +42,7 @@ class EnumsController extends BaseApiController
                 required: false,
                 schema: new OA\Schema(
                     type: 'string',
-                    enum: ['offerType', 'orderStatus', 'userRole', 'companyType', 'stockMovementType', 'discountType', 'supplierClassification', 'buyerClassification', 'pricingType', 'paymentTerms']
+                    enum: ['offerType', 'orderStatus', 'userRole', 'companyType', 'stockMovementType', 'discountType', 'supplierClassification', 'buyerClassification', 'pricingType', 'paymentTerms', 'driverStatus', 'regionPlanType', 'dayOfWeek']
                 ),
                 description: 'Optional. Return only this enum type.'
             ),
@@ -112,6 +115,9 @@ class EnumsController extends BaseApiController
             'paymentTerms' => PaymentTerms::all(),
             'stockMovementType' => StockMovementType::all(),
             'discountType' => DiscountType::all(),
+            'driverStatus' => DriverStatus::all(),
+            'regionPlanType' => RegionPlanType::all(),
+            'dayOfWeek' => DayOfWeek::all(),
         ];
 
         $type = $request->query('type');
@@ -137,6 +143,12 @@ class EnumsController extends BaseApiController
                 'stock_movement_type' => 'stockMovementType',
                 'discountType' => 'discountType',
                 'discount_type' => 'discountType',
+                'driverStatus' => 'driverStatus',
+                'driver_status' => 'driverStatus',
+                'regionPlanType' => 'regionPlanType',
+                'region_plan_type' => 'regionPlanType',
+                'dayOfWeek' => 'dayOfWeek',
+                'day_of_week' => 'dayOfWeek',
             ];
             $key = $typeMap[$type] ?? $type;
             if (isset($enums[$key])) {

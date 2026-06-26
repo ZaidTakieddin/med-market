@@ -3294,7 +3294,10 @@
                                 "supplierClassification",
                                 "buyerClassification",
                                 "pricingType",
-                                "paymentTerms"
+                                "paymentTerms",
+                                "driverStatus",
+                                "regionPlanType",
+                                "dayOfWeek"
                             ]
                         }
                     }
