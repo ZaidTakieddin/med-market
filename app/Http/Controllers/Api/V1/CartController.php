@@ -797,7 +797,7 @@ class CartController extends BaseApiController
             ),
             new OA\Response(response: 401, description: 'Unauthenticated'),
             new OA\Response(response: 403, description: 'Forbidden - Only buyers can checkout'),
-            new OA\Response(response: 400, description: 'Cart is empty'),
+            new OA\Response(response: 422, description: 'Cart is empty'),
         ]
     )]
     public function checkout(Request $request): JsonResponse
@@ -863,7 +863,7 @@ class CartController extends BaseApiController
             ),
             new OA\Response(response: 401, description: 'Unauthenticated'),
             new OA\Response(response: 403, description: 'Forbidden - Only buyers can checkout'),
-            new OA\Response(response: 400, description: 'Cart is empty or no items found for supplier'),
+            new OA\Response(response: 422, description: 'Cart is empty or no items found for supplier'),
             new OA\Response(response: 404, description: 'Supplier not found'),
         ]
     )]

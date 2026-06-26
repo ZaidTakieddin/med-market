@@ -412,7 +412,7 @@ class OrderController extends BaseApiController
                     ]
                 )
             ),
-            new OA\Response(response: 400, description: 'Invalid status transition - cannot transition from current status to requested status'),
+            new OA\Response(response: 422, description: 'Invalid status transition - cannot transition from current status to requested status'),
             new OA\Response(response: 401, description: 'Unauthenticated'),
             new OA\Response(response: 403, description: 'Forbidden - Only the supplier of the order may advance its status (accept/prepare/ship/deliver). Buyers and salesmen can only cancel.'),
             new OA\Response(response: 404, description: 'Order not found'),
@@ -487,7 +487,7 @@ class OrderController extends BaseApiController
                     ]
                 )
             ),
-            new OA\Response(response: 400, description: 'Cannot cancel order in current status - order may already be delivered or cancelled'),
+            new OA\Response(response: 422, description: 'Cannot cancel order in current status - order may already be delivered or cancelled'),
             new OA\Response(response: 401, description: 'Unauthenticated'),
             new OA\Response(response: 403, description: 'Forbidden - Buyers can cancel their own orders, suppliers can cancel orders placed with them'),
             new OA\Response(response: 404, description: 'Order not found'),

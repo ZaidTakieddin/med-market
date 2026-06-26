@@ -1325,7 +1325,7 @@
                     "403": {
                         "description": "Forbidden - Only buyers can checkout"
                     },
-                    "400": {
+                    "422": {
                         "description": "Cart is empty"
                     }
                 },
@@ -1422,7 +1422,7 @@
                     "403": {
                         "description": "Forbidden - Only buyers can checkout"
                     },
-                    "400": {
+                    "422": {
                         "description": "Cart is empty or no items found for supplier"
                     },
                     "404": {
@@ -4801,7 +4801,7 @@
                             }
                         }
                     },
-                    "400": {
+                    "422": {
                         "description": "Invalid status transition - cannot transition from current status to requested status"
                     },
                     "401": {
@@ -4886,7 +4886,7 @@
                             }
                         }
                     },
-                    "400": {
+                    "422": {
                         "description": "Cannot cancel order in current status - order may already be delivered or cancelled"
                     },
                     "401": {
@@ -7182,9 +7182,6 @@
                     "200": {
                         "description": "Stock adjusted successfully"
                     },
-                    "400": {
-                        "description": "Insufficient stock"
-                    },
                     "401": {
                         "description": "Unauthenticated"
                     },
@@ -7195,7 +7192,7 @@
                         "description": "Product not found"
                     },
                     "422": {
-                        "description": "Validation error"
+                        "description": "Validation error or business-rule violation (e.g. insufficient stock)"
                     }
                 },
                 "security": [
