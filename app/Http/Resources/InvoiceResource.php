@@ -43,8 +43,8 @@ class InvoiceResource extends JsonResource
             'paidAt' => $this->paid_at?->toISOString(),
             'dueDate' => $this->due_date?->toISOString(),
             'notes' => $this->notes,
-            'createdAt' => $this->created_at->toISOString(),
-            'updatedAt' => $this->updated_at->toISOString(),
+            'createdAt' => $this->created_at?->toISOString(),
+            'updatedAt' => $this->updated_at?->toISOString(),
         ];
     }
 }

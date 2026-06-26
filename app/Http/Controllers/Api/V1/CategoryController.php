@@ -117,7 +117,7 @@ class CategoryController extends BaseApiController
     )]
     public function store(CreateCategoryRequest $request): JsonResponse
     {
-        $user = auth()->user();
+        $user = $this->currentUser();
         if (! $user->isAdmin()) {
             return $this->error('Only admins can create categories.', null, 403);
         }
@@ -188,7 +188,7 @@ class CategoryController extends BaseApiController
     )]
     public function update(UpdateCategoryRequest $request, Category $category): JsonResponse
     {
-        $user = auth()->user();
+        $user = $this->currentUser();
         if (! $user->isAdmin()) {
             return $this->error('Only admins can update categories.', null, 403);
         }
@@ -222,7 +222,7 @@ class CategoryController extends BaseApiController
     )]
     public function destroy(Category $category): JsonResponse
     {
-        $user = auth()->user();
+        $user = $this->currentUser();
         if (! $user->isAdmin()) {
             return $this->error('Only admins can delete categories.', null, 403);
         }

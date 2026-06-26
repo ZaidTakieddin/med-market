@@ -87,7 +87,7 @@ class OrderController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
             $query = Order::with([
                 'buyerCompany.region.city',
                 'supplierCompany.categories',
@@ -229,16 +229,19 @@ class OrderController extends BaseApiController
     )]
     public function store(CreateOrderRequest $request): JsonResponse
     {
-        $user = auth()->user();
+        $user = $this->currentUser();
 
         if (! $user->canBuy()) {
             return $this->error('Only buyers and salesmen can create orders', null, 403);
         }
 
         $buyerCompany = $user->company;
+        if ($buyerCompany === null) {
+            return $this->error('Your account is not linked to a company.', null, 422);
+        }
 
         $supplierCompany = \App\Models\Company::find((int) $request->supplier_company_id);
-        if ($buyerCompany && $supplierCompany && ! $this->pricingService->canBuyerSeeSupplier($supplierCompany, $buyerCompany)) {
+        if ($supplierCompany && ! $this->pricingService->canBuyerSeeSupplier($supplierCompany, $buyerCompany)) {
             return $this->error('This supplier is not available to your account', null, 403);
         }
 
@@ -265,7 +268,7 @@ class OrderController extends BaseApiController
         }
 
         $order = $this->orderCreationService->create(
-            buyerCompanyId: $user->company_id,
+            buyerCompanyId: $buyerCompany->id,
             supplierCompanyId: $request->supplier_company_id,
             createdBy: $user->id,
             items: $items,
@@ -552,7 +555,7 @@ class OrderController extends BaseApiController
     public function assignDriver(AssignDriverRequest $request, Order $order): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
 
             // Only suppliers can assign drivers to their orders
             if (! $user->isSupplier() && ! $user->isAdmin()) {

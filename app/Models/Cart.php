@@ -91,6 +91,9 @@ class Cart extends Model
         $grouped = [];
 
         foreach ($this->items as $item) {
+            if ($item->product === null) {
+                continue;
+            }
             $supplierId = $item->product->supplier_company_id;
             if (! isset($grouped[$supplierId])) {
                 $grouped[$supplierId] = [];

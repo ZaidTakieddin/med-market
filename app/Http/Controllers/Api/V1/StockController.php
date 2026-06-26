@@ -102,7 +102,7 @@ class StockController extends BaseApiController
     {
         $this->authorize('mutateStock', $product);
 
-        $user = auth()->user();
+        $user = $this->currentUser();
 
         $movement = $this->stockMovementService->recordIn(
             product: $product,
@@ -161,7 +161,7 @@ class StockController extends BaseApiController
     {
         $this->authorize('mutateStock', $product);
 
-        $user = auth()->user();
+        $user = $this->currentUser();
 
         $movement = $this->stockMovementService->recordMovement(
             product: $product,

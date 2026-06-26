@@ -50,7 +50,7 @@ class OfferController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
             $query = Offer::with('supplierCompany:id,name,type');
 
             if ($user->isSupplier() || ($user->isSalesman() && $user->isSupplierSalesman())) {
@@ -153,7 +153,7 @@ class OfferController extends BaseApiController
         $this->authorize('create', Offer::class);
 
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
 
             $offer = Offer::create([
                 'supplier_company_id' => $user->company_id,

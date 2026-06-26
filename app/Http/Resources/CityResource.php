@@ -28,8 +28,8 @@ class CityResource extends JsonResource
                 $this->relationLoaded('regions'),
                 fn () => RegionResource::collection($this->regions)
             ),
-            'createdAt' => $this->created_at->toISOString(),
-            'updatedAt' => $this->updated_at->toISOString(),
+            'createdAt' => $this->created_at?->toISOString(),
+            'updatedAt' => $this->updated_at?->toISOString(),
         ];
     }
 }

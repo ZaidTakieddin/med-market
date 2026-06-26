@@ -139,10 +139,11 @@ composer quality      # both: pint --dirty, then phpstan
 
 - **Pint** uses the Laravel preset. The repo is fully normalized, so keep it that way —
   format **changed** files with `--dirty` before finishing; `pint --test` must stay green.
-- **Larastan** runs at **level 7** with a **baseline** (`phpstan-baseline.neon`, **4**
+- **Larastan** runs at **level 8** with a **baseline** (`phpstan-baseline.neon`, **4**
   grandfathered findings — down from 379 at level 5). Only *newly introduced* errors
   fail. Fix the root cause — never add `@phpstan-ignore`/baseline entries to silence new
-  errors. Continue raising the `level` in `phpstan.neon` as legacy debt is paid down.
+  errors. Controllers get the authenticated user via `BaseApiController::currentUser()`
+  (non-null) rather than `auth()->user()`. Continue raising the `level` as debt is paid.
 - **CI** (`.github/workflows/ci.yml`) runs `pint --test` + Larastan + `php artisan test`
   on push to `main` and every PR.
 - A **Stop hook** (`.claude/hooks/code-quality.php`, wired in `.claude/settings.json`)
@@ -168,11 +169,11 @@ leak exception messages.
 - Dashboard/statistics depth, user-management (admin), product images, payment
   integration, real-time/notifications infra — see "Missing Features" in docs/PROGRESS.md.
 
-**Known technical debt**: at **level 7** the PHPStan baseline is down to **4**
+**Known technical debt**: at **level 8** the PHPStan baseline is down to **4**
 grandfathered findings (a generic-paginator helper return type, a Larastan dynamic-pivot
-limitation ×2, and a collection-count nit). Models, resources, requests, services, and
-jobs are fully typed and every model has a factory; the next step is raising the `level`
-toward 8 (which surfaces nullable-safety findings needing real, case-by-case review).
+limitation ×2, and a collection-count nit). The codebase is fully typed and nullable-safe
+through level 8. Remaining: level 9 (strict `mixed` handling — likely impractical given
+framework magic) and broader caching (needs a visibility-aware cache-key design).
 
 ## Final rule
 

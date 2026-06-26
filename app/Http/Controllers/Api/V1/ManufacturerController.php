@@ -122,7 +122,7 @@ class ManufacturerController extends BaseApiController
     )]
     public function store(CreateManufacturerRequest $request): JsonResponse
     {
-        $user = auth()->user();
+        $user = $this->currentUser();
         if (! $user->isAdmin()) {
             return $this->error('Only admins can create manufacturers.', null, 403);
         }
@@ -197,7 +197,7 @@ class ManufacturerController extends BaseApiController
     )]
     public function update(UpdateManufacturerRequest $request, Manufacturer $manufacturer): JsonResponse
     {
-        $user = auth()->user();
+        $user = $this->currentUser();
         if (! $user->isAdmin()) {
             return $this->error('Only admins can update manufacturers.', null, 403);
         }
@@ -231,7 +231,7 @@ class ManufacturerController extends BaseApiController
     )]
     public function destroy(Manufacturer $manufacturer): JsonResponse
     {
-        $user = auth()->user();
+        $user = $this->currentUser();
         if (! $user->isAdmin()) {
             return $this->error('Only admins can delete manufacturers.', null, 403);
         }

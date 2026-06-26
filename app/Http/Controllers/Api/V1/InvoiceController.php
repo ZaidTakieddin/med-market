@@ -50,7 +50,7 @@ class InvoiceController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
             $query = Invoice::with(['order.driver', 'buyerCompany', 'supplierCompany']);
 
             if ($user->isBuyer() || ($user->isSalesman() && $user->isIndependentSalesman())) {
@@ -133,7 +133,7 @@ class InvoiceController extends BaseApiController
     )]
     public function show(Invoice $invoice): JsonResponse
     {
-        $user = auth()->user();
+        $user = $this->currentUser();
 
         if (! $this->canAccessInvoice($user, $invoice)) {
             return $this->error('Unauthorized', null, 403);
@@ -171,7 +171,7 @@ class InvoiceController extends BaseApiController
     )]
     public function getByOrder(Order $order): JsonResponse
     {
-        $user = auth()->user();
+        $user = $this->currentUser();
 
         if (! $this->canAccessOrder($user, $order)) {
             return $this->error('Unauthorized', null, 403);
@@ -215,7 +215,7 @@ class InvoiceController extends BaseApiController
     )]
     public function download(Invoice $invoice): \Illuminate\Http\Response|\Symfony\Component\HttpFoundation\StreamedResponse|JsonResponse
     {
-        $user = auth()->user();
+        $user = $this->currentUser();
 
         if (! $this->canAccessInvoice($user, $invoice)) {
             return $this->error('Unauthorized', null, 403);

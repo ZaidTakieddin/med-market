@@ -94,7 +94,7 @@ class CartController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
 
             $cart = Cart::firstOrCreate(
                 ['user_id' => $user->id],
@@ -156,7 +156,7 @@ class CartController extends BaseApiController
     public function addItem(AddCartItemRequest $request): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
 
             if (! $user->canBuy()) {
                 return $this->error('Only buyers and salesmen can add items to cart', null, 403);
@@ -302,21 +302,25 @@ class CartController extends BaseApiController
     public function updateItem(UpdateCartItemRequest $request, int $id): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
             $cartItem = CartItem::findOrFail($id);
 
             // Verify cart belongs to user
-            if ($cartItem->cart->user_id !== $user->id) {
+            $cart = $cartItem->cart;
+            if ($cart === null || $cart->user_id !== $user->id) {
                 return $this->error('Unauthorized', null, 403);
             }
 
             if ($request->has('quantity')) {
                 $newQuantity = $request->quantity;
                 $product = $cartItem->product;
-                $product->load('offers');
                 $buyerCompany = $user->company;
+                if ($product === null || $buyerCompany === null) {
+                    return $this->error('This product is no longer available.', null, 422);
+                }
+                $product->load('offers');
 
-                $cartItems = $cartItem->cart->items()->with('product')->get();
+                $cartItems = $cart->items()->with('product')->get();
 
                 $priceResult = $this->pricingService->resolve($product, $buyerCompany, $newQuantity);
                 $tierPrice = $priceResult->unitPrice;
@@ -344,7 +348,7 @@ class CartController extends BaseApiController
             $cartItem->save();
 
             // Recalculate cart totals
-            $cartItem->cart->calculateTotals();
+            $cart->calculateTotals();
             $cartItem->load(['product', 'appliedOffer']);
 
             return $this->success(
@@ -417,19 +421,23 @@ class CartController extends BaseApiController
     public function getAvailableOffers(int $id): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
             $cartItem = CartItem::findOrFail($id);
 
             // Verify cart belongs to user
-            if ($cartItem->cart->user_id !== $user->id) {
+            $cart = $cartItem->cart;
+            if ($cart === null || $cart->user_id !== $user->id) {
                 return $this->error('Unauthorized', null, 403);
             }
 
             $product = $cartItem->product;
-            $product->load('offers');
             $buyerCompany = $user->company;
+            if ($product === null || $buyerCompany === null) {
+                return $this->error('This product is no longer available.', null, 422);
+            }
+            $product->load('offers');
 
-            $cartItems = $cartItem->cart->items()->with('product')->get();
+            $cartItems = $cart->items()->with('product')->get();
 
             $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
             $basePrice = $priceResult->unitPrice;
@@ -500,24 +508,28 @@ class CartController extends BaseApiController
     public function applyOffer(ApplyOfferRequest $request, int $id): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
             $cartItem = CartItem::findOrFail($id);
 
             // Verify cart belongs to user
-            if ($cartItem->cart->user_id !== $user->id) {
+            $cart = $cartItem->cart;
+            if ($cart === null || $cart->user_id !== $user->id) {
                 return $this->error('Unauthorized', null, 403);
             }
 
             $product = $cartItem->product;
-            $offer = \App\Models\Offer::findOrFail((int) $request->offer_id);
             $buyerCompany = $user->company;
+            if ($product === null || $buyerCompany === null) {
+                return $this->error('This product is no longer available.', null, 422);
+            }
+            $offer = \App\Models\Offer::findOrFail((int) $request->offer_id);
 
             $productOffers = $product->offers()->where('offers.id', $offer->id)->first();
             if (! $productOffers) {
                 return $this->error('This offer is not available for this product', null, 400);
             }
 
-            $cartItems = $cartItem->cart->items()->with('product')->get();
+            $cartItems = $cart->items()->with('product')->get();
 
             $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
             $offerResult = $this->cartOfferService->applyOffer($offer, $product, $cartItem->quantity, $cartItems, $priceResult->unitPrice);
@@ -532,7 +544,7 @@ class CartController extends BaseApiController
             $cartItem->save();
 
             // Recalculate cart totals
-            $cartItem->cart->calculateTotals();
+            $cart->calculateTotals();
             $cartItem->load(['product.offers', 'appliedOffer']);
 
             return $this->success(
@@ -571,19 +583,23 @@ class CartController extends BaseApiController
     public function removeOffer(int $id): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
             $cartItem = CartItem::findOrFail($id);
 
             // Verify cart belongs to user
-            if ($cartItem->cart->user_id !== $user->id) {
+            $cart = $cartItem->cart;
+            if ($cart === null || $cart->user_id !== $user->id) {
                 return $this->error('Unauthorized', null, 403);
             }
 
             $product = $cartItem->product;
-            $product->load('offers');
             $buyerCompany = $user->company;
+            if ($product === null || $buyerCompany === null) {
+                return $this->error('This product is no longer available.', null, 422);
+            }
+            $product->load('offers');
 
-            $cartItems = $cartItem->cart->items()->with('product')->get();
+            $cartItems = $cart->items()->with('product')->get();
 
             $priceResult = $this->pricingService->resolve($product, $buyerCompany, $cartItem->quantity);
             $tierPrice = $priceResult->unitPrice;
@@ -604,7 +620,7 @@ class CartController extends BaseApiController
             $cartItem->save();
 
             // Recalculate cart totals
-            $cartItem->cart->calculateTotals();
+            $cart->calculateTotals();
             $cartItem->load(['product.offers', 'appliedOffer']);
 
             return $this->success(
@@ -643,21 +659,27 @@ class CartController extends BaseApiController
     public function removeItem(int $id): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
             $cartItem = CartItem::findOrFail($id);
 
             // Verify cart belongs to user
-            if ($cartItem->cart->user_id !== $user->id) {
+            $cart = $cartItem->cart;
+            if ($cart === null || $cart->user_id !== $user->id) {
                 return $this->error('Unauthorized', null, 403);
             }
 
-            $cart = $cartItem->cart;
             $buyerCompany = $user->company;
+            if ($buyerCompany === null) {
+                return $this->error('Your account is not linked to a company.', null, 422);
+            }
             $cartItem->delete();
 
             $remainingItems = $cart->items()->with('product.offers')->get();
             foreach ($remainingItems as $item) {
                 $itemProduct = $item->product;
+                if ($itemProduct === null) {
+                    continue;
+                }
                 $itemProduct->load('offers');
 
                 $priceResult = $this->pricingService->resolve($itemProduct, $buyerCompany, $item->quantity);
@@ -709,7 +731,7 @@ class CartController extends BaseApiController
     public function clear(Request $request): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
             $cart = Cart::where('user_id', $user->id)->first();
 
             if ($cart) {
@@ -780,7 +802,7 @@ class CartController extends BaseApiController
     )]
     public function checkout(Request $request): JsonResponse
     {
-        $user = auth()->user();
+        $user = $this->currentUser();
 
         if (! $user->canBuy()) {
             return $this->error('Only buyers and salesmen can checkout', null, 403);
@@ -847,7 +869,7 @@ class CartController extends BaseApiController
     )]
     public function checkoutSupplier(CheckoutSupplierRequest $request): JsonResponse
     {
-        $user = auth()->user();
+        $user = $this->currentUser();
 
         if (! $user->canBuy()) {
             return $this->error('Only buyers and salesmen can checkout', null, 403);

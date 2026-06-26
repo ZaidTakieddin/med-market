@@ -42,7 +42,7 @@ class ProductController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
-        $user = auth()->user();
+        $user = $this->currentUser();
         $query = Product::with(['supplierCompany', 'category', 'manufacturer']);
 
         $activeOffersEagerLoad = ['offers' => function ($q) {
@@ -167,7 +167,7 @@ class ProductController extends BaseApiController
         try {
             $this->authorize('create', Product::class);
 
-            $user = auth()->user();
+            $user = $this->currentUser();
             $supplierCompanyId = $user->isSupplier()
                 ? $user->company_id
                 : $request->supplier_company_id;

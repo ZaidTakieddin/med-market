@@ -98,7 +98,7 @@ class DashboardController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
-        $user = auth()->user();
+        $user = $this->currentUser();
 
         if (! $user->isSupplier() && ! $user->isAdmin()) {
             return $this->error('Only suppliers and admins can access the dashboard', null, 403);

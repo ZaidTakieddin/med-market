@@ -25,7 +25,7 @@ class OrderStateTransitionService
     /**
      * Transition an order to a new state with validation and logging.
      *
-     * @throws \InvalidArgumentException If transition is invalid
+     * @throws DomainException If transition is invalid
      */
     public function transition(Order $order, string $newStatus, ?int $userId = null, ?string $notes = null): Order
     {
@@ -71,15 +71,18 @@ class OrderStateTransitionService
                 'user_id' => $userId,
             ]);
 
+            // Reload to reflect the saved status + timestamps for the jobs and return value.
+            $order->refresh();
+
             // Dispatch notification job
-            SendOrderNotificationJob::dispatch($order->fresh(), $oldStatus, $newStatus, $userId);
+            SendOrderNotificationJob::dispatch($order, $oldStatus, $newStatus, $userId);
 
             // Generate invoice when order is accepted
             if ($newStatus === OrderStatus::ACCEPTED) {
-                GenerateInvoiceJob::dispatch($order->fresh());
+                GenerateInvoiceJob::dispatch($order);
             }
 
-            return $order->fresh();
+            return $order;
         });
     }
 

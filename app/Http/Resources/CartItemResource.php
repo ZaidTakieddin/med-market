@@ -18,9 +18,9 @@ class CartItemResource extends JsonResource
     public function toArray(Request $request): array
     {
         $baseUnitPrice = (float) $this->unit_price;
+        $product = $this->relationLoaded('product') ? $this->product : null;
 
-        if ($this->applied_offer_id && $this->relationLoaded('product')) {
-            $product = $this->product;
+        if ($this->applied_offer_id && $product !== null) {
             $baseUnitPrice = match ($this->pricing_type) {
                 'wholesale' => (float) ($product->getFinalWholesalePrice() ?? $product->getFinalPharmacistPrice()),
                 'custom' => (float) $this->unit_price,

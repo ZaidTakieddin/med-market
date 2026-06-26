@@ -64,8 +64,8 @@ class CartResource extends JsonResource
             'totalAmount' => (float) $this->total_amount,
             'hasMultipleSuppliers' => $this->hasMultipleSuppliers(),
             'suppliersCount' => count($itemsBySupplier),
-            'createdAt' => $this->created_at->toISOString(),
-            'updatedAt' => $this->updated_at->toISOString(),
+            'createdAt' => $this->created_at?->toISOString(),
+            'updatedAt' => $this->updated_at?->toISOString(),
         ];
     }
 }

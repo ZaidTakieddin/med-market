@@ -3,12 +3,28 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class BaseApiController extends Controller
 {
+    /**
+     * The authenticated user. These controllers are all behind auth:sanctum, so the
+     * user is always present; this narrows the framework's nullable type for callers.
+     */
+    protected function currentUser(): User
+    {
+        $user = auth()->user();
+
+        if ($user === null) {
+            abort(401);
+        }
+
+        return $user;
+    }
+
     /**
      * Check if the request wants unpaginated results.
      * Use per_page=all or paginate=false to get all results.
