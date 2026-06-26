@@ -6,5 +6,5 @@ parameters:
     paths:
         - app
 
-    # Raised to 7 after typing all models, resources, requests, services, and jobs.
-    level: 7
+    # Raised to 8 (nullable safety) after a non-null currentUser() accessor + null guards.
+    level: 8

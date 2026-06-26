@@ -55,7 +55,7 @@ class SalesmanController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
             $query = User::where('role', UserRole::SALESMAN)->with('company');
 
             if ($user->isAdmin()) {
@@ -485,7 +485,7 @@ class SalesmanController extends BaseApiController
         $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
         $this->authorize('accessSalesman', $salesman);
 
-        $user = auth()->user();
+        $user = $this->currentUser();
 
         $buyerCompany = Company::findOrFail((int) $request->buyer_company_id);
         if (! $buyerCompany->isBuyer()) {

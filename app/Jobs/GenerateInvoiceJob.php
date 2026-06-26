@@ -127,19 +127,21 @@ class GenerateInvoiceJob implements ShouldQueue
 
         $content .= "Invoice Number: INV-{$order->order_number}\n";
         $content .= "Order Number: {$order->order_number}\n";
-        $content .= 'Date: '.$order->created_at->format('Y-m-d H:i:s')."\n\n";
+        $content .= 'Date: '.$order->created_at?->format('Y-m-d H:i:s')."\n\n";
 
+        $buyer = $order->buyerCompany;
         $content .= "Buyer Information:\n";
-        $content .= "  Company: {$order->buyerCompany->name}\n";
-        if ($order->buyerCompany->address) {
-            $content .= "  Address: {$order->buyerCompany->address}\n";
+        $content .= "  Company: {$buyer?->name}\n";
+        if ($buyer?->address) {
+            $content .= "  Address: {$buyer->address}\n";
         }
         $content .= "\n";
 
+        $supplier = $order->supplierCompany;
         $content .= "Supplier Information:\n";
-        $content .= "  Company: {$order->supplierCompany->name}\n";
-        if ($order->supplierCompany->address) {
-            $content .= "  Address: {$order->supplierCompany->address}\n";
+        $content .= "  Company: {$supplier?->name}\n";
+        if ($supplier?->address) {
+            $content .= "  Address: {$supplier->address}\n";
         }
         $content .= "\n";
 

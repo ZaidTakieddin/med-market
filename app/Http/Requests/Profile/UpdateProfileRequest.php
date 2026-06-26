@@ -21,7 +21,7 @@ class UpdateProfileRequest extends BaseFormRequest
 
         return [
             'name' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'email' => ['sometimes', 'email', 'max:255', Rule::unique('users')->ignore($user?->id)],
         ];
     }
 

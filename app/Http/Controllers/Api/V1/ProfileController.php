@@ -33,7 +33,7 @@ class ProfileController extends BaseApiController
     public function show(): JsonResponse
     {
         try {
-            $user = auth()->user()->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])]);
+            $user = $this->currentUser()->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])]);
 
             return $this->success(new UserResource($user));
         } catch (\Exception $e) {
@@ -73,7 +73,7 @@ class ProfileController extends BaseApiController
     public function update(UpdateProfileRequest $request): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
             $user->update($request->validated());
 
             return $this->success([
@@ -118,7 +118,7 @@ class ProfileController extends BaseApiController
     public function changePassword(ChangePasswordRequest $request): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
 
             if (! Hash::check($request->current_password, $user->password)) {
                 return $this->error('Current password is incorrect', null, 422);
@@ -175,7 +175,7 @@ class ProfileController extends BaseApiController
     public function updateCompany(UpdateCompanyRequest $request): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
 
             if (! $user->isAdmin() && $user->role !== 'supplier' && $user->role !== 'buyer' && $user->role !== 'salesman') {
                 return $this->error('You do not have permission to update company information', null, 403);

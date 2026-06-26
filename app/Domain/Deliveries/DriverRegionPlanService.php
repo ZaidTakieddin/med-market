@@ -30,7 +30,9 @@ class DriverRegionPlanService
 
             $driver->forceFill(['region_plan_type' => RegionPlanType::FIXED])->save();
 
-            return $driver->fresh();
+            $driver->refresh();
+
+            return $driver;
         });
     }
 
@@ -41,7 +43,7 @@ class DriverRegionPlanService
      *
      * @param  array<string, int>  $schedule  Map of weekday (DayOfWeek) to region id.
      *
-     * @throws \InvalidArgumentException When a weekday is invalid or is a holiday.
+     * @throws DomainException When a weekday is invalid or is a holiday.
      */
     public function setDailyPlan(User $driver, array $schedule): User
     {
@@ -64,7 +66,9 @@ class DriverRegionPlanService
 
             $driver->forceFill(['region_plan_type' => RegionPlanType::DAILY])->save();
 
-            return $driver->fresh();
+            $driver->refresh();
+
+            return $driver;
         });
     }
 
@@ -75,7 +79,7 @@ class DriverRegionPlanService
      *
      * @param  list<string>  $weekdays
      *
-     * @throws \InvalidArgumentException When a weekday is invalid.
+     * @throws DomainException When a weekday is invalid.
      */
     public function setHolidays(User $driver, array $weekdays): User
     {
@@ -96,7 +100,9 @@ class DriverRegionPlanService
 
             $driver->forceFill(['holidays' => $weekdays])->save();
 
-            return $driver->fresh();
+            $driver->refresh();
+
+            return $driver;
         });
     }
 

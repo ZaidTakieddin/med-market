@@ -168,7 +168,7 @@ class ExportOrdersJob implements ShouldQueue
                 number_format((float) $order->tax_amount, 2),
                 number_format((float) $order->total_amount, 2),
                 $order->items->count(),
-                $order->created_at->format('Y-m-d H:i:s'),
+                $order->created_at?->format('Y-m-d H:i:s'),
                 $order->creator->name ?? 'N/A',
             ];
         }
@@ -201,7 +201,7 @@ class ExportOrdersJob implements ShouldQueue
                 'tax_amount' => $order->tax_amount,
                 'total_amount' => $order->total_amount,
                 'items_count' => $order->items->count(),
-                'created_at' => $order->created_at->toIso8601String(),
+                'created_at' => $order->created_at?->toIso8601String(),
                 'created_by' => $order->creator->name ?? null,
                 'items' => $order->items->map(function ($item) {
                     return [

@@ -167,12 +167,10 @@ class AuthController extends BaseApiController
     )]
     public function logout(): JsonResponse
     {
-        $user = auth()->user();
+        $user = $this->currentUser();
 
-        if ($user) {
-            // Revoke the current token
-            $user->currentAccessToken()->delete();
-        }
+        // Revoke the current token
+        $user->currentAccessToken()->delete();
 
         return $this->success(null, 'Logged out successfully');
     }
@@ -208,7 +206,7 @@ class AuthController extends BaseApiController
     )]
     public function me(): JsonResponse
     {
-        $user = auth()->user()->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])]);
+        $user = $this->currentUser()->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])]);
 
         return $this->success(
             new UserResource($user)

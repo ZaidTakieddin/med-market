@@ -42,7 +42,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
             $query = BuyerSupplierRelationship::with(['buyerCompany', 'supplierCompany']);
 
             if ($user->isAdmin()) {
@@ -115,7 +115,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
     public function store(CreateBuyerSupplierRelationshipRequest $request): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
             $this->authorize('create', BuyerSupplierRelationship::class);
 
             $buyerCompany = Company::findOrFail((int) $request->buyer_company_id);

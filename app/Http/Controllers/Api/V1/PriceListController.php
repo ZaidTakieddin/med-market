@@ -41,7 +41,7 @@ class PriceListController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
             $query = PriceList::with(['supplierCompany', 'buyerCompany', 'product.category', 'product.manufacturer']);
 
             if ($user->isAdmin()) {
@@ -120,7 +120,7 @@ class PriceListController extends BaseApiController
     public function store(CreatePriceListRequest $request): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
             $this->authorize('create', PriceList::class);
 
             $product = Product::findOrFail((int) $request->product_id);
@@ -287,7 +287,7 @@ class PriceListController extends BaseApiController
     public function forBuyer(Request $request, int $buyerCompanyId): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
 
             $isSupplierSide = $user->isSupplier() || ($user->isSalesman() && $user->isSupplierSalesman());
 

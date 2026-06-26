@@ -29,8 +29,8 @@ class RegionResource extends JsonResource
             'description' => $this->description,
             'isActive' => $this->is_active,
             'sortOrder' => $this->sort_order,
-            'createdAt' => $this->created_at->toISOString(),
-            'updatedAt' => $this->updated_at->toISOString(),
+            'createdAt' => $this->created_at?->toISOString(),
+            'updatedAt' => $this->updated_at?->toISOString(),
         ];
     }
 }

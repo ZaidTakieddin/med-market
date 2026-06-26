@@ -43,7 +43,7 @@ class CompanyController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $query = Company::with(['categories', 'manufacturers'])
-            ->visibleTo(auth()->user());
+            ->visibleTo($this->currentUser());
 
         if ($request->has('type')) {
             $query->where('type', $request->type);

@@ -27,7 +27,7 @@ class StockMovementResource extends JsonResource
             'quantityBefore' => $this->quantity_before,
             'quantityAfter' => $this->quantity_after,
             'reason' => $this->reason,
-            'createdAt' => $this->created_at->toISOString(),
+            'createdAt' => $this->created_at?->toISOString(),
         ];
     }
 }

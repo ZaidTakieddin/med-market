@@ -1,8 +1,25 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-26 (DomainException: domain business-rule violations now render as a standardized 422 via `bootstrap/app.php`; fixed business errors that were returning 500. Recent: portable search; queue `$timeout`; **Larastan level 5 → 7**, baseline 4; see entries below)
+> Last Updated: 2026-06-26 (**Larastan raised to level 8** (nullable-safety) via a non-null `currentUser()` accessor + null guards — baseline still 4. Removed dead `Handler.php`. Recent: DomainException → 422; portable search; queue `$timeout`. See entries below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
+
+## 🛡️ 2026-06-26 — Larastan level 8: nullable safety (branch `chore/phpstan-level-8`)
+
+Raised Larastan from 7 → 8 (reports calling methods / accessing properties on nullable
+types). Fixed all 207 surfaced findings at the root — **baseline stayed at 4**, no growth.
+
+- **Systemic**: added `BaseApiController::currentUser(): User` (non-null; aborts 401 if
+  somehow unauthenticated) and replaced 46 `auth()->user()` calls in controllers — cleared
+  ~124 findings on their own.
+- **Domain**: `OrderStateTransitionService`/`DriverRegionPlanService` use `refresh()` (returns
+  the model, non-null) instead of `fresh()` (`?Model`); `PricingService::isWholesaleEligible`/
+  `checkCustomPriceList`/`canBuyerSeeSupplier` accept `?Company` and degrade gracefully.
+- **Controllers**: `CartController`/`OrderController` guard nullable `cart`/`product`/`company`
+  relations (also gracefully handles a soft-deleted product lingering in a cart → 422).
+- **Resources/Jobs**: `?->` on the nullable-typed `created_at`/`updated_at`/relation accesses.
+
+Suite green: 54 tests, Pint clean, PHPStan clean at level 8.
 
 ## 🧱 2026-06-26 — Domain exception type + central rendering (branch `chore/domain-exception`)
 

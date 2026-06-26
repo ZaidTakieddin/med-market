@@ -117,8 +117,12 @@ class PricingService
     /**
      * Check if the buyer is eligible for wholesale pricing from this supplier.
      */
-    public function isWholesaleEligible(Company $supplierCompany, Company $buyerCompany): bool
+    public function isWholesaleEligible(?Company $supplierCompany, Company $buyerCompany): bool
     {
+        if ($supplierCompany === null) {
+            return false;
+        }
+
         $supplierCanWholesale = in_array(
             $supplierCompany->supplier_classification,
             SupplierClassification::wholesaleCapable(),
@@ -139,7 +143,7 @@ class PricingService
      * retail + hybrid suppliers (wholesale-only hidden); salesman buyers reach only
      * wholesale + hybrid suppliers (pure-retail hidden). Other buyers are unrestricted.
      */
-    public function canBuyerSeeSupplier(Company $supplierCompany, Company $buyerCompany): bool
+    public function canBuyerSeeSupplier(?Company $supplierCompany, Company $buyerCompany): bool
     {
         $allowed = match ($buyerCompany->buyer_classification) {
             BuyerClassification::PHARMACY => SupplierClassification::retailCapable(),
@@ -149,6 +153,10 @@ class PricingService
 
         if ($allowed === null) {
             return true;
+        }
+
+        if ($supplierCompany === null) {
+            return false;
         }
 
         return in_array($supplierCompany->supplier_classification, $allowed, true);
@@ -192,8 +200,12 @@ class PricingService
      *
      * @return array{price: float, note: string|null}|null
      */
-    private function checkCustomPriceList(Product $product, Company $supplierCompany, Company $buyerCompany, int $quantity): ?array
+    private function checkCustomPriceList(Product $product, ?Company $supplierCompany, Company $buyerCompany, int $quantity): ?array
     {
+        if ($supplierCompany === null) {
+            return null;
+        }
+
         $entries = PriceList::currentlyValid()
             ->where('supplier_company_id', $supplierCompany->id)
             ->where('buyer_company_id', $buyerCompany->id)

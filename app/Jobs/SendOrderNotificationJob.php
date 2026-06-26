@@ -160,8 +160,8 @@ class SendOrderNotificationJob implements ShouldQueue
         $content = "Order Status Update\n\n";
         $content .= "Order Number: {$order->order_number}\n";
         $content .= "Status Changed: {$oldStatus} → {$newStatus}\n";
-        $content .= "Buyer: {$order->buyerCompany->name}\n";
-        $content .= "Supplier: {$order->supplierCompany->name}\n";
+        $content .= "Buyer: {$order->buyerCompany?->name}\n";
+        $content .= "Supplier: {$order->supplierCompany?->name}\n";
         $content .= 'Total Amount: '.number_format((float) $order->total_amount, 2)." SAR\n";
         $content .= "Items: {$order->items->count()}\n\n";
 

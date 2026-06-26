@@ -57,7 +57,7 @@ class DriverController extends BaseApiController
         $this->authorize('viewDrivers', User::class);
 
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
 
             $query = User::where('role', 'driver');
 
@@ -129,7 +129,7 @@ class DriverController extends BaseApiController
         $this->authorize('createDriver', User::class);
 
         try {
-            $user = auth()->user();
+            $user = $this->currentUser();
 
             $driver = User::create([
                 'name' => $request->name,

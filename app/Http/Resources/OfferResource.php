@@ -36,8 +36,8 @@ class OfferResource extends JsonResource
                     ['quantityRequired' => $product->pivot->quantity_required ?? $this->quantity_required]
                 ));
             }),
-            'createdAt' => $this->created_at->toISOString(),
-            'updatedAt' => $this->updated_at->toISOString(),
+            'createdAt' => $this->created_at?->toISOString(),
+            'updatedAt' => $this->updated_at?->toISOString(),
         ];
     }
 }

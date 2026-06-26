@@ -41,8 +41,8 @@ class OrderResource extends JsonResource
             'cancelledAt' => $this->cancelled_at?->toISOString(),
             'cancellationReason' => $this->cancellation_reason,
             'invoice' => new InvoiceResource($this->whenLoaded('invoice')),
-            'createdAt' => $this->created_at->toISOString(),
-            'updatedAt' => $this->updated_at->toISOString(),
+            'createdAt' => $this->created_at?->toISOString(),
+            'updatedAt' => $this->updated_at?->toISOString(),
         ];
     }
 }
