@@ -485,76 +485,68 @@ class SalesmanController extends BaseApiController
         $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
         $this->authorize('accessSalesman', $salesman);
 
-        try {
-            $user = auth()->user();
+        $user = auth()->user();
 
-            $buyerCompany = Company::findOrFail((int) $request->buyer_company_id);
-            if (! $buyerCompany->isBuyer()) {
-                return $this->error('The selected company is not a buyer', null, 400);
-            }
-
-            $isClient = SalesmanClient::where('salesman_user_id', $salesman->id)
-                ->where('pharmacy_company_id', $buyerCompany->id)
-                ->where('is_active', true)
-                ->exists();
-
-            if (! $isClient && ! $user->isAdmin()) {
-                return $this->error('This pharmacy is not assigned as a client of this salesman', null, 400);
-            }
-
-            $items = [];
-            foreach ($request->items as $item) {
-                $product = Product::findOrFail((int) $item['product_id']);
-
-                if ($item['unit_price'] ?? null) {
-                    $unitPrice = $item['unit_price'];
-                    $pricingType = $item['pricing_type'] ?? null;
-                } else {
-                    $priceResult = $this->pricingService->resolve($product, $buyerCompany, $item['quantity']);
-                    $unitPrice = $priceResult->unitPrice;
-                    $pricingType = $priceResult->pricingType;
-                }
-
-                $items[] = [
-                    'product_id' => $item['product_id'],
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $unitPrice,
-                    'pricing_type' => $pricingType,
-                    'notes' => $item['notes'] ?? null,
-                ];
-            }
-
-            $order = $this->orderCreationService->create(
-                buyerCompanyId: $buyerCompany->id,
-                supplierCompanyId: $request->supplier_company_id,
-                createdBy: $salesman->id,
-                items: $items,
-                notes: $request->notes,
-                taxRate: $request->tax_rate ?? 0,
-                paymentMethod: $request->payment_method,
-            );
-
-            // Payment terms + credit reservation are handled inside OrderCreationService.
-            $order->update(['placed_by_salesman_id' => $salesman->id]);
-
-            return $this->success(
-                new OrderResource($order->load([
-                    'buyerCompany.region.city',
-                    'supplierCompany',
-                    'salesman',
-                    'items.product.category',
-                    'items.product.manufacturer',
-                    'items.product.supplierCompany',
-                ])),
-                'Order placed on behalf of buyer successfully',
-                201
-            );
-        } catch (\InvalidArgumentException $e) {
-            return $this->error($e->getMessage(), null, 400);
-        } catch (\Exception $e) {
-            Log::error('Salesman place order error', ['message' => $e->getMessage()]);
-
-            return $this->error('Failed to place order. Please try again later.', null, 500);
+        $buyerCompany = Company::findOrFail((int) $request->buyer_company_id);
+        if (! $buyerCompany->isBuyer()) {
+            return $this->error('The selected company is not a buyer', null, 400);
         }
+
+        $isClient = SalesmanClient::where('salesman_user_id', $salesman->id)
+            ->where('pharmacy_company_id', $buyerCompany->id)
+            ->where('is_active', true)
+            ->exists();
+
+        if (! $isClient && ! $user->isAdmin()) {
+            return $this->error('This pharmacy is not assigned as a client of this salesman', null, 400);
+        }
+
+        $items = [];
+        foreach ($request->items as $item) {
+            $product = Product::findOrFail((int) $item['product_id']);
+
+            if ($item['unit_price'] ?? null) {
+                $unitPrice = $item['unit_price'];
+                $pricingType = $item['pricing_type'] ?? null;
+            } else {
+                $priceResult = $this->pricingService->resolve($product, $buyerCompany, $item['quantity']);
+                $unitPrice = $priceResult->unitPrice;
+                $pricingType = $priceResult->pricingType;
+            }
+
+            $items[] = [
+                'product_id' => $item['product_id'],
+                'quantity' => $item['quantity'],
+                'unit_price' => $unitPrice,
+                'pricing_type' => $pricingType,
+                'notes' => $item['notes'] ?? null,
+            ];
+        }
+
+        $order = $this->orderCreationService->create(
+            buyerCompanyId: $buyerCompany->id,
+            supplierCompanyId: $request->supplier_company_id,
+            createdBy: $salesman->id,
+            items: $items,
+            notes: $request->notes,
+            taxRate: $request->tax_rate ?? 0,
+            paymentMethod: $request->payment_method,
+        );
+
+        // Payment terms + credit reservation are handled inside OrderCreationService.
+        $order->update(['placed_by_salesman_id' => $salesman->id]);
+
+        return $this->success(
+            new OrderResource($order->load([
+                'buyerCompany.region.city',
+                'supplierCompany',
+                'salesman',
+                'items.product.category',
+                'items.product.manufacturer',
+                'items.product.supplierCompany',
+            ])),
+            'Order placed on behalf of buyer successfully',
+            201
+        );
     }
 }

@@ -5,6 +5,7 @@ namespace App\Domain\Orders;
 use App\Constants\OrderStatus;
 use App\Constants\PaymentTerms;
 use App\Domain\Companies\CreditService;
+use App\Exceptions\DomainException;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Support\Facades\DB;
@@ -33,7 +34,7 @@ class OrderCreationService
         ?string $paymentMethod = null
     ): Order {
         if (empty($items)) {
-            throw new \InvalidArgumentException('Order must have at least one item');
+            throw new DomainException('Order must have at least one item');
         }
 
         // Check if we're already in a transaction (e.g., from seeder)
@@ -112,7 +113,7 @@ class OrderCreationService
         foreach ($items as $item) {
             $product = \App\Models\Product::find((int) $item['product_id']);
             if (! $product || $product->supplier_company_id !== $supplierCompanyId) {
-                throw new \InvalidArgumentException(
+                throw new DomainException(
                     "Product {$item['product_id']} does not belong to supplier {$supplierCompanyId}"
                 );
             }

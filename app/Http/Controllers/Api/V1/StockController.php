@@ -151,11 +151,10 @@ class StockController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Stock adjusted successfully'),
-            new OA\Response(response: 400, description: 'Insufficient stock'),
             new OA\Response(response: 401, description: 'Unauthenticated'),
             new OA\Response(response: 403, description: 'Forbidden - Only suppliers can adjust stock'),
             new OA\Response(response: 404, description: 'Product not found'),
-            new OA\Response(response: 422, description: 'Validation error'),
+            new OA\Response(response: 422, description: 'Validation error or business-rule violation (e.g. insufficient stock)'),
         ]
     )]
     public function adjust(AdjustStockRequest $request, Product $product): JsonResponse
@@ -164,32 +163,28 @@ class StockController extends BaseApiController
 
         $user = auth()->user();
 
-        try {
-            $movement = $this->stockMovementService->recordMovement(
-                product: $product,
-                type: $request->type,
-                quantity: $request->quantity,
-                userId: $user->id,
-                reason: $request->reason,
-                referenceType: 'manual',
-                referenceId: (string) $user->id
-            );
+        $movement = $this->stockMovementService->recordMovement(
+            product: $product,
+            type: $request->type,
+            quantity: $request->quantity,
+            userId: $user->id,
+            reason: $request->reason,
+            referenceType: 'manual',
+            referenceId: (string) $user->id
+        );
 
-            $product->refresh();
+        $product->refresh();
 
-            return $this->success([
-                'movement' => new StockMovementResource($movement->load(['product', 'user'])),
-                'product' => [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'sku' => $product->sku,
-                    'stock_quantity' => $product->stock_quantity,
-                    'min_stock_level' => $product->min_stock_level,
-                    'is_low_stock' => $product->isLowStock(),
-                ],
-            ], 'Stock adjusted successfully');
-        } catch (\InvalidArgumentException $e) {
-            return $this->error($e->getMessage(), null, 400);
-        }
+        return $this->success([
+            'movement' => new StockMovementResource($movement->load(['product', 'user'])),
+            'product' => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'sku' => $product->sku,
+                'stock_quantity' => $product->stock_quantity,
+                'min_stock_level' => $product->min_stock_level,
+                'is_low_stock' => $product->isLowStock(),
+            ],
+        ], 'Stock adjusted successfully');
     }
 }

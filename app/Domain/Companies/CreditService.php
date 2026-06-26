@@ -2,6 +2,7 @@
 
 namespace App\Domain\Companies;
 
+use App\Exceptions\DomainException;
 use App\Models\BuyerSupplierRelationship;
 
 /**
@@ -15,7 +16,7 @@ class CreditService
      * an approved relationship exists and the amount fits within the credit limit.
      * Used to fail fast before an order is created.
      *
-     * @throws \InvalidArgumentException If there is no approved relationship or the limit would be exceeded
+     * @throws DomainException If there is no approved relationship or the limit would be exceeded
      */
     public function assertAvailable(int $buyerCompanyId, int $supplierCompanyId, float $amount): void
     {
@@ -26,14 +27,14 @@ class CreditService
             ->first();
 
         if ($relationship === null) {
-            throw new \InvalidArgumentException(
+            throw new DomainException(
                 'No approved credit relationship with this supplier. Use cash payment or request credit approval first.'
             );
         }
 
         if (! $relationship->hasCreditAvailable($amount)) {
             $available = max(0, (float) $relationship->credit_limit - (float) $relationship->current_balance);
-            throw new \InvalidArgumentException(
+            throw new DomainException(
                 "Order exceeds available credit. Available: {$available}, required: {$amount}."
             );
         }
@@ -44,7 +45,7 @@ class CreditService
      * the order fits within the credit limit, then add the amount to current_balance.
      * The row is locked so concurrent orders cannot both over-reserve.
      *
-     * @throws \InvalidArgumentException If there is no approved relationship or the limit would be exceeded
+     * @throws DomainException If there is no approved relationship or the limit would be exceeded
      */
     public function reserve(int $buyerCompanyId, int $supplierCompanyId, float $amount): BuyerSupplierRelationship
     {
@@ -56,14 +57,14 @@ class CreditService
             ->first();
 
         if ($relationship === null) {
-            throw new \InvalidArgumentException(
+            throw new DomainException(
                 'No approved credit relationship with this supplier. Use cash payment or request credit approval first.'
             );
         }
 
         if (! $relationship->hasCreditAvailable($amount)) {
             $available = max(0, (float) $relationship->credit_limit - (float) $relationship->current_balance);
-            throw new \InvalidArgumentException(
+            throw new DomainException(
                 "Order exceeds available credit. Available: {$available}, required: {$amount}."
             );
         }

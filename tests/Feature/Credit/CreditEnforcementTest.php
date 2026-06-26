@@ -80,8 +80,8 @@ class CreditEnforcementTest extends TestCase
 
         try {
             $this->placeNetOrder($buyer, $supplier, $product, $creator, 5); // total 500 > 300
-            $this->fail('Expected InvalidArgumentException for exceeding credit.');
-        } catch (\InvalidArgumentException) {
+            $this->fail('Expected DomainException for exceeding credit.');
+        } catch (\App\Exceptions\DomainException) {
             // expected
         }
 
@@ -93,7 +93,7 @@ class CreditEnforcementTest extends TestCase
     {
         [$supplier, $buyer, $relationship, $product, $creator] = $this->makeScenario(1000, approved: false);
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(\App\Exceptions\DomainException::class);
         $this->placeNetOrder($buyer, $supplier, $product, $creator, 1);
     }
 

@@ -1,8 +1,32 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-25 (Search: replaced Postgres-only `ilike` with portable `whereLike` across 7 controllers (now testable on sqlite). Earlier same day — queue `$timeout` hardening; PHPStan relation generics + `@mixin`, **Larastan level 5 → 7**, baseline now 4; see entries below)
+> Last Updated: 2026-06-26 (DomainException: domain business-rule violations now render as a standardized 422 via `bootstrap/app.php`; fixed business errors that were returning 500. Recent: portable search; queue `$timeout`; **Larastan level 5 → 7**, baseline 4; see entries below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
+
+## 🧱 2026-06-26 — Domain exception type + central rendering (branch `chore/domain-exception`)
+
+Business-rule violations were thrown as raw `\InvalidArgumentException` and re-caught in
+six controller methods (returning 400, except DriverController's 422) — and, crucially,
+several were **not caught at all** (order creation, checkout, stock-add), so they fell
+through to a **500**.
+
+- Introduced `App\Exceptions\DomainException` (extends `RuntimeException`); domain services
+  (Credit, Checkout, DriverRegionPlan, StockMovement, OrderCreation, OrderStateTransition)
+  now throw it for business-rule violations. The two internal `\RuntimeException`
+  order-number failures stay (genuine 500s).
+- Registered rendering in **`bootstrap/app.php`** (the wired location) → standardized
+  **422** `{ success:false, error:{title,message} }`. Removed the six controller try/catch
+  blocks so error handling lives in one place (thinner controllers).
+- **Behaviour change**: business-rule violations now consistently return **422**
+  (previously a mix of 400, and **500** for the uncaught paths — those were bugs). Body
+  shape unchanged. Driver region-plan/holidays stay 422.
+- Tests: service tests assert `DomainException`; new `DomainExceptionRenderingTest` proves
+  the 422 contract end-to-end.
+- **Discovered**: `app/Exceptions/Handler.php` is **unwired dead code** — real error
+  shaping comes from `BaseFormRequest` (validation/authz) + Laravel defaults + the above.
+  Flagged for separate cleanup (wire vs remove); not touched here to avoid a broad
+  exception-contract change.
 
 ## 🔎 2026-06-25 — Portable search (branch `chore/portable-search`)
 
