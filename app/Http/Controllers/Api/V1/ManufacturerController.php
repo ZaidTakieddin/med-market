@@ -33,7 +33,7 @@ class ManufacturerController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Manufacturers retrieved successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
         ]
     )]
     public function index(Request $request): JsonResponse
@@ -115,9 +115,9 @@ class ManufacturerController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 201, description: 'Manufacturer created successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden - Only admins can create manufacturers'),
-            new OA\Response(response: 422, description: 'Validation error'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function store(CreateManufacturerRequest $request): JsonResponse
@@ -150,8 +150,8 @@ class ManufacturerController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Manufacturer retrieved successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 404, description: 'Manufacturer not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function show(Manufacturer $manufacturer): JsonResponse
@@ -189,10 +189,10 @@ class ManufacturerController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Manufacturer updated successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Manufacturer not found'),
-            new OA\Response(response: 422, description: 'Validation error'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function update(UpdateManufacturerRequest $request, Manufacturer $manufacturer): JsonResponse
@@ -224,9 +224,9 @@ class ManufacturerController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Manufacturer deleted successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Manufacturer not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function destroy(Manufacturer $manufacturer): JsonResponse

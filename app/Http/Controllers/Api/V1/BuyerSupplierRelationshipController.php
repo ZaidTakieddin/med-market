@@ -36,7 +36,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Relationships retrieved successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
         ]
     )]
     public function index(Request $request): JsonResponse
@@ -101,9 +101,10 @@ class BuyerSupplierRelationshipController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 201, description: 'Relationship created successfully'),
-            new OA\Response(response: 400, description: 'Validation error or invalid companies'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 409, description: 'Relationship already exists'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 409, ref: '#/components/responses/Conflict'),
         ]
     )]
     public function store(CreateBuyerSupplierRelationshipRequest $request): JsonResponse
@@ -162,8 +163,9 @@ class BuyerSupplierRelationshipController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Relationship retrieved successfully'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function show(int $id): JsonResponse
@@ -198,8 +200,9 @@ class BuyerSupplierRelationshipController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Relationship updated successfully'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function update(UpdateBuyerSupplierRelationshipRequest $request, int $id): JsonResponse
@@ -235,8 +238,9 @@ class BuyerSupplierRelationshipController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Relationship deleted successfully'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function destroy(int $id): JsonResponse
@@ -264,9 +268,10 @@ class BuyerSupplierRelationshipController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Relationship approved successfully'),
-            new OA\Response(response: 400, description: 'Already approved'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Not found'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function approve(int $id): JsonResponse
@@ -302,9 +307,10 @@ class BuyerSupplierRelationshipController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Relationship rejected successfully'),
-            new OA\Response(response: 400, description: 'Not currently approved'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Not found'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function reject(int $id): JsonResponse
@@ -350,9 +356,10 @@ class BuyerSupplierRelationshipController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Credit balance adjusted successfully'),
-            new OA\Response(response: 400, description: 'Invalid adjustment or would exceed credit limit'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Not found'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function adjustCredit(AdjustCreditRequest $request, int $id): JsonResponse
@@ -409,8 +416,9 @@ class BuyerSupplierRelationshipController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Credit check completed'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function checkCredit(CheckCreditRequest $request, int $id): JsonResponse

@@ -87,7 +87,7 @@ class CartController extends BaseApiController
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
         ]
     )]
     public function index(Request $request): JsonResponse
@@ -137,10 +137,10 @@ class CartController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Item added. Returns full cart with baseUnitPrice, baseTotalPrice, unitPrice, totalPrice, appliedOfferId per item.'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden - Only buyers can add items to cart'),
-            new OA\Response(response: 404, description: 'Product not found'),
-            new OA\Response(response: 400, description: 'Product is not active'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function addItem(AddCartItemRequest $request): JsonResponse
@@ -275,9 +275,9 @@ class CartController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Cart item updated successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Cart item not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function updateItem(UpdateCartItemRequest $request, int $id): JsonResponse
@@ -385,9 +385,9 @@ class CartController extends BaseApiController
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Cart item not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function getAvailableOffers(int $id): JsonResponse
@@ -462,10 +462,10 @@ class CartController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Offer applied successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Cart item or offer not found'),
-            new OA\Response(response: 400, description: 'Offer cannot be applied (quantity requirement not met, etc.)'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function applyOffer(ApplyOfferRequest $request, int $id): JsonResponse
@@ -529,9 +529,9 @@ class CartController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Offer removed successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Cart item not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function removeOffer(int $id): JsonResponse
@@ -596,9 +596,9 @@ class CartController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Item removed from cart successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Cart item not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function removeItem(int $id): JsonResponse
@@ -661,7 +661,7 @@ class CartController extends BaseApiController
         security: [['sanctum' => []]],
         responses: [
             new OA\Response(response: 200, description: 'Cart cleared successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
         ]
     )]
     public function clear(Request $request): JsonResponse
@@ -722,9 +722,9 @@ class CartController extends BaseApiController
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden - Only buyers can checkout'),
-            new OA\Response(response: 422, description: 'Cart is empty'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function checkout(Request $request): JsonResponse
@@ -788,10 +788,10 @@ class CartController extends BaseApiController
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden - Only buyers can checkout'),
-            new OA\Response(response: 422, description: 'Cart is empty or no items found for supplier'),
-            new OA\Response(response: 404, description: 'Supplier not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function checkoutSupplier(CheckoutSupplierRequest $request): JsonResponse

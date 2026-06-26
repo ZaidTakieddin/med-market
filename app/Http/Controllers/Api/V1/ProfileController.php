@@ -26,7 +26,7 @@ class ProfileController extends BaseApiController
         security: [['sanctum' => []]],
         responses: [
             new OA\Response(response: 200, description: 'Profile retrieved successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
         ]
     )]
     public function show(): JsonResponse
@@ -56,8 +56,8 @@ class ProfileController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Profile updated successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 422, description: 'Validation error'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function update(UpdateProfileRequest $request): JsonResponse
@@ -92,8 +92,8 @@ class ProfileController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Password changed successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 422, description: 'Validation error'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function changePassword(ChangePasswordRequest $request): JsonResponse
@@ -139,9 +139,9 @@ class ProfileController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Company updated successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 422, description: 'Validation error'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function updateCompany(UpdateCompanyRequest $request): JsonResponse

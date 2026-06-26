@@ -33,7 +33,7 @@ class CategoryController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Categories retrieved successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
         ]
     )]
     public function index(Request $request): JsonResponse
@@ -110,9 +110,9 @@ class CategoryController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 201, description: 'Category created successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden - Only admins can create categories'),
-            new OA\Response(response: 422, description: 'Validation error'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function store(CreateCategoryRequest $request): JsonResponse
@@ -145,8 +145,8 @@ class CategoryController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Category retrieved successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 404, description: 'Category not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function show(Category $category): JsonResponse
@@ -180,10 +180,10 @@ class CategoryController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Category updated successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Category not found'),
-            new OA\Response(response: 422, description: 'Validation error'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function update(UpdateCategoryRequest $request, Category $category): JsonResponse
@@ -215,9 +215,9 @@ class CategoryController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Category deleted successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Category not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function destroy(Category $category): JsonResponse

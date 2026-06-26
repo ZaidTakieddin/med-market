@@ -36,7 +36,7 @@ class ProductController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Products retrieved successfully. Each product includes category, manufacturer, pharmacist_price, customer_price, discount, discount_type, and offers (if product is included in any active offers) fields.'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
         ]
     )]
     public function index(Request $request): JsonResponse
@@ -156,9 +156,9 @@ class ProductController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 201, description: 'Product created successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden - Only suppliers can create products'),
-            new OA\Response(response: 422, description: 'Validation error'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function store(CreateProductRequest $request): JsonResponse
@@ -278,8 +278,8 @@ class ProductController extends BaseApiController
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 404, description: 'Product not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function show(Product $product): JsonResponse
@@ -334,10 +334,10 @@ class ProductController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Product updated successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Product not found'),
-            new OA\Response(response: 422, description: 'Validation error'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function update(UpdateProductRequest $request, Product $product): JsonResponse
@@ -367,9 +367,9 @@ class ProductController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Product deleted successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Product not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function destroy(Product $product): JsonResponse

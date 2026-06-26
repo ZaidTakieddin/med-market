@@ -55,6 +55,83 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'isCurrentlyActive', type: 'boolean', description: 'Within date range and active'),
     ]
 )]
+#[OA\Schema(
+    schema: 'Error',
+    title: 'Error envelope',
+    description: 'Standardized error body returned by EVERY failed request. `error.title` is a short, '
+        .'status-derived label and `error.message` is a human-readable explanation safe to show end users. '
+        .'`errors` is present only on 422 validation failures (absent for business-rule 422s).',
+    required: ['success', 'error'],
+    properties: [
+        new OA\Property(property: 'success', type: 'boolean', example: false),
+        new OA\Property(
+            property: 'error',
+            type: 'object',
+            required: ['title', 'message'],
+            properties: [
+                new OA\Property(property: 'title', type: 'string', example: 'Not found'),
+                new OA\Property(property: 'message', type: 'string', example: 'Resource not found.'),
+            ]
+        ),
+        new OA\Property(
+            property: 'errors',
+            type: 'object',
+            nullable: true,
+            description: 'Field-keyed validation messages. Present only on 422 validation responses.',
+            example: ['quantity' => ['The quantity must be at least 1.']]
+        ),
+    ]
+)]
+#[OA\Response(
+    response: 'Unauthorized',
+    description: 'Authentication required — the bearer token is missing, invalid, or expired.',
+    content: new OA\JsonContent(
+        ref: '#/components/schemas/Error',
+        example: ['success' => false, 'error' => ['title' => 'Unauthenticated', 'message' => 'Authentication required.']]
+    )
+)]
+#[OA\Response(
+    response: 'Forbidden',
+    description: 'Authenticated, but not permitted to perform this action (role, company scope, or policy).',
+    content: new OA\JsonContent(
+        ref: '#/components/schemas/Error',
+        example: ['success' => false, 'error' => ['title' => 'Forbidden', 'message' => 'You do not have permission to perform this action.']]
+    )
+)]
+#[OA\Response(
+    response: 'NotFound',
+    description: 'The resource does not exist, or is not visible to the authenticated company.',
+    content: new OA\JsonContent(
+        ref: '#/components/schemas/Error',
+        example: ['success' => false, 'error' => ['title' => 'Not found', 'message' => 'Resource not found.']]
+    )
+)]
+#[OA\Response(
+    response: 'UnprocessableEntity',
+    description: 'Input validation failed (then `errors` is present) OR a business rule was violated '
+        .'(e.g. insufficient stock, credit limit exceeded, empty cart — `errors` is absent).',
+    content: new OA\JsonContent(
+        ref: '#/components/schemas/Error',
+        example: ['success' => false, 'error' => ['title' => 'Validation failed', 'message' => 'The given data was invalid.'], 'errors' => ['field' => ['The field is required.']]]
+    )
+)]
+#[OA\Response(
+    response: 'TooManyRequests',
+    description: 'Rate limit exceeded. Retry after the period given in the Retry-After response header.',
+    content: new OA\JsonContent(
+        ref: '#/components/schemas/Error',
+        example: ['success' => false, 'error' => ['title' => 'Too many requests', 'message' => 'Too many requests. Please slow down.']]
+    )
+)]
+#[OA\Response(
+    response: 'Conflict',
+    description: 'The request conflicts with the current state — typically the resource already exists '
+        .'(duplicate buyer-supplier relationship, price-list entry, or client assignment).',
+    content: new OA\JsonContent(
+        ref: '#/components/schemas/Error',
+        example: ['success' => false, 'error' => ['title' => 'Conflict', 'message' => 'A matching record already exists.']]
+    )
+)]
 abstract class Controller
 {
     use AuthorizesRequests;

@@ -81,7 +81,7 @@ class OrderController extends BaseApiController
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
         ]
     )]
     public function index(Request $request): JsonResponse
@@ -213,9 +213,9 @@ class OrderController extends BaseApiController
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden - Only buyers can create orders'),
-            new OA\Response(response: 422, description: 'Validation error - products must belong to the specified supplier'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function store(CreateOrderRequest $request): JsonResponse
@@ -327,9 +327,9 @@ class OrderController extends BaseApiController
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden - User can only view orders from their own company'),
-            new OA\Response(response: 404, description: 'Order not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function show(Order $order): JsonResponse
@@ -403,10 +403,10 @@ class OrderController extends BaseApiController
                     ]
                 )
             ),
-            new OA\Response(response: 422, description: 'Invalid status transition - cannot transition from current status to requested status'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden - Only the supplier of the order may advance its status (accept/prepare/ship/deliver). Buyers and salesmen can only cancel.'),
-            new OA\Response(response: 404, description: 'Order not found'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function updateStatus(UpdateOrderStatusRequest $request, Order $order): JsonResponse
@@ -478,10 +478,10 @@ class OrderController extends BaseApiController
                     ]
                 )
             ),
-            new OA\Response(response: 422, description: 'Cannot cancel order in current status - order may already be delivered or cancelled'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden - Buyers can cancel their own orders, suppliers can cancel orders placed with them'),
-            new OA\Response(response: 404, description: 'Order not found'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function cancel(CancelOrderRequest $request, Order $order): JsonResponse
@@ -537,10 +537,10 @@ class OrderController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Driver assigned successfully. Order includes driver relationship.'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden - Only suppliers can assign drivers to their own orders'),
-            new OA\Response(response: 404, description: 'Order or driver not found'),
-            new OA\Response(response: 422, description: 'Validation error'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function assignDriver(AssignDriverRequest $request, Order $order): JsonResponse

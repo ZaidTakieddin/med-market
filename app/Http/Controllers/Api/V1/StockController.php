@@ -38,8 +38,8 @@ class StockController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Stock movements retrieved successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 404, description: 'Product not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function movements(Request $request, Product $product): JsonResponse
@@ -92,10 +92,10 @@ class StockController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Stock added successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden - Only suppliers can add stock'),
-            new OA\Response(response: 404, description: 'Product not found'),
-            new OA\Response(response: 422, description: 'Validation error'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function add(AddStockRequest $request, Product $product): JsonResponse
@@ -151,10 +151,10 @@ class StockController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Stock adjusted successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden - Only suppliers can adjust stock'),
-            new OA\Response(response: 404, description: 'Product not found'),
-            new OA\Response(response: 422, description: 'Validation error or business-rule violation (e.g. insufficient stock)'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function adjust(AdjustStockRequest $request, Product $product): JsonResponse

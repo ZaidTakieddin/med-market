@@ -1,8 +1,25 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-26 (**Controllers fully defer to the central handler**: removed 55 generic `try/catch` blocks across 11 API controllers; `bootstrap/app.php` now renders every error type in the nested `{success,error}` contract — fixes silent 404/403→500. Also: Larastan level 8; InvoiceStatus/PaymentStatus constants. See entries below)
+> Last Updated: 2026-06-26 (**OpenAPI error responses standardized & fully covered**: shared `Error` schema + reusable 401/403/404/409/422/429 response components in `Controller.php`, referenced by every endpoint so the documented codes match the controllers' actual behaviour. Built on: controllers defer to the central handler; Larastan level 8. See entries below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
+
+## 📘 2026-06-26 — OpenAPI: standardized, fully-covered error responses (branch `main`)
+
+After controllers were switched to defer to the central handler, the Swagger annotations no longer
+matched reality (stale `400`/`500`, and three controllers never documented `401` at all). Reworked
+the docs so the frontend team sees exactly what each endpoint returns:
+
+- **Shared components in `app/Http/Controllers/Controller.php`**: an `Error` schema describing the
+  nested `{ success, error:{title,message}, errors? }` envelope, plus reusable `OA\Response`
+  components `Unauthorized` (401), `Forbidden` (403), `NotFound` (404), `UnprocessableEntity` (422,
+  validation *and* business-rule), `TooManyRequests` (429), and `Conflict` (409).
+- **Every endpoint now `$ref`s those components** instead of hand-rolling bodies (≈260 responses).
+  Coverage was audited against each method: `401` on all authenticated routes, `403` where a
+  policy/`authorize()`/role guard applies, `404` on every `{param}`/`findOrFail` route, `422` on
+  every Form-Request/DomainException path, `409` on the three duplicate-guard endpoints, `429` on
+  the throttled auth routes. Stale `400`s remapped to `422`.
+- Swagger regenerated. Suite green: 69 tests, Pint clean, PHPStan clean at level 8.
 
 ## 🧯 2026-06-26 — Controllers defer to central handler; unified error contract (branch `main`)
 

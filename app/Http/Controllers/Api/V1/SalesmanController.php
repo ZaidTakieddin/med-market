@@ -48,7 +48,7 @@ class SalesmanController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Salesmen retrieved successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
         ]
     )]
     public function index(Request $request): JsonResponse
@@ -102,8 +102,9 @@ class SalesmanController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Salesman retrieved successfully'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Salesman not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function show(int $id): JsonResponse
@@ -135,8 +136,9 @@ class SalesmanController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Regions retrieved successfully'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Salesman not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function regions(int $id): JsonResponse
@@ -172,8 +174,9 @@ class SalesmanController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Regions assigned successfully'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Salesman not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function assignRegions(AssignSalesmanRegionsRequest $request, int $id): JsonResponse
@@ -202,8 +205,9 @@ class SalesmanController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Region removed successfully'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Salesman or region not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function removeRegion(int $id, int $regionId): JsonResponse
@@ -231,8 +235,9 @@ class SalesmanController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Clients retrieved successfully'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Salesman not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function clients(Request $request, int $id): JsonResponse
@@ -274,9 +279,10 @@ class SalesmanController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 201, description: 'Client assigned successfully'),
-            new OA\Response(response: 400, description: 'Company is not a pharmacy'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 409, description: 'Client already assigned'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 409, ref: '#/components/responses/Conflict'),
         ]
     )]
     public function assignClient(AssignSalesmanClientRequest $request, int $id): JsonResponse
@@ -326,8 +332,9 @@ class SalesmanController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Client removed successfully'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Salesman or client not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function removeClient(int $id, int $clientId): JsonResponse
@@ -357,8 +364,9 @@ class SalesmanController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Orders retrieved successfully'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Salesman not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function orders(Request $request, int $id): JsonResponse
@@ -420,9 +428,10 @@ class SalesmanController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 201, description: 'Order placed on behalf of buyer successfully'),
-            new OA\Response(response: 400, description: 'Pharmacy not assigned to this salesman'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Salesman not found'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function placeOrder(PlaceOrderOnBehalfRequest $request, int $id): JsonResponse

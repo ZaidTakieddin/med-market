@@ -43,7 +43,7 @@ class OfferController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Offers retrieved successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
         ]
     )]
     public function index(Request $request): JsonResponse
@@ -132,8 +132,9 @@ class OfferController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 201, description: 'Offer created successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function store(CreateOfferRequest $request): JsonResponse
@@ -206,8 +207,8 @@ class OfferController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Offer retrieved successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 404, description: 'Offer not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function show(Offer $offer): JsonResponse
@@ -254,9 +255,10 @@ class OfferController extends BaseApiController
         ),
         responses: [
             new OA\Response(response: 200, description: 'Offer updated successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Offer not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
     public function update(UpdateOfferRequest $request, Offer $offer): JsonResponse
@@ -292,9 +294,9 @@ class OfferController extends BaseApiController
         ],
         responses: [
             new OA\Response(response: 200, description: 'Offer deleted successfully'),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
-            new OA\Response(response: 403, description: 'Forbidden'),
-            new OA\Response(response: 404, description: 'Offer not found'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
     public function destroy(Offer $offer): JsonResponse

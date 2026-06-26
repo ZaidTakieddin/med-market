@@ -59,7 +59,8 @@ class AuthController extends BaseApiController
                     ]
                 )
             ),
-            new OA\Response(response: 422, description: 'Validation error'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+            new OA\Response(response: 429, ref: '#/components/responses/TooManyRequests'),
         ]
     )]
     public function register(RegisterRequest $request, RegistrationService $registrationService): JsonResponse
@@ -111,9 +112,9 @@ class AuthController extends BaseApiController
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'Invalid credentials'),
-            new OA\Response(response: 422, description: 'Validation error'),
-            new OA\Response(response: 429, description: 'Too many requests'),
+            new OA\Response(response: 401, description: 'Invalid email or password.', content: new OA\JsonContent(ref: '#/components/schemas/Error', example: ['success' => false, 'error' => ['title' => 'Unauthenticated', 'message' => 'Invalid credentials']])),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+            new OA\Response(response: 429, ref: '#/components/responses/TooManyRequests'),
         ]
     )]
     public function login(LoginRequest $request): JsonResponse
@@ -152,7 +153,7 @@ class AuthController extends BaseApiController
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
         ]
     )]
     public function logout(): JsonResponse
@@ -191,7 +192,7 @@ class AuthController extends BaseApiController
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
         ]
     )]
     public function me(): JsonResponse
