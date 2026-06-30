@@ -1,0 +1,46 @@
+name: Keepalive (Render free tier)
+
+# Pings the app's health endpoint so a Render FREE web service does not spin down
+# after ~15 min idle (which would also pause the in-container queue worker).
+#
+# ── Before this does anything, set a repository variable ─────────────────────
+#   Repo → Settings → Secrets and variables → Actions → Variables → New variable
+#   Name:  HEALTHCHECK_URL
+#   Value: https://<your-app>.onrender.com/up
+#
+# ── GitHub Actions minutes — READ BEFORE ENABLING THE SCHEDULE ────────────────
+#   • PUBLIC repo  → Actions minutes are UNLIMITED. Uncomment the `schedule`
+#     trigger below to keep the app warm automatically.
+#   • PRIVATE repo → scheduled runs CONSUME your free Actions minutes; once they
+#     run out (no billing card = hard stop) even CI stops running. Do NOT enable
+#     the schedule on a private repo — use a free external pinger such as
+#     UptimeRobot (https://uptimerobot.com) hitting the same /up URL every 5 min.
+#
+# As shipped, this workflow only runs when triggered manually (workflow_dispatch),
+# so committing it is safe regardless of repo visibility.
+
+on:
+  workflow_dispatch:
+  # Uncomment the two lines below ONLY on a PUBLIC repo:
+  # schedule:
+  #   - cron: '*/10 * * * *'
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: |
+          url="${{ vars.HEALTHCHECK_URL }}"
+          if [ -z "$url" ]; then
+            echo "HEALTHCHECK_URL repository variable is not set — nothing to ping."
+            exit 0
+          fi
+          echo "Pinging $url"
+          code=$(curl -fsS -o /dev/null -w '%{http_code}' --max-time 30 --retry 3 --retry-delay 10 "$url") || true
+          echo "Response: HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "Health check did not return 200 (got '$code')."
+            exit 1
+          fi
+          echo "App is awake."

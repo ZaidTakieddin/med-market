@@ -190,15 +190,20 @@ services:
       - DB_QUEUE_CONNECTION=${DB_QUEUE_CONNECTION:-pgsql_queue}
 ```
 
-**Note**: For Render deployment, queue workers are included in the Dockerfile. Set `ENABLE_QUEUE_WORKER=true` to enable them in the same container, or use a separate Background Worker service.
+**Note**: For Render deployment, queue workers are included in the Dockerfile. Set `ENABLE_QUEUE_WORKER=true` to enable them in the same container, or use a separate Background Worker service. The in-container worker (`docker/start-queue-worker.sh`) runs `queue:work` inside a **restart loop** — `queue:work` exits on `--max-time` (hourly, to release memory) and on fatal errors, and the loop relaunches it so it stays alive for the life of the container. It listens on **all** queues including `imports`.
 
 ### Render.com / Cloud Platforms
 
 For Render.com or similar platforms:
 
-**Option 1: Development (Single Container)**
+**Option 1: Single Container (works on the FREE tier)**
 - Set `ENABLE_QUEUE_WORKER=true` in Web Service environment variables
-- Queue worker runs automatically in the same container
+- Queue worker runs automatically in the same container, in a restart loop
+- ⚠️ **Free tier caveat**: a free Web Service spins down after ~15 min idle, which
+  also pauses the in-container worker. Keep it warm by pinging `/up` every few
+  minutes — either the optional `.github/workflows/keepalive.yml` (public repos
+  only; see its header re: Actions minutes) or a free external pinger like
+  UptimeRobot. Backlogged jobs still run once the container wakes.
 
 **Option 2: Production (Separate Background Worker)**
 - Create a separate **Background Worker** service
