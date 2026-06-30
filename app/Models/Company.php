@@ -41,6 +41,9 @@ class Company extends Model
         'tax_id',
         'registration_number',
         'is_active',
+        'logo_disk',
+        'logo_path',
+        'logo_url',
     ];
 
     protected $casts = [

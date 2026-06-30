@@ -1,8 +1,38 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-30 (**Bulk product import (Excel/CSV)**: async, streamed, chunked import that upserts by SKU and scales to any catalog size. See entry below)
+> Last Updated: 2026-06-30 (**Product images & company logos**: Cloudinary-backed media with a `MEDIA_DISK` switch; binaries never stored in the DB. See entry below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
+
+## 🖼️ 2026-06-30 — Product images (gallery) + company logos (branch `main`)
+
+Suppliers can attach a **gallery of images** to their products and admins can set a
+**company logo**. Storage is decoupled from the database and from Neon's uptime:
+
+- **Where files go**: the configured media disk (`config/media.php` → `MEDIA_DISK`).
+  Default `cloudinary` (free tier: resizing, format optimization, CDN); set
+  `MEDIA_DISK=public` for offline/local dev (`php artisan storage:link`). Any
+  S3-compatible disk (e.g. Cloudflare R2) works with no code change.
+- **What the DB stores**: only `{disk, path, url}` — **never the binary**. So image
+  upload depends on the storage service, not on Neon; Neon only records the URL.
+- **Dependency**: added `cloudinary-labs/cloudinary-laravel` (registers a `cloudinary`
+  filesystem driver, used through Laravel's `Storage` abstraction).
+- **Schema**: new `product_images` table (gallery, `is_primary`, `sort_order`) and
+  `companies.logo_disk/logo_path/logo_url` columns.
+- **Domain**: `Media\ImageUploadService` (disk-agnostic store/delete + `StoredImage` DTO),
+  `Products\ProductImageService` (add/delete/reorder/set-primary, transactional, enforces
+  one primary + an 8-image cap), `Companies\CompanyLogoService` (replace removes old file).
+- **API**: `GET/POST /products/{product}/images`, `DELETE .../images/{image}`,
+  `PATCH .../images/reorder`, `PATCH .../images/{image}/primary`;
+  `POST`/`DELETE /companies/{company}/logo`. `ProductResource` now returns `images` +
+  `primaryImageUrl`; `CompanyResource` returns `logoUrl`; each image exposes a Cloudinary
+  `thumbnailUrl` (gracefully falls back to the full URL off Cloudinary).
+- **Tests**: `tests/Feature/Products/ProductImageTest.php` and
+  `tests/Feature/Companies/CompanyLogoTest.php` (upload/list/delete/reorder/primary,
+  authorization, validation, primary-promotion, logo replace/remove) — all green.
+- **Run on deploy**: `php artisan migrate --database=pgsql_seeder` (unpooled connection).
+- **Verify storage**: `php artisan media:check` (uploads + deletes a 1×1 test image on the
+  configured `MEDIA_DISK`; confirms credentials/connectivity without leaving an asset).
 
 ## 📥 2026-06-30 — Bulk product import from Excel/CSV (branch `main`)
 
@@ -1516,16 +1546,20 @@ These features are essential for core functionality and should be prioritized fo
 - [x] Automatic invoice generation when orders are accepted
 - [x] OrderSeeder creates invoices for accepted orders
 
-#### 2. Product Images & Media Management
-**Status**: No image support currently
-- [ ] Image upload endpoints for products
-- [ ] Multiple images per product support
-- [ ] Image storage configuration (S3/local)
-- [ ] Image optimization and resizing
-- [ ] Company logo upload
-- [ ] Product image management (add/remove/reorder)
-- [ ] Image CDN integration
-- [ ] Migration to add `image_url` or `images` JSON field to products table
+#### 2. Product Images & Media Management ✅ DONE (2026-06-30)
+**Status**: Implemented via Cloudinary (with a `MEDIA_DISK` switch to a local `public`
+disk for offline dev). Image **binaries never touch the database** — only `{disk, path,
+url}` are persisted; the file goes to the configured storage disk through Laravel's
+`Storage` abstraction, so the backend (Cloudinary / local public / any S3-compatible disk
+such as Cloudflare R2) is a one-line config change.
+- [x] Image upload endpoints for products (`POST /products/{product}/images`, multipart `images[]`)
+- [x] Multiple images per product support (`product_images` table, gallery)
+- [x] Image storage configuration — `config/media.php` (`MEDIA_DISK`) + `cloudinary` disk
+- [x] Image optimization and resizing — Cloudinary on-the-fly transforms (`thumbnailUrl`)
+- [x] Company logo upload (`POST`/`DELETE /companies/{company}/logo`, admin only)
+- [x] Product image management (add / delete / reorder / set-primary)
+- [x] Image CDN integration — Cloudinary delivery CDN
+- [x] Migration adding the `product_images` table and `companies.logo_*` columns
 
 #### 3. Export Functionality API
 **Status**: `ExportOrdersJob` exists but no API endpoints
@@ -1743,7 +1777,7 @@ These features improve security, performance, and code quality.
 -   **Completed Features**: 110+ (including all new requirements and documentation updates)
 -   **Database Seeders**: 10 (CitySeeder, RegionSeeder, CompanySeeder, CategorySeeder, ManufacturerSeeder, UserSeeder, ProductSeeder, OfferSeeder, BuyerSupplierRelationshipSeeder, OrderSeeder)
 -   **Pending Tasks**: See "Missing Features & Requirements" section below
--   **Critical Missing Features**: 3 (Product Images, Export API, Notification Infrastructure) — the Testing Suite is now established
+-   **Critical Missing Features**: 2 (Export API, Notification Infrastructure) — Product Images & the Testing Suite are now done
 -   **High Priority Missing Features**: 5 (Driver Availability, Payment Integration, Analytics, Advanced Search, Real-Time)
 -   **Medium Priority Missing Features**: 5 (Order Templates, Wishlist, Reviews, Multi-Language, Inventory Enhancements)
 -   **Security & Quality Missing Features**: 4 (Security Enhancements, Performance Optimizations, User Management, Additional Features)

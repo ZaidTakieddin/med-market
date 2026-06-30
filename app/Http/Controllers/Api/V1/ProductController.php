@@ -42,7 +42,7 @@ class ProductController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $user = $this->currentUser();
-        $query = Product::with(['supplierCompany', 'category', 'manufacturer']);
+        $query = Product::with(['supplierCompany', 'category', 'manufacturer', 'images']);
 
         $activeOffersEagerLoad = ['offers' => function ($q) {
             $q->where('is_active', true)
@@ -194,7 +194,7 @@ class ProductController extends BaseApiController
         ]);
 
         return $this->success(
-            new ProductResource($product->load(['supplierCompany', 'category', 'manufacturer', 'offers'])),
+            new ProductResource($product->load(['supplierCompany', 'category', 'manufacturer', 'images', 'offers'])),
             'Product created successfully',
             201
         );
@@ -288,6 +288,7 @@ class ProductController extends BaseApiController
             'supplierCompany',
             'category',
             'manufacturer',
+            'images',
             'offers' => function ($q) {
                 $q->where('is_active', true)
                     ->where('start_date', '<=', now())
@@ -345,7 +346,7 @@ class ProductController extends BaseApiController
         $this->authorize('update', $product);
 
         $product->update($request->validated());
-        $product->load(['supplierCompany', 'category', 'manufacturer', 'offers']);
+        $product->load(['supplierCompany', 'category', 'manufacturer', 'images', 'offers']);
 
         return $this->success(
             new ProductResource($product),

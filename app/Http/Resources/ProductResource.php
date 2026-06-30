@@ -47,6 +47,12 @@ class ProductResource extends JsonResource
             ? (float) $this->resource->getFinalPharmacistPrice()
             : null;
 
+        $primaryImageUrl = null;
+        if ($this->relationLoaded('images')) {
+            $primaryImage = $this->images->firstWhere('is_primary', true) ?? $this->images->first();
+            $primaryImageUrl = $primaryImage?->url;
+        }
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -68,6 +74,10 @@ class ProductResource extends JsonResource
             'minStockLevel' => $this->min_stock_level,
             'isActive' => $this->is_active,
             'supplierCompany' => $this->when($this->relationLoaded('supplierCompany') && $this->supplierCompany, fn () => new CompanyResource($this->supplierCompany)),
+            'images' => $this->relationLoaded('images')
+                ? ProductImageResource::collection($this->images)
+                : [],
+            'primaryImageUrl' => $primaryImageUrl,
             'offers' => $offers,
             'metadata' => $this->metadata,
             'createdAt' => $this->created_at?->toISOString(),

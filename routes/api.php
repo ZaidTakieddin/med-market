@@ -76,8 +76,21 @@ Route::prefix('v1')->group(function () {
             Route::post('stock/adjust', [App\Http\Controllers\Api\V1\StockController::class, 'adjust']);
         });
 
+        // Product Images (literal `reorder` is registered before `{image}` so it is not captured)
+        Route::prefix('products/{product}')->group(function () {
+            Route::get('images', [App\Http\Controllers\Api\V1\ProductImageController::class, 'index']);
+            Route::post('images', [App\Http\Controllers\Api\V1\ProductImageController::class, 'store']);
+            Route::patch('images/reorder', [App\Http\Controllers\Api\V1\ProductImageController::class, 'reorder']);
+            Route::patch('images/{image}/primary', [App\Http\Controllers\Api\V1\ProductImageController::class, 'setPrimary']);
+            Route::delete('images/{image}', [App\Http\Controllers\Api\V1\ProductImageController::class, 'destroy']);
+        });
+
         // Companies
         Route::apiResource('companies', App\Http\Controllers\Api\V1\CompanyController::class);
+
+        // Company Logo
+        Route::post('companies/{company}/logo', [App\Http\Controllers\Api\V1\CompanyLogoController::class, 'store']);
+        Route::delete('companies/{company}/logo', [App\Http\Controllers\Api\V1\CompanyLogoController::class, 'destroy']);
 
         // Cart Management
         Route::prefix('cart')->group(function () {

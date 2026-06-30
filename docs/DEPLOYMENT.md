@@ -64,6 +64,12 @@ Quick deployment guide for Med Market Laravel application.
     QUEUE_CONNECTION=database
     CACHE_STORE=file
 
+    # Media storage (product images, company logos). Binaries are NEVER stored in
+    # the database — only their {disk, path, url}. Default backend is Cloudinary.
+    MEDIA_DISK=cloudinary
+    # From the Cloudinary dashboard: cloudinary://<api_key>:<api_secret>@<cloud_name>
+    CLOUDINARY_URL=cloudinary://your-key:your-secret@your-cloud-name
+
     # Optional: Enable automatic migrations on container start (not recommended for production)
     # RUN_MIGRATIONS=true
     ```
@@ -75,6 +81,10 @@ Quick deployment guide for Med Market Laravel application.
     - Use Neon's **direct** connection (without `-pooler` suffix) for `DB_QUEUE_HOST` (Queue Workers)
     - Set `APP_URL` to your Render URL (HTTPS)
     - Set `DB_QUEUE_CONNECTION=pgsql_queue` to use the unpooled connection for queue workers
+    - **Media**: keep `MEDIA_DISK=cloudinary` in production and set `CLOUDINARY_URL`. To
+      use a local disk instead, set `MEDIA_DISK=public` and run `php artisan storage:link`
+      (note: container-local storage is ephemeral on Render — prefer Cloudinary or an
+      S3-compatible disk such as Cloudflare R2 in production)
 
 4. **Deploy**
 

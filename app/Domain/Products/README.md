@@ -201,9 +201,54 @@ during the bulk write (`Product::withoutEvents`); a chained `FinalizeProductImpo
 the sync **once** (via `SupplierTaxonomySyncService`) and sets the final status. See
 [QUEUE_WORKERS.md](../../../docs/QUEUE_WORKERS.md).
 
+## Product Images (gallery)
+
+Products support a **gallery of images** (multiple per product, one primary, custom order).
+Image **binaries are never stored in the database** — only `{disk, path, url}` are persisted
+in the `product_images` table. The file is written to the configured media disk through
+Laravel's `Storage` abstraction, so the backend is a single config switch.
+
+### Storage backend (`config/media.php` → `MEDIA_DISK`)
+
+- **`cloudinary`** (default, prod) — free tier with on-the-fly resizing, format
+  optimization and CDN delivery. Set `CLOUDINARY_URL`. Requires
+  `cloudinary-labs/cloudinary-laravel`.
+- **`public`** (local/offline dev) — files in `storage/app/public` served via `APP_URL`
+  (`php artisan storage:link`). No Cloudinary credentials needed.
+- Any S3-compatible disk (e.g. Cloudflare R2) also works unchanged.
+
+Because the binary lives on the disk and only the URL is recorded, image upload depends on
+the storage service — not on the database being awake. The stored `url` is read directly
+(no per-request Cloudinary API calls); `thumbnailUrl` injects a transformation on
+Cloudinary and gracefully falls back to the full URL on other disks.
+
+Verify the active backend is reachable and writable (uploads then deletes a 1×1 test
+image) with: `php artisan media:check`.
+
+### Endpoints
+
+- `GET    /api/v1/products/{product}/images` — list (primary first).
+- `POST   /api/v1/products/{product}/images` — upload (`multipart/form-data`, `images[]`;
+  JPEG/PNG/WebP, ≤5 MB each, ≤8 per product). First image becomes primary.
+- `DELETE /api/v1/products/{product}/images/{image}` — delete (promotes next if primary).
+- `PATCH  /api/v1/products/{product}/images/reorder` — `ordered_ids` sets `sort_order`.
+- `PATCH  /api/v1/products/{product}/images/{image}/primary` — set the cover image.
+
+`ProductResource` returns an `images` array and `primaryImageUrl`.
+
+### Architecture
+
+`ProductImageController` (thin) delegates to `Products\ProductImageService`
+(add/delete/reorder/set-primary; transactional DB writes; enforces exactly one primary and
+the per-product cap), which uses the disk-agnostic `Media\ImageUploadService`
+(+ `Media\StoredImage` DTO). Authorization reuses `ProductPolicy@update` (owning supplier
+or admin); listing uses `view`. Company logos follow the same pattern via
+`Companies\CompanyLogoService` (`POST`/`DELETE /companies/{company}/logo`, admin only).
+
 ## Related Models
 
 - `App\Models\Product` - Main product model
+- `App\Models\ProductImage` - Product gallery images (disk/path/url, is_primary, sort_order)
 - `App\Models\Category` - Product categories (admin-managed)
 - `App\Models\Manufacturer` - Product manufacturers (admin-managed)
 - `App\Models\Company` - Supplier companies (with classification)
@@ -317,7 +362,6 @@ Products are added to carts:
 ## Future Enhancements
 
 - Product variants (sizes, colors, etc.)
-- Product images and media
 - Product reviews and ratings
 - Product bundles and kits
 - Product recommendations

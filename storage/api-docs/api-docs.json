@@ -2448,6 +2448,102 @@
                 ]
             }
         },
+        "/companies/{company}/logo": {
+            "post": {
+                "tags": [
+                    "Company Logo"
+                ],
+                "summary": "Upload company logo",
+                "description": "Upload or replace the company logo (multipart field logo). Replacing removes the previous file. Admin only.",
+                "operationId": "0fc769234ba56c847098b2cca021fc45",
+                "parameters": [
+                    {
+                        "name": "company",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "logo"
+                                ],
+                                "properties": {
+                                    "logo": {
+                                        "description": "JPEG/PNG/WebP image, max 5 MB.",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Logo updated successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Company Logo"
+                ],
+                "summary": "Remove company logo",
+                "description": "Remove the company logo and delete its stored file. Admin only.",
+                "operationId": "17799bd41cf253d40e9203e5a9f104d7",
+                "parameters": [
+                    {
+                        "name": "company",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Logo removed successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/dashboard": {
             "get": {
                 "tags": [
@@ -6000,6 +6096,261 @@
                 ]
             }
         },
+        "/products/{product}/images": {
+            "get": {
+                "tags": [
+                    "Product Images"
+                ],
+                "summary": "List product images",
+                "description": "List all images for a product, ordered with the primary image first.",
+                "operationId": "e65541b49d3d3f76e7f5532182253e54",
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Images retrieved successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Product Images"
+                ],
+                "summary": "Upload product images",
+                "description": "Upload one or more images (multipart field images[]). The first image of a product becomes its primary image. Only the owning supplier or an admin may upload.",
+                "operationId": "c99a08a5c2de182d68f1f230c039430b",
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "images"
+                                ],
+                                "properties": {
+                                    "images[]": {
+                                        "description": "JPEG/PNG/WebP images, max 5 MB each, up to 8 per product.",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "format": "binary"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Images uploaded successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/products/{product}/images/{image}": {
+            "delete": {
+                "tags": [
+                    "Product Images"
+                ],
+                "summary": "Delete a product image",
+                "description": "Delete an image and its stored file. If it was the primary image, the next image is promoted. Only the owning supplier or an admin may delete.",
+                "operationId": "a5b589e89bde295a0f2f1ed2e2eb8648",
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "image",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Image deleted successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/products/{product}/images/reorder": {
+            "patch": {
+                "tags": [
+                    "Product Images"
+                ],
+                "summary": "Reorder product images",
+                "description": "Set the display order of a product's images. Send ordered_ids as the full list of image IDs in the desired order. Only the owning supplier or an admin may reorder.",
+                "operationId": "22c4cfb67b5c9cb29c7306ace95c6fef",
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "ordered_ids"
+                                ],
+                                "properties": {
+                                    "ordered_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            3,
+                                            1,
+                                            2
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Images reordered successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/products/{product}/images/{image}/primary": {
+            "patch": {
+                "tags": [
+                    "Product Images"
+                ],
+                "summary": "Set primary product image",
+                "description": "Mark the given image as the product's primary (cover) image. Only the owning supplier or an admin may change it.",
+                "operationId": "bb38e7884e65224e080ddf012461ab6a",
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "image",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Primary image updated successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/products/import-sample": {
             "get": {
                 "tags": [
@@ -7769,6 +8120,10 @@
             "description": "Company management endpoints"
         },
         {
+            "name": "Company Logo",
+            "description": "Company logo management"
+        },
+        {
             "name": "Dashboard",
             "description": "Aggregated analytics for the dashboard home page"
         },
@@ -7803,6 +8158,10 @@
         {
             "name": "Products",
             "description": "Product management endpoints"
+        },
+        {
+            "name": "Product Images",
+            "description": "Product image gallery management"
         },
         {
             "name": "Product Import",

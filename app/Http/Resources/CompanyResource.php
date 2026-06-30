@@ -38,6 +38,7 @@ class CompanyResource extends JsonResource
             'addressLine' => $this->address_line,
             'taxId' => $this->tax_id,
             'registrationNumber' => $this->registration_number,
+            'logoUrl' => $this->logo_url,
             'isActive' => $this->is_active,
             'categories' => $this->relationLoaded('categories')
                 ? CategoryResource::collection($this->categories)
