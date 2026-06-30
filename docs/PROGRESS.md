@@ -1,8 +1,43 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-26 (**OpenAPI error responses standardized & fully covered**: shared `Error` schema + reusable 401/403/404/409/422/429 response components in `Controller.php`, referenced by every endpoint so the documented codes match the controllers' actual behaviour. Built on: controllers defer to the central handler; Larastan level 8. See entries below)
+> Last Updated: 2026-06-30 (**Bulk product import (Excel/CSV)**: async, streamed, chunked import that upserts by SKU and scales to any catalog size. See entry below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
+
+## 📥 2026-06-30 — Bulk product import from Excel/CSV (branch `main`)
+
+Suppliers (and admins, per-company) can now bulk create/update products by uploading an
+`.xlsx`/`.csv` file, instead of one-at-a-time via `POST /products`. Designed to scale to any
+catalog size without revisiting (the user's explicit requirement).
+
+- **Dependency**: added `maatwebsite/excel` (wraps PhpOffice/PhpSpreadsheet) — reads real
+  `.xlsx` and `.csv`.
+- **Endpoints** (registered before the `products` apiResource so `products/{product}` can't
+  capture them): `GET /products/import-sample` (downloadable sample), `POST /products/import`
+  (202, queued), `GET /products/imports` (list), `GET /products/imports/{import}` (status +
+  paginated per-row errors). Exposed `productImportStatus` via `/enums`.
+- **Async + streamed**: `ProductImportController@store` stores the upload and dispatches
+  `ImportProductsJob` (`imports` queue). The coordinator streams the file in bounded-memory
+  chunks (`ProductRowsImport`, `WithChunkReading`); **each chunk is its own short job** (≤60s,
+  under `retry_after`), and a chained `FinalizeProductImportJob` runs once at the end.
+- **Why chunked, not one job** (would break at thousands of rows): (1) the per-row
+  `ProductObserver` re-syncs the supplier's entire taxonomy on every write — bypassed during
+  import via `Product::withoutEvents`, then synced **once** in finalize through the new
+  `SupplierTaxonomySyncService` (also now used by the observer and the sync command); (2) a
+  single long job would exceed the 90s `retry_after` and be re-run in parallel → duplicate
+  import; (3) bulk per-chunk `insert`/`upsert` keeps Neon round-trips at ~O(chunks).
+- **Upsert by SKU**, scoped to the importing company. `sku` is **globally unique**, so a SKU
+  owned by another supplier is a row error (never updated) — preserves company scoping. Stock
+  is set on **create** only; updates never overwrite stock (rule #4). Category/manufacturer
+  resolved **by name** (unknown → row error; admin-managed, never auto-created).
+- **Per-row errors** stored in a `product_import_errors` child table (no JSON
+  read-modify-write race); counts via atomic `increment()`. New `product_imports` +
+  `product_import_errors` tables, models, factories, `ProductImportStatus` constant,
+  `ProductImportPolicy` (company-scoped), resources, and `ImportProductsRequest`.
+- Tests: `ProductImportServiceTest` (create/update/errors/stock-preserved/dup-SKU/blank-row/
+  finalize-sync) + `ProductImportTest` (authz, sample download, status, scoping). Added the
+  two new jobs to `JobRetryConfigTest`. Suite green: **81 tests**; Pint clean; PHPStan clean
+  at level 8. Swagger regenerated.
 
 ## 📘 2026-06-26 — OpenAPI: standardized, fully-covered error responses (branch `main`)
 

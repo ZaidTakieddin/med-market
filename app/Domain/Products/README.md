@@ -150,6 +150,57 @@ This domain is prepared for future services:
 - Handle offer expiration
 - Product-level offer preview (before adding to cart)
 
+## Bulk Import (Excel/CSV)
+
+Suppliers (and admins, per-company) can bulk create/update products by uploading an
+`.xlsx`/`.csv` file. Processing is **asynchronous** and streamed in bounded-memory chunks,
+so it scales to catalogs of any size.
+
+### Endpoints
+
+- `GET  /api/v1/products/import-sample` — download a ready-to-edit `.xlsx` sample with the
+  exact headers and a few example rows.
+- `POST /api/v1/products/import` — upload the file (`multipart/form-data`, field `file`;
+  admins must also pass `supplier_company_id`). Returns `202` with the import record
+  (`status=pending`).
+- `GET  /api/v1/products/imports` — list your company's past imports (paginated).
+- `GET  /api/v1/products/imports/{import}` — poll status, counts, and paginated per-row errors.
+
+### Columns (heading row)
+
+`name*`, `sku*`, `pharmacist_price*` (required); `description`, `category` (name),
+`manufacturer` (name), `barcode`, `unit` (piece|box|bottle|pack|carton), `wholesale_price`,
+`wholesale_min_qty`, `customer_price`, `discount`, `discount_type` (percentage|fixed),
+`stock_quantity`, `min_stock_level`, `is_active`. The canonical list lives in
+`ProductImportService::COLUMNS` and drives both the importer and the sample export.
+
+### Behaviour & rules
+
+- **Upsert by SKU**, scoped to the importing company. A SKU owned by **another** supplier
+  is reported as a row error (never updated) — honouring company scoping. A SKU belonging to
+  a soft-deleted product is also reported (restore it first).
+- **Category/Manufacturer resolved by name** (case-insensitive). Unknown names error that
+  row (they are admin-managed and never auto-created).
+- **Stock**: `stock_quantity` sets the **initial** stock when a product is **created**
+  (mirrors the single-create endpoint). On **update** stock is left untouched — stock
+  changes go through the stock endpoints (rule #4: stock is never overwritten by import).
+- **Update semantics are full-row**: on update, the sheet is authoritative — blank optional
+  cells overwrite/clear the existing value (required fields can't be blank). Include every
+  column you want to keep.
+- Each row is validated; invalid rows are skipped and recorded with a clear message.
+  Successful rows still import (partial success). Counts: `created_count`, `updated_count`,
+  `failed_count`.
+
+### Architecture
+
+`ProductImportController@store` stores the upload and dispatches `ImportProductsJob`
+(`imports` queue). That coordinator streams the file via `ProductRowsImport`
+(maatwebsite/excel, `WithChunkReading`) — each chunk is a short queue job that delegates row
+work to `ProductImportService`. The per-row `ProductObserver` taxonomy sync is **bypassed**
+during the bulk write (`Product::withoutEvents`); a chained `FinalizeProductImportJob` runs
+the sync **once** (via `SupplierTaxonomySyncService`) and sets the final status. See
+[QUEUE_WORKERS.md](../../../docs/QUEUE_WORKERS.md).
+
 ## Related Models
 
 - `App\Models\Product` - Main product model
@@ -271,6 +322,5 @@ Products are added to carts:
 - Product bundles and kits
 - Product recommendations
 - Product analytics and reporting
-- Bulk import/export
 - Product templates
 

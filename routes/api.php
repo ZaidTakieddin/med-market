@@ -59,6 +59,13 @@ Route::prefix('v1')->group(function () {
         // Regions (admin managed, but list available to all)
         Route::apiResource('regions', App\Http\Controllers\Api\V1\RegionController::class);
 
+        // Product Import (must be registered before the products apiResource so
+        // `products/{product}` does not capture these paths)
+        Route::get('products/import-sample', [App\Http\Controllers\Api\V1\ProductImportController::class, 'sample']);
+        Route::post('products/import', [App\Http\Controllers\Api\V1\ProductImportController::class, 'store']);
+        Route::get('products/imports', [App\Http\Controllers\Api\V1\ProductImportController::class, 'index']);
+        Route::get('products/imports/{import}', [App\Http\Controllers\Api\V1\ProductImportController::class, 'show']);
+
         // Products
         Route::apiResource('products', App\Http\Controllers\Api\V1\ProductController::class);
 

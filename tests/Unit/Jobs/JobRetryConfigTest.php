@@ -3,7 +3,9 @@
 namespace Tests\Unit\Jobs;
 
 use App\Jobs\ExportOrdersJob;
+use App\Jobs\FinalizeProductImportJob;
 use App\Jobs\GenerateInvoiceJob;
+use App\Jobs\ImportProductsJob;
 use App\Jobs\LowStockAlertJob;
 use App\Jobs\SendOrderNotificationJob;
 use App\Models\Order;
@@ -27,6 +29,8 @@ class JobRetryConfigTest extends TestCase
             new SendOrderNotificationJob(new Order, 'pending', 'accepted'),
             new LowStockAlertJob(new Product),
             new ExportOrdersJob(new User),
+            new ImportProductsJob(1),
+            new FinalizeProductImportJob(1, 1),
         ];
     }
 

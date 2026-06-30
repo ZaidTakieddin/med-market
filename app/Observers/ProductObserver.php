@@ -2,10 +2,13 @@
 
 namespace App\Observers;
 
+use App\Domain\Companies\SupplierTaxonomySyncService;
 use App\Models\Product;
 
 class ProductObserver
 {
+    public function __construct(private SupplierTaxonomySyncService $taxonomySync) {}
+
     /**
      * Handle the Product "created" event.
      */
@@ -80,34 +83,6 @@ class ProductObserver
      */
     protected function syncSupplierFromProducts(int $supplierCompanyId): void
     {
-        $supplier = \App\Models\Company::find($supplierCompanyId);
-
-        if (! $supplier || ! $supplier->isSupplier()) {
-            return;
-        }
-
-        // Get unique category IDs from supplier's active products
-        $categoryIds = \App\Models\Product::where('supplier_company_id', $supplierCompanyId)
-            ->where('is_active', true)
-            ->whereNotNull('category_id')
-            ->distinct()
-            ->pluck('category_id')
-            ->filter()
-            ->toArray();
-
-        // Get unique manufacturer IDs from supplier's active products
-        $manufacturerIds = \App\Models\Product::where('supplier_company_id', $supplierCompanyId)
-            ->where('is_active', true)
-            ->whereNotNull('manufacturer_id')
-            ->distinct()
-            ->pluck('manufacturer_id')
-            ->filter()
-            ->toArray();
-
-        // Sync categories
-        $supplier->categories()->sync($categoryIds);
-
-        // Sync manufacturers
-        $supplier->manufacturers()->sync($manufacturerIds);
+        $this->taxonomySync->syncForCompany($supplierCompanyId);
     }
 }

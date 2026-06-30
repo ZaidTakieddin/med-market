@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Constants\CompanyType;
+use App\Domain\Companies\SupplierTaxonomySyncService;
 use App\Models\Company;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -10,6 +11,11 @@ use Illuminate\Console\Command;
 
 class SyncSupplierCategoriesAndManufacturers extends Command
 {
+    public function __construct(private SupplierTaxonomySyncService $taxonomySync)
+    {
+        parent::__construct();
+    }
+
     /**
      * The name and signature of the console command.
      *
@@ -90,24 +96,7 @@ class SyncSupplierCategoriesAndManufacturers extends Command
      */
     protected function syncSupplier(Company $supplier): void
     {
-        $categoryIds = Product::where('supplier_company_id', $supplier->id)
-            ->where('is_active', true)
-            ->whereNotNull('category_id')
-            ->distinct()
-            ->pluck('category_id')
-            ->filter()
-            ->toArray();
-
-        $manufacturerIds = Product::where('supplier_company_id', $supplier->id)
-            ->where('is_active', true)
-            ->whereNotNull('manufacturer_id')
-            ->distinct()
-            ->pluck('manufacturer_id')
-            ->filter()
-            ->toArray();
-
-        $supplier->categories()->sync($categoryIds);
-        $supplier->manufacturers()->sync($manufacturerIds);
+        $this->taxonomySync->syncForCompany($supplier->id);
     }
 
     /**

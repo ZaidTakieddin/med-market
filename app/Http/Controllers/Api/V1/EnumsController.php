@@ -13,6 +13,7 @@ use App\Constants\OrderStatus;
 use App\Constants\PaymentStatus;
 use App\Constants\PaymentTerms;
 use App\Constants\PricingType;
+use App\Constants\ProductImportStatus;
 use App\Constants\RegionPlanType;
 use App\Constants\StockMovementType;
 use App\Constants\SupplierClassification;
@@ -44,7 +45,7 @@ class EnumsController extends BaseApiController
                 required: false,
                 schema: new OA\Schema(
                     type: 'string',
-                    enum: ['offerType', 'orderStatus', 'userRole', 'companyType', 'stockMovementType', 'discountType', 'supplierClassification', 'buyerClassification', 'pricingType', 'paymentTerms', 'driverStatus', 'regionPlanType', 'dayOfWeek', 'invoiceStatus', 'paymentStatus']
+                    enum: ['offerType', 'orderStatus', 'userRole', 'companyType', 'stockMovementType', 'discountType', 'supplierClassification', 'buyerClassification', 'pricingType', 'productImportStatus', 'paymentTerms', 'driverStatus', 'regionPlanType', 'dayOfWeek', 'invoiceStatus', 'paymentStatus']
                 ),
                 description: 'Optional. Return only this enum type.'
             ),
@@ -114,6 +115,7 @@ class EnumsController extends BaseApiController
             'supplierClassification' => SupplierClassification::all(),
             'buyerClassification' => BuyerClassification::all(),
             'pricingType' => PricingType::all(),
+            'productImportStatus' => ProductImportStatus::all(),
             'paymentTerms' => PaymentTerms::all(),
             'stockMovementType' => StockMovementType::all(),
             'discountType' => DiscountType::all(),
@@ -141,6 +143,8 @@ class EnumsController extends BaseApiController
                 'buyer_classification' => 'buyerClassification',
                 'pricingType' => 'pricingType',
                 'pricing_type' => 'pricingType',
+                'productImportStatus' => 'productImportStatus',
+                'product_import_status' => 'productImportStatus',
                 'paymentTerms' => 'paymentTerms',
                 'payment_terms' => 'paymentTerms',
                 'stockMovementType' => 'stockMovementType',

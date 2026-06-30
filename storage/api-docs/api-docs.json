@@ -3341,6 +3341,7 @@
                                 "supplierClassification",
                                 "buyerClassification",
                                 "pricingType",
+                                "productImportStatus",
                                 "paymentTerms",
                                 "driverStatus",
                                 "regionPlanType",
@@ -5999,6 +6000,174 @@
                 ]
             }
         },
+        "/products/import-sample": {
+            "get": {
+                "tags": [
+                    "Product Import"
+                ],
+                "summary": "Download product import sample",
+                "description": "Download a ready-to-edit .xlsx sample with the exact headers the importer expects and a few example rows. Replace the example rows with your products. Columns: name, sku, pharmacist_price (required); description, category (name), manufacturer (name), barcode, unit, wholesale_price, wholesale_min_qty, customer_price, discount, discount_type, stock_quantity, min_stock_level, is_active. Note: stock_quantity applies only when creating a NEW product; on update (matched by SKU) stock is left unchanged.",
+                "operationId": "f4064468b682e1685d4aa837741b58e9",
+                "responses": {
+                    "200": {
+                        "description": "Sample .xlsx file download"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/products/import": {
+            "post": {
+                "tags": [
+                    "Product Import"
+                ],
+                "summary": "Import products from Excel/CSV",
+                "description": "Upload an .xlsx/.csv file to bulk create/update products. Existing products are matched by SKU (within your company) and updated; new SKUs are created. Categories and manufacturers are matched by NAME (unknown names error that row). Processing is asynchronous — poll GET /products/imports/{id} for status and per-row errors.",
+                "operationId": "2309049c66ae98733197a6c4580f6acd",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "file"
+                                ],
+                                "properties": {
+                                    "file": {
+                                        "description": "Excel (.xlsx, .xls) or CSV file, max 10 MB",
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "supplier_company_id": {
+                                        "description": "Required for admins. Ignored for suppliers (uses their company).",
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Import accepted and queued. Returns the import record (status=pending)."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/products/imports": {
+            "get": {
+                "tags": [
+                    "Product Import"
+                ],
+                "summary": "List product imports",
+                "description": "List past product imports for your company (admins see all). Paginated.",
+                "operationId": "1cc2c9a6ac04c7b9080c0a790baa653e",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Imports retrieved successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/products/imports/{import}": {
+            "get": {
+                "tags": [
+                    "Product Import"
+                ],
+                "summary": "Get product import status",
+                "description": "Get an import's status, counts (created/updated/failed), and a paginated list of per-row errors.",
+                "operationId": "7ab60097d264d90201539de1e597d8fe",
+                "parameters": [
+                    {
+                        "name": "import",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Errors per page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 50
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Import retrieved successfully (data.import + data.errors)"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/profile": {
             "get": {
                 "tags": [
@@ -7634,6 +7803,10 @@
         {
             "name": "Products",
             "description": "Product management endpoints"
+        },
+        {
+            "name": "Product Import",
+            "description": "Bulk product import from Excel/CSV"
         },
         {
             "name": "Profile",

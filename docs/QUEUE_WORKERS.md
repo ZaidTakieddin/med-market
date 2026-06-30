@@ -26,6 +26,14 @@ The following background jobs are implemented:
    - Queue: `exports`
    - Triggers: Manually dispatched from controllers/endpoints
 
+5. **ImportProductsJob** - Coordinates a bulk product import (Excel/CSV)
+   - Queue: `imports`
+   - Triggers: Dispatched from `ProductImportController@store` after upload
+   - Reads the file in bounded-memory chunks (maatwebsite/excel); each chunk runs as its
+     own short queue job, then a chained **FinalizeProductImportJob** runs the one-time
+     supplier taxonomy sync and records the final status. See the
+     [Products domain README](../app/Domain/Products/README.md#bulk-import-excelcsv).
+
 ## Queue Configuration
 
 The default queue connection is configured in `config/queue.php`:
@@ -99,7 +107,7 @@ php artisan queue:work --queue=exports
 Run worker for multiple queues (priority order):
 
 ```bash
-php artisan queue:work --queue=notifications,invoices,alerts,exports
+php artisan queue:work --queue=notifications,invoices,alerts,exports,imports
 ```
 
 ### Production
@@ -113,7 +121,7 @@ Create `/etc/supervisor/conf.d/med-market-worker.conf`:
 ```ini
 [program:med-market-worker]
 process_name=%(program_name)s_%(process_num)02d
-command=php /path/to/med-market/artisan queue:work database --queue=notifications,invoices,alerts,exports --sleep=3 --tries=3 --max-time=3600
+command=php /path/to/med-market/artisan queue:work database --queue=notifications,invoices,alerts,exports,imports --sleep=3 --tries=3 --max-time=3600
 autostart=true
 autorestart=true
 stopasgroup=true
@@ -146,7 +154,7 @@ After=network.target
 User=www-data
 Group=www-data
 Restart=always
-ExecStart=/usr/bin/php /path/to/med-market/artisan queue:work database --queue=notifications,invoices,alerts,exports --sleep=3 --tries=3 --max-time=3600
+ExecStart=/usr/bin/php /path/to/med-market/artisan queue:work database --queue=notifications,invoices,alerts,exports,imports --sleep=3 --tries=3 --max-time=3600
 
 [Install]
 WantedBy=multi-user.target
@@ -167,7 +175,7 @@ If using Docker, add queue worker to your `docker-compose.yml`:
 services:
   queue-worker:
     build: .
-    command: php artisan queue:work database --queue=notifications,invoices,alerts,exports --sleep=3 --tries=3 --max-time=3600
+    command: php artisan queue:work database --queue=notifications,invoices,alerts,exports,imports --sleep=3 --tries=3 --max-time=3600
     volumes:
       - .:/var/www/html
     depends_on:
@@ -194,7 +202,7 @@ For Render.com or similar platforms:
 
 **Option 2: Production (Separate Background Worker)**
 - Create a separate **Background Worker** service
-- **Command**: `php artisan queue:work database --queue=notifications,invoices,alerts,exports --sleep=3 --tries=3 --max-time=3600`
+- **Command**: `php artisan queue:work database --queue=notifications,invoices,alerts,exports,imports --sleep=3 --tries=3 --max-time=3600`
 - **Environment Variables**: Copy all from Web Service, including:
   - `DB_QUEUE_CONNECTION=pgsql_queue`
   - `DB_QUEUE_HOST` (unpooled endpoint)
@@ -222,7 +230,7 @@ Common options for `queue:work`:
 
 ```bash
 # List all queues and their job counts
-php artisan queue:monitor notifications,invoices,alerts,exports
+php artisan queue:monitor notifications,invoices,alerts,exports,imports
 
 # Check failed jobs
 php artisan queue:failed
@@ -263,6 +271,12 @@ All jobs declare `$tries`, `$backoff`, **`$timeout`**, and a `failed()` handler:
 - **GenerateInvoiceJob**: 3 tries, 120s backoff, 60s timeout
 - **LowStockAlertJob**: 2 tries, 300s backoff, 45s timeout
 - **ExportOrdersJob**: 2 tries, 300s backoff, 75s timeout
+- **ImportProductsJob**: 1 try, 60s backoff, 60s timeout
+- **FinalizeProductImportJob**: 1 try, 60s backoff, 60s timeout
+
+The import jobs use **1 try** on purpose: re-running the coordinator would re-dispatch the
+chunk chain and double-import. The per-chunk read jobs (maatwebsite) also run with a single
+attempt and a 60s timeout (below `retry_after`), so a chunk can never be re-run in parallel.
 
 Every job's `$timeout` is kept **below the queue's `retry_after` (90s,
 `DB_QUEUE_RETRY_AFTER`)** so a hung job is killed before another worker can grab it for
