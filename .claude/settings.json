@@ -13,5 +13,27 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "PowerShell(php artisan test)",
+      "PowerShell(php artisan test *)",
+      "PowerShell(php artisan route:list)",
+      "PowerShell(php artisan route:list *)",
+      "PowerShell(composer analyse)",
+      "PowerShell(vendor/bin/phpstan analyse)",
+      "PowerShell(vendor/bin/phpstan analyse *)",
+      "PowerShell(php vendor/bin/phpstan analyse)",
+      "PowerShell(php vendor/bin/phpstan analyse *)",
+      "PowerShell(vendor/bin/phpstan clear-result-cache)",
+      "PowerShell(php vendor/bin/phpstan clear-result-cache)",
+      "PowerShell(vendor/bin/pint)",
+      "PowerShell(vendor/bin/pint *)",
+      "PowerShell(php vendor/bin/pint)",
+      "PowerShell(php vendor/bin/pint *)",
+      "Bash(php artisan route:list)",
+      "Bash(php artisan route:list *)",
+      "mcp__laravel-boost__database-query"
+    ]
   }
 }
