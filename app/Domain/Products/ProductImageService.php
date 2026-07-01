@@ -68,7 +68,7 @@ class ProductImageService
             });
         } catch (\Throwable $e) {
             foreach ($stored as $image) {
-                $this->safeDelete($image->disk, $image->path);
+                $this->uploader->deleteQuietly($image->disk, $image->path);
             }
 
             throw $e;
@@ -100,7 +100,7 @@ class ProductImageService
             }
         });
 
-        $this->safeDelete($disk, $path);
+        $this->uploader->deleteQuietly($disk, $path);
     }
 
     /**
@@ -131,18 +131,5 @@ class ProductImageService
         });
 
         return $product->images()->get();
-    }
-
-    /**
-     * Best-effort removal of a stored file; never lets storage errors mask the
-     * primary outcome (the DB change already succeeded).
-     */
-    private function safeDelete(string $disk, string $path): void
-    {
-        try {
-            $this->uploader->delete($disk, $path);
-        } catch (\Throwable $e) {
-            report($e);
-        }
     }
 }

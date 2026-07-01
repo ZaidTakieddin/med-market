@@ -31,13 +31,13 @@ class CompanyLogoService
                 ]);
             });
         } catch (\Throwable $e) {
-            $this->safeDelete($stored->disk, $stored->path);
+            $this->uploader->deleteQuietly($stored->disk, $stored->path);
 
             throw $e;
         }
 
         if ($previousPath !== null) {
-            $this->safeDelete((string) $previousDisk, $previousPath);
+            $this->uploader->deleteQuietly((string) $previousDisk, $previousPath);
         }
 
         return $company->refresh();
@@ -60,18 +60,9 @@ class CompanyLogoService
         });
 
         if ($path !== null) {
-            $this->safeDelete((string) $disk, $path);
+            $this->uploader->deleteQuietly((string) $disk, $path);
         }
 
         return $company->refresh();
-    }
-
-    private function safeDelete(string $disk, string $path): void
-    {
-        try {
-            $this->uploader->delete($disk, $path);
-        } catch (\Throwable $e) {
-            report($e);
-        }
     }
 }

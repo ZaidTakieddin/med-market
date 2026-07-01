@@ -54,4 +54,17 @@ class ImageUploadService
     {
         Storage::disk($disk)->delete($path);
     }
+
+    /**
+     * Best-effort delete: swallow (and report) any storage error so a failed
+     * file cleanup never masks the primary outcome (the DB change already done).
+     */
+    public function deleteQuietly(string $disk, string $path): void
+    {
+        try {
+            $this->delete($disk, $path);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
 }
