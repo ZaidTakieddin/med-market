@@ -6,6 +6,9 @@
                 "artisan",
                 "boost:mcp"
             ]
+        },
+        "uptimerobot": {
+            "url": "https://mcp.uptimerobot.com/mcp"
         }
     }
 }
