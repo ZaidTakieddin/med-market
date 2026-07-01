@@ -1556,7 +1556,7 @@ such as Cloudflare R2) is a one-line config change.
 - [x] Multiple images per product support (`product_images` table, gallery)
 - [x] Image storage configuration — `config/media.php` (`MEDIA_DISK`) + `cloudinary` disk
 - [x] Image optimization and resizing — Cloudinary on-the-fly transforms (`thumbnailUrl`)
-- [x] Company logo upload (`POST`/`DELETE /companies/{company}/logo`, admin only)
+- [x] Company logo upload (`POST`/`DELETE /companies/{company}/logo`, admins or a user of the company)
 - [x] Product image management (add / delete / reorder / set-primary)
 - [x] Image CDN integration — Cloudinary delivery CDN
 - [x] Migration adding the `product_images` table and `companies.logo_*` columns

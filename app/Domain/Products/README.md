@@ -243,7 +243,8 @@ image) with: `php artisan media:check`.
 the per-product cap), which uses the disk-agnostic `Media\ImageUploadService`
 (+ `Media\StoredImage` DTO). Authorization reuses `ProductPolicy@update` (owning supplier
 or admin); listing uses `view`. Company logos follow the same pattern via
-`Companies\CompanyLogoService` (`POST`/`DELETE /companies/{company}/logo`, admin only).
+`Companies\CompanyLogoService` (`POST`/`DELETE /companies/{company}/logo`), authorized by
+`CompanyPolicy@manageLogo` — admins, or a user belonging to that company.
 
 ## Related Models
 

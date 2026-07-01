@@ -23,7 +23,7 @@ class CompanyLogoController extends BaseApiController
     #[OA\Post(
         path: '/companies/{company}/logo',
         summary: 'Upload company logo',
-        description: 'Upload or replace the company logo (multipart field logo). Replacing removes the previous file. Admin only.',
+        description: 'Upload or replace the company logo (multipart field logo). Replacing removes the previous file. Allowed for admins or a user of the company.',
         tags: ['Company Logo'],
         security: [['sanctum' => []]],
         parameters: [
@@ -50,7 +50,7 @@ class CompanyLogoController extends BaseApiController
     )]
     public function store(UploadCompanyLogoRequest $request, Company $company): JsonResponse
     {
-        $this->authorize('update', $company);
+        $this->authorize('manageLogo', $company);
 
         /** @var \Illuminate\Http\UploadedFile $logo */
         $logo = $request->file('logo');
@@ -69,7 +69,7 @@ class CompanyLogoController extends BaseApiController
     #[OA\Delete(
         path: '/companies/{company}/logo',
         summary: 'Remove company logo',
-        description: 'Remove the company logo and delete its stored file. Admin only.',
+        description: 'Remove the company logo and delete its stored file. Allowed for admins or a user of the company.',
         tags: ['Company Logo'],
         security: [['sanctum' => []]],
         parameters: [
@@ -84,7 +84,7 @@ class CompanyLogoController extends BaseApiController
     )]
     public function destroy(Company $company): JsonResponse
     {
-        $this->authorize('update', $company);
+        $this->authorize('manageLogo', $company);
 
         $company = $this->companyLogoService->removeLogo($company);
 

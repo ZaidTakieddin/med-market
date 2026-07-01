@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Companies;
 
+use App\Constants\UserRole;
 use App\Models\Company;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -62,14 +63,35 @@ class CompanyLogoTest extends TestCase
         Storage::disk('public')->assertExists($newPath);
     }
 
-    public function test_non_admin_cannot_upload_a_company_logo(): void
+    public function test_user_from_another_company_cannot_upload_a_logo(): void
     {
         $company = Company::factory()->supplier()->create();
+        // A supplier belonging to a DIFFERENT company.
         Sanctum::actingAs(User::factory()->supplier()->create());
 
         $this->postJson("/api/v1/companies/{$company->id}/logo", [
             'logo' => UploadedFile::fake()->image('logo.png'),
         ])->assertStatus(403);
+    }
+
+    public function test_owning_supplier_can_upload_and_remove_own_company_logo(): void
+    {
+        $company = Company::factory()->supplier()->create();
+        $user = User::factory()->create(['role' => UserRole::SUPPLIER, 'company_id' => $company->id]);
+        Sanctum::actingAs($user);
+
+        $this->postJson("/api/v1/companies/{$company->id}/logo", [
+            'logo' => UploadedFile::fake()->image('logo.png'),
+        ])->assertOk();
+
+        $path = $company->fresh()->logo_path;
+        $this->assertNotNull($path);
+        Storage::disk('public')->assertExists($path);
+
+        $this->deleteJson("/api/v1/companies/{$company->id}/logo")->assertOk();
+
+        $this->assertNull($company->fresh()->logo_path);
+        Storage::disk('public')->assertMissing($path);
     }
 
     public function test_non_image_logo_is_rejected(): void

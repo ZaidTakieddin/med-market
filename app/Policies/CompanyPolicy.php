@@ -49,4 +49,17 @@ class CompanyPolicy
         // Only admin can delete companies
         return $user->isAdmin();
     }
+
+    /**
+     * Determine if the user can manage (upload/remove) the company's logo.
+     * Admins can manage any company; other users only their own company.
+     */
+    public function manageLogo(User $user, Company $company): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $user->company_id === $company->id;
+    }
 }

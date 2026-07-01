@@ -2454,7 +2454,7 @@
                     "Company Logo"
                 ],
                 "summary": "Upload company logo",
-                "description": "Upload or replace the company logo (multipart field logo). Replacing removes the previous file. Admin only.",
+                "description": "Upload or replace the company logo (multipart field logo). Replacing removes the previous file. Allowed for admins or a user of the company.",
                 "operationId": "0fc769234ba56c847098b2cca021fc45",
                 "parameters": [
                     {
@@ -2511,7 +2511,7 @@
                     "Company Logo"
                 ],
                 "summary": "Remove company logo",
-                "description": "Remove the company logo and delete its stored file. Admin only.",
+                "description": "Remove the company logo and delete its stored file. Allowed for admins or a user of the company.",
                 "operationId": "17799bd41cf253d40e9203e5a9f104d7",
                 "parameters": [
                     {
