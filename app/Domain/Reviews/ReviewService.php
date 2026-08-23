@@ -41,7 +41,7 @@ class ReviewService
                 ->first();
 
             if ($existing !== null) {
-                $existing->update(['rating' => $rating, 'body' => $body, 'order_id' => $order?->getKey()]);
+                $existing->update(['rating' => $rating, 'body' => $body, 'order_id' => $order->getKey()]);
 
                 return $existing->refresh();
             }
@@ -50,7 +50,7 @@ class ReviewService
                 'user_id' => $user->id,
                 'reviewable_type' => $reviewableClass,
                 'reviewable_id' => $reviewable->getKey(),
-                'order_id' => $order?->getKey(),
+                'order_id' => $order->getKey(),
                 'rating' => $rating,
                 'body' => $body,
                 'status' => Review::STATUS_APPROVED,
@@ -90,7 +90,7 @@ class ReviewService
     /**
      * A delivered order of the user's buyer company matching the review target.
      */
-    private function findVerifiedOrder(User $user, string $class, Product|Company $reviewable, ?int $orderId): ?Order
+    private function findVerifiedOrder(User $user, string $class, Product|Company $reviewable, ?int $orderId): Order
     {
         $companyId = $user->company_id;
         if ($companyId === null) {
