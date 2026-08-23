@@ -85,6 +85,26 @@ REDIS_QUEUE_RETRY_AFTER=90
 - **DB_QUEUE_CONNECTION**: Set to `pgsql_queue` to use the unpooled connection (defaults to this)
 - **ENABLE_QUEUE_WORKER**: Set to `true` for development (single container), `false` for production (separate Background Worker)
 
+## Running the WebSocket Server (Laravel Reverb)
+
+Realtime features (#10) broadcast over WebSockets via **Laravel Reverb**
+(`BROADCAST_CONNECTION=reverb`). Run it alongside the queue worker:
+
+```bash
+php artisan reverb:start              # defaults to 0.0.0.0:8080
+php artisan reverb:start --host=0.0.0.0 --port=8081
+```
+
+- Required env: `REVERB_APP_ID`, `REVERB_APP_KEY`, `REVERB_APP_SECRET`
+  (generate with `php artisan key:generate`-style randomness; frontends need the same
+  APP_KEY/PUSHER_* values in their Echo config).
+- Behind a proxy, terminate TLS at the edge and set `REVERB_SCHEME=https`,
+  or route `/app/*` websocket upgrades to Reverb.
+- Channels are tenant-scoped and authorized in `routes/channels.php`
+  (`supplier.{companyId}`, `buyer.{companyId}`, `driver.{driverId}`,
+  `presence-company.{companyId}`); clients authenticate with their Sanctum token at
+  `POST /api/v1/broadcasting/auth`.
+
 ## Running Queue Workers
 
 ### Development (Local)
