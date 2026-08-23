@@ -26,8 +26,8 @@ class OrderTemplateResource extends JsonResource
             'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($item): array => [
                 'productId' => $item->product_id,
                 'quantity' => $item->quantity,
-                'product' => $item->relationLoaded('product')
-                    ? ['id' => $item->product->id, 'name' => $item->product->name, 'sku' => $item->product->sku]
+                'product' => $item->relationLoaded('product') && $item->product !== null
+                    ? ['id' => (int) $item->product->id, 'name' => (string) $item->product->name, 'sku' => (string) $item->product->sku]
                     : null,
             ])),
             'createdAt' => $this->created_at?->toISOString(),

@@ -4,6 +4,7 @@ namespace App\Domain\Orders;
 
 use App\Exceptions\DomainException;
 use App\Models\OrderTemplate;
+use App\Models\OrderTemplateItem;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -112,18 +113,23 @@ class OrderTemplateService
 
         $created = [];
 
-        DB::transaction(function () use (&$created, $template, $buyerUser, $paymentMethod, $bySupplier): void {
+        $buyerCompany = $template->company;
+        if ($buyerCompany === null) {
+            throw new DomainException('The template\'s buyer company no longer exists.');
+        }
+
+        DB::transaction(function () use (&$created, $template, $buyerUser, $paymentMethod, $bySupplier, $buyerCompany): void {
             foreach ($bySupplier as $supplierId => $rows) {
                 // Catalog visibility still applies on reorder.
                 $supplierCompany = \App\Models\Company::find($supplierId);
-                if ($supplierCompany === null || ! $this->pricingService->canBuyerSeeSupplier($supplierCompany, $template->company)) {
+                if ($supplierCompany === null || ! $this->pricingService->canBuyerSeeSupplier($supplierCompany, $buyerCompany)) {
                     throw new DomainException("This template contains products from a supplier that is no longer available ({$supplierId}).");
                 }
 
                 // Prices are always resolved server-side in the buyer's context.
                 $resolved = [];
                 foreach ($rows as $row) {
-                    $priceResult = $this->pricingService->resolve($row['product'], $template->company, $row['quantity']);
+                    $priceResult = $this->pricingService->resolve($row['product'], $buyerCompany, $row['quantity']);
                     $resolved[] = [
                         'product_id' => $row['product_id'],
                         'quantity' => $row['quantity'],
