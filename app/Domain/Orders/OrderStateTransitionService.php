@@ -5,6 +5,7 @@ namespace App\Domain\Orders;
 use App\Constants\OrderStatus;
 use App\Constants\PaymentTerms;
 use App\Domain\Companies\CreditService;
+use App\Domain\Deliveries\EtaService;
 use App\Domain\Inventory\StockMovementService;
 use App\Exceptions\DomainException;
 use App\Jobs\GenerateInvoiceJob;
@@ -19,7 +20,8 @@ class OrderStateTransitionService
 {
     public function __construct(
         private StockMovementService $stockMovementService,
-        private CreditService $creditService
+        private CreditService $creditService,
+        private EtaService $etaService
     ) {}
 
     /**
@@ -227,5 +229,18 @@ class OrderStateTransitionService
             OrderStatus::CANCELLED => $order->cancelled_at = now(),
             default => null,
         };
+
+        // When an order ships, estimate the delivery time from the supplier→buyer
+        // distance (null when either company has no coordinates).
+        if ($status === OrderStatus::SHIPPED) {
+            if (! $order->relationLoaded('supplierCompany')) {
+                $order->load('supplierCompany');
+            }
+            if (! $order->relationLoaded('buyerCompany')) {
+                $order->load('buyerCompany');
+            }
+
+            $order->estimated_delivery_at = $this->etaService->estimateForOrder($order, now());
+        }
     }
 }

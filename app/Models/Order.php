@@ -67,6 +67,7 @@ class Order extends Model
         'delivered_at',
         'cancelled_at',
         'cancellation_reason',
+        'estimated_delivery_at',
     ];
 
     protected $casts = [
@@ -79,7 +80,18 @@ class Order extends Model
         'shipped_at' => 'datetime',
         'delivered_at' => 'datetime',
         'cancelled_at' => 'datetime',
+        'estimated_delivery_at' => 'datetime',
     ];
+
+    /**
+     * Delivery proof attachments (photos/signatures) for this order.
+     *
+     * @return HasMany<DeliveryProof, $this>
+     */
+    public function deliveryProofs(): HasMany
+    {
+        return $this->hasMany(DeliveryProof::class);
+    }
 
     /**
      * Get the buyer company.

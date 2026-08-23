@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Constants\OrderStatus;
 use App\Constants\RegionPlanType;
 use App\Constants\UserRole;
+use App\Domain\Deliveries\DriverLocationService;
 use App\Domain\Deliveries\DriverRegionPlanService;
 use App\Domain\Deliveries\DriverService;
 use App\Http\Controllers\Api\BaseApiController;
@@ -29,7 +30,8 @@ class DriverController extends BaseApiController
 {
     public function __construct(
         private DriverRegionPlanService $regionPlanService,
-        private DriverService $driverService
+        private DriverService $driverService,
+        private DriverLocationService $locationService
     ) {}
 
     /**
@@ -233,6 +235,83 @@ class DriverController extends BaseApiController
         $this->driverService->delete($driver);
 
         return $this->success(null, 'Driver deleted successfully');
+    }
+
+    /**
+     * Record the authenticated driver's GPS position.
+     */
+    #[OA\Post(
+        path: '/drivers/location',
+        summary: 'Ping driver location',
+        description: "Record the authenticated driver's current GPS coordinates. Called periodically by the driver app; clients then poll GET /drivers/{driver}/location for live tracking.",
+        tags: ['Drivers'],
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['latitude', 'longitude'],
+                properties: [
+                    new OA\Property(property: 'latitude', type: 'number', format: 'float', example: 33.5138, description: 'Latitude (-90 to 90)'),
+                    new OA\Property(property: 'longitude', type: 'number', format: 'float', example: 36.2765, description: 'Longitude (-180 to 180)'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Location recorded successfully'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+        ]
+    )]
+    public function pingLocation(Request $request): JsonResponse
+    {
+        $user = $this->currentUser();
+
+        if (! $user->isDriver()) {
+            return $this->error('Only drivers can record locations', null, 403);
+        }
+
+        $data = $request->validate([
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        $this->locationService->ping($user, (float) $data['latitude'], (float) $data['longitude']);
+
+        return $this->success(null, 'Location recorded successfully');
+    }
+
+    /**
+     * A driver's latest known location.
+     */
+    #[OA\Get(
+        path: '/drivers/{driver}/location',
+        summary: "Get driver's latest location",
+        description: 'The most recent GPS ping of the driver (data may be null when they never reported a position). Owner supplier or admin only.',
+        tags: ['Drivers'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'driver', in: 'path', required: true, schema: new OA\Schema(type: 'integer'), description: 'Driver user ID'),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Latest location returned'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+        ]
+    )]
+    public function latestLocation(User $driver): JsonResponse
+    {
+        if (! $driver->isDriver()) {
+            abort(404);
+        }
+
+        $this->authorize('viewDriver', $driver);
+
+        return $this->success(
+            $this->locationService->latest($driver),
+            'Latest location retrieved successfully'
+        );
     }
 
     /**

@@ -145,6 +145,16 @@ class User extends Authenticatable
     }
 
     /**
+     * GPS pings recorded by this driver (live-tracking history).
+     *
+     * @return HasMany<DriverLocation, $this>
+     */
+    public function locations(): HasMany
+    {
+        return $this->hasMany(DriverLocation::class, 'driver_id');
+    }
+
+    /**
      * Check if user has a specific role.
      */
     public function hasRole(string $role): bool

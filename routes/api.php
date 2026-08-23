@@ -71,6 +71,10 @@ Route::prefix('v1')->group(function () {
         Route::post('invoices/{invoice}/send', [App\Http\Controllers\Api\V1\InvoiceController::class, 'markAsSent']);
         Route::post('invoices/{invoice}/pay', [App\Http\Controllers\Api\V1\InvoiceController::class, 'markAsPaid']);
 
+        // Delivery proofs
+        Route::get('orders/{order}/delivery-proof', [App\Http\Controllers\Api\V1\DeliveryProofController::class, 'index']);
+        Route::post('orders/{order}/delivery-proof', [App\Http\Controllers\Api\V1\DeliveryProofController::class, 'store']);
+
         // Categories (admin managed, but list available to all)
         Route::apiResource('categories', App\Http\Controllers\Api\V1\CategoryController::class);
 
@@ -140,12 +144,15 @@ Route::prefix('v1')->group(function () {
 
         // Drivers
         Route::apiResource('drivers', App\Http\Controllers\Api\V1\DriverController::class);
+        // Location ping must be defined before {driver} bindings could capture "location"
+        Route::post('drivers/location', [App\Http\Controllers\Api\V1\DriverController::class, 'pingLocation']);
         Route::get('drivers/{driver}/orders', [App\Http\Controllers\Api\V1\DriverController::class, 'orders']);
         Route::get('drivers/{driver}/regions', [App\Http\Controllers\Api\V1\DriverController::class, 'regions']);
         Route::post('drivers/{driver}/regions', [App\Http\Controllers\Api\V1\DriverController::class, 'assignRegions']);
         Route::post('drivers/{driver}/region-plan', [App\Http\Controllers\Api\V1\DriverController::class, 'setRegionPlan']);
         Route::put('drivers/{driver}/holidays', [App\Http\Controllers\Api\V1\DriverController::class, 'setHolidays']);
         Route::delete('drivers/{driver}/regions/{region_id}', [App\Http\Controllers\Api\V1\DriverController::class, 'removeRegion']);
+        Route::get('drivers/{driver}/location', [App\Http\Controllers\Api\V1\DriverController::class, 'latestLocation']);
 
         // Profile
         Route::prefix('profile')->group(function () {

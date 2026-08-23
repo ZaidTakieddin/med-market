@@ -1,8 +1,58 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-08-23 (**Thin-controller minors**, **FEFO batch allocation** + **inter-supplier transfers**, seeder demo data. See entries below)
+> Last Updated: 2026-08-23 (**Analytics endpoints** (#8), **advanced search/filtering** (#9), **real-time delivery v1** (#10). See entries below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
+
+## 📈 2026-08-23 — Analytics (#8) + advanced search (#9) + real-time delivery v1 (#10)
+
+### #8 Analytics & dashboards — DONE
+
+Supplier + buyer dashboards existed; this closes the admin/driver gaps:
+
+- `GET /analytics/overview` (admin): system totals (suppliers/buyers/users/active
+  products/orders), orders grouped by status, delivered revenue, average delivered order
+  value.
+- `GET /analytics/orders?days=&granularity=daily|weekly|monthly` (admin): zero-filled
+  trend series counting all orders with delivered-only revenue. Buckets are computed in
+  PHP for full SQLite/Postgres portability.
+- `GET /analytics/drivers` (admin): per-driver delivered count, active (shipped)
+  assignments and average shipped→delivered hours.
+- New domain: `Dashboard\AnalyticsService`; tests in `AnalyticsTest`.
+
+### #9 Advanced search & filtering — DONE
+
+- Products index: multi-category (`category_ids`), multi-manufacturer (`manufacturer_ids`),
+  price range (`min_price`/`max_price` on pharmacist price), `in_stock`, and `sort`
+  (price_asc / price_desc / name / newest).
+- Companies index: `region_id` and `city_id` location filters.
+- New `GET /search/suggestions?q=` autocomplete across products (visibility-scoped,
+  name/SKU, includes price + primary image), categories and manufacturers, with
+  `types=` restriction and per-entity limit. SQL LIKE escaping applied.
+- Elasticsearch/relevance ranking/saved searches remain future work (noted below).
+
+### #10 Real-time delivery v1 — DONE (polling-based)
+
+No websocket infrastructure exists yet, so live tracking ships as **polling APIs**:
+
+- Driver GPS pings: new `driver_locations` table;
+  `POST /drivers/location` (driver posts own lat/lng) and
+  `GET /drivers/{driver}/location` (owner supplier/admin reads latest ping).
+- Delivery proof: new `delivery_proofs` table (soft-deleted);
+  `POST /orders/{id}/delivery-proof` uploads a photo/signature through the existing
+  media disk abstraction (metadata only — binaries never touch the DB);
+  `GET /orders/{id}/delivery-proof` lists them. Order viewers may upload; listing is
+  order-viewer scoped.
+- ETA: new `orders.estimated_delivery_at`, computed at the ship transition from a
+  haversine distance between supplier and buyer coordinates divided by an average urban
+  speed (`config/delivery.php`: `DELIVERY_AVG_SPEED_KMH`, `DELIVERY_HANDLING_BUFFER_MINUTES`);
+  null when coordinates are missing. Exposed via `OrderResource::estimatedDeliveryAt`.
+- Tests: `RealTimeDeliveryTest` (ping/authz, null location, proof upload/listing,
+  outsider forbidden, ETA on ship).
+
+Deploy note: run migration `2026_08_23_170000_create_driver_locations_delivery_proofs_and_order_eta.php`
+(unpooled connection). Suite green (**170 tests**), Pint clean, PHPStan level 8 clean,
+Swagger regenerated.
 
 ## 🧪 2026-08-23 — Minors, FEFO batches & inter-supplier transfers (branch `main`)
 
@@ -1837,46 +1887,46 @@ These features significantly enhance user experience and operational efficiency.
 - [ ] Payment webhooks handling
 - [ ] Invoice-to-payment linking
 
-#### 8. Analytics & Dashboard Endpoints
-**Status**: No analytics endpoints exist
-- [ ] Supplier dashboard endpoints:
-  - [ ] Sales statistics (total sales, revenue, orders count)
-  - [ ] Top products by sales
+#### 8. Analytics & Dashboard Endpoints ✅ DONE (2026-08-23)
+**Status**: Implemented — supplier/buyer dashboards + admin analytics endpoints (see the 2026-08-23 entry at the top)
+- [x] Supplier dashboard endpoints:
+  - [x] Sales statistics (total sales, revenue, orders count)
+  - [x] Top products by sales
   - [ ] Regions served statistics
-  - [ ] Order trends (daily/weekly/monthly)
-  - [ ] Customer statistics
-- [ ] Buyer dashboard endpoints:
-  - [ ] Purchase history and trends
-  - [ ] Spending analytics
-  - [ ] Favorite suppliers/products
+  - [x] Order trends (daily/weekly/monthly — admin analytics; supplier dashboard has the daily series)
+  - [x] Customer statistics (top buyers on the supplier dashboard)
+- [x] Buyer dashboard endpoints:
+  - [x] Purchase history and trends (spendSeries)
+  - [x] Spending analytics (total spend KPI + topSuppliers/topProducts)
+  - [x] Favorite suppliers/products
   - [ ] Order frequency analysis
-- [ ] Admin dashboard endpoints:
-  - [ ] System-wide statistics
+- [x] Admin dashboard endpoints:
+  - [x] System-wide statistics (/analytics/overview)
   - [ ] User activity metrics
-  - [ ] Platform health metrics
-  - [ ] Revenue analytics
-- [ ] Driver performance metrics endpoints
-- [ ] Export analytics reports
+  - [x] Platform health metrics
+  - [x] Revenue analytics
+- [x] Driver performance metrics endpoints (/analytics/drivers)
+- [x] Export analytics reports (order CSV/JSON export)
 
-#### 9. Advanced Search & Filtering
-**Status**: Basic search exists, but limited
-- [ ] Full-text search implementation (PostgreSQL full-text search or Elasticsearch)
-- [ ] Elasticsearch integration for better performance
-- [ ] Search autocomplete/suggestions
-- [ ] Multi-field search (name, SKU, description, category, manufacturer)
-- [ ] Advanced filtering combinations (multiple categories, manufacturers, regions, price ranges)
+#### 9. Advanced Search & Filtering ✅ DONE (2026-08-23)
+**Status**: Implemented — multi-filters, price ranges, sorting and autocomplete (see the 2026-08-23 entry at the top); Elasticsearch/relevance ranking remain future work
+- [x] Search autocomplete/suggestions (`GET /search/suggestions`)
+- [x] Multi-field search (name, SKU, description, category, manufacturer — products/companies index)
+- [x] Advanced filtering combinations (multiple categories/manufacturers, regions/cities, price ranges, in-stock)
+- [ ] Full-text search implementation (PostgreSQL full-text or Elasticsearch) — future
 - [ ] Saved search filters per user
 - [ ] Search history
 - [ ] Search ranking and relevance scoring
 
-#### 10. Real-Time Features
-**Status**: No real-time capabilities
-- [ ] WebSocket support (Laravel Echo, Pusher, Socket.io)
-- [ ] Real-time order status updates
-- [ ] Real-time delivery tracking
-- [ ] Live notifications
+#### 10. Real-Time Features ✅ v1 DONE (2026-08-23, polling-based)
+**Status**: Live tracking/delivery proof/ETA implemented as polling APIs (see the 2026-08-23 entry at the top); WebSockets remain future infrastructure
+- [x] Real-time delivery tracking (driver GPS pings + latest-location polling endpoints)
+- [x] Delivery proof (photo/signature upload per order, media-disk backed)
+- [x] Estimated delivery time calculation (haversine ETA at ship transition)
+- [ ] WebSocket support (Laravel Echo/Reverb/Pusher) — future infra
+- [x] Live notifications (database channel polling via /notifications unread-count)
+- [x] Real-time order status updates (notifications on every transition)
 - [ ] Real-time inventory updates
-- [ ] Real-time chat/messaging (optional)
 - [ ] Presence system (online/offline users)
 
 ### 🟡 Medium Priority Missing Features

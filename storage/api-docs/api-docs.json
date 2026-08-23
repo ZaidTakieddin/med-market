@@ -12,6 +12,113 @@
         }
     ],
     "paths": {
+        "/analytics/overview": {
+            "get": {
+                "tags": [
+                    "Analytics"
+                ],
+                "summary": "Platform overview",
+                "description": "System-wide statistics: company/user/product/order totals, orders grouped by status, delivered revenue and average delivered order value. Admin only.",
+                "operationId": "eaa211f102e7a4b69b6fd956443d8642",
+                "responses": {
+                    "200": {
+                        "description": "Overview retrieved successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/analytics/orders": {
+            "get": {
+                "tags": [
+                    "Analytics"
+                ],
+                "summary": "Order trends",
+                "description": "Trailing-window order trend series bucketed per day (default), week or month, zero-filled oldest first. \"orders\" counts all orders created in the bucket; \"revenue\" sums delivered orders only. Admin only.",
+                "operationId": "abb8e5daf34f24791261c911ebc3e86e",
+                "parameters": [
+                    {
+                        "name": "days",
+                        "in": "query",
+                        "description": "Window size in units of the chosen granularity",
+                        "schema": {
+                            "type": "integer",
+                            "default": 30,
+                            "maximum": 365,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "granularity",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "default": "daily",
+                            "enum": [
+                                "daily",
+                                "weekly",
+                                "monthly"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Trends retrieved successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/analytics/drivers": {
+            "get": {
+                "tags": [
+                    "Analytics"
+                ],
+                "summary": "Driver performance metrics",
+                "description": "Per-driver delivery performance across the platform: delivered orders, currently-active (shipped) assignments, and average shipped→delivered duration in hours. Admin only.",
+                "operationId": "235c1c1ad0730d1f8f5b7bfcd735c2f0",
+                "responses": {
+                    "200": {
+                        "description": "Driver performance retrieved successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/auth/register": {
             "post": {
                 "tags": [
@@ -2799,6 +2906,116 @@
                 ]
             }
         },
+        "/orders/{id}/delivery-proof": {
+            "get": {
+                "tags": [
+                    "Delivery Proofs"
+                ],
+                "summary": "List an order's delivery proofs",
+                "description": "All photos/signatures attached to the order, oldest first. Visible to the buyer, supplier, assigned driver and admins.",
+                "operationId": "df6a958f0afa1c8baeddc14251cb57ae",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Order ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proofs retrieved successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Delivery Proofs"
+                ],
+                "summary": "Upload a delivery proof",
+                "description": "Attach a photo (handover picture) or signature image to an order as delivery evidence. Allowed for the assigned driver, either company on the order, or admins. Multipart form-data.",
+                "operationId": "c5fe9ec1af841bfb70f9057a7e9aed8e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Order ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "image": {
+                                        "description": "Image file",
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "default": "photo",
+                                        "enum": [
+                                            "photo",
+                                            "signature"
+                                        ]
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Delivery proof uploaded successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/drivers": {
             "get": {
                 "tags": [
@@ -3049,6 +3266,103 @@
                 "responses": {
                     "200": {
                         "description": "Driver deleted successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/drivers/location": {
+            "post": {
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "Ping driver location",
+                "description": "Record the authenticated driver's current GPS coordinates. Called periodically by the driver app; clients then poll GET /drivers/{driver}/location for live tracking.",
+                "operationId": "25ac47aff7af238102e0626d725f11b2",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "latitude",
+                                    "longitude"
+                                ],
+                                "properties": {
+                                    "latitude": {
+                                        "description": "Latitude (-90 to 90)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 33.5138
+                                    },
+                                    "longitude": {
+                                        "description": "Longitude (-180 to 180)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 36.2765
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Location recorded successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/drivers/{driver}/location": {
+            "get": {
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "Get driver's latest location",
+                "description": "The most recent GPS ping of the driver (data may be null when they never reported a position). Owner supplier or admin only.",
+                "operationId": "ad7b3bf0879a5ce89dc1fe32e4295cee",
+                "parameters": [
+                    {
+                        "name": "driver",
+                        "in": "path",
+                        "description": "Driver user ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Latest location returned"
                     },
                     "401": {
                         "$ref": "#/components/responses/Unauthorized"
@@ -7998,6 +8312,62 @@
                 ]
             }
         },
+        "/search/suggestions": {
+            "get": {
+                "tags": [
+                    "Search"
+                ],
+                "summary": "Search autocomplete suggestions",
+                "description": "Lightweight prefix/substring matching across products (name/SKU, visibility-scoped), categories and manufacturers. Returns up to `limit` rows per entity (max 10). Products additionally carry pharmacist price and primary image when loaded.",
+                "operationId": "a0bf30c00a252c19b019773bb6f5599c",
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "description": "Search term",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "minLength": 2
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 5,
+                            "maximum": 10,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "types",
+                        "in": "query",
+                        "description": "Comma list to restrict entities, e.g. \"products,categories\"",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Suggestions retrieved successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/products/{id}/stock/movements": {
             "get": {
                 "tags": [
@@ -9017,6 +9387,10 @@
     },
     "tags": [
         {
+            "name": "Analytics",
+            "description": "Platform analytics (admin only): system-wide statistics, order trends and driver performance."
+        },
+        {
             "name": "Authentication",
             "description": "User authentication endpoints"
         },
@@ -9047,6 +9421,10 @@
         {
             "name": "Dashboard",
             "description": "Aggregated analytics for the dashboard home page"
+        },
+        {
+            "name": "Delivery Proofs",
+            "description": "Photo/signature proof attachments for deliveries."
         },
         {
             "name": "Drivers",
@@ -9107,6 +9485,10 @@
         {
             "name": "Salesmen",
             "description": "Salesman management: listing, region assignment, client (pharmacy) management, and on-behalf ordering. Supplier-associated salesmen belong to a supplier company. Independent salesmen have their own buyer company."
+        },
+        {
+            "name": "Search",
+            "description": "Cross-entity autocomplete suggestions for search bars."
         },
         {
             "name": "Stock Management",
