@@ -448,14 +448,14 @@
                 ]
             }
         },
-        "/buyer-supplier-relationships/{id}": {
+        "/buyer-supplier-relationships/{relationship}": {
             "get": {
                 "tags": [
                     "Buyer-Supplier Relationships"
                 ],
                 "summary": "Get relationship details",
                 "description": "Get a specific buyer-supplier relationship with credit details.",
-                "operationId": "f68d8c11b18ff1522d7f0523a2149263",
+                "operationId": "0ccb2f704e2bb128b7d93bd275d0c91f",
                 "parameters": [
                     {
                         "name": "id",
@@ -492,7 +492,7 @@
                 ],
                 "summary": "Update relationship",
                 "description": "Update payment terms, credit limit, approval status, or notes. Only the supplier side or admin can update.",
-                "operationId": "2ba5089547c964c8824c16a70f066992",
+                "operationId": "d7a16c33d54a0fb58deabccd2a720768",
                 "parameters": [
                     {
                         "name": "id",
@@ -561,7 +561,7 @@
                 ],
                 "summary": "Delete relationship",
                 "description": "Delete a buyer-supplier relationship. Only the supplier side or admin can delete.",
-                "operationId": "d7af3003bb2b47099b1059620b14f376",
+                "operationId": "7bdd1e48245cdc8b9f1bb4d9971e1b56",
                 "parameters": [
                     {
                         "name": "id",
@@ -593,14 +593,14 @@
                 ]
             }
         },
-        "/buyer-supplier-relationships/{id}/approve": {
+        "/buyer-supplier-relationships/{relationship}/approve": {
             "post": {
                 "tags": [
                     "Buyer-Supplier Relationships"
                 ],
                 "summary": "Approve relationship",
                 "description": "Approve a pending buyer-supplier relationship. Only supplier side or admin.",
-                "operationId": "1cbb22fa8613bb5813237b480734db8f",
+                "operationId": "2c73aba0044e2ae25af3faa7a9c8da26",
                 "parameters": [
                     {
                         "name": "id",
@@ -635,14 +635,14 @@
                 ]
             }
         },
-        "/buyer-supplier-relationships/{id}/reject": {
+        "/buyer-supplier-relationships/{relationship}/reject": {
             "post": {
                 "tags": [
                     "Buyer-Supplier Relationships"
                 ],
                 "summary": "Reject (revoke approval) relationship",
                 "description": "Reject or revoke approval of a buyer-supplier relationship. Only supplier side or admin.",
-                "operationId": "755ea4ce5c22887001467f9b28aeec53",
+                "operationId": "1ed7640fe2480af6b00ebbbaffc39471",
                 "parameters": [
                     {
                         "name": "id",
@@ -677,14 +677,14 @@
                 ]
             }
         },
-        "/buyer-supplier-relationships/{id}/adjust-credit": {
+        "/buyer-supplier-relationships/{relationship}/adjust-credit": {
             "post": {
                 "tags": [
                     "Buyer-Supplier Relationships"
                 ],
                 "summary": "Adjust credit balance",
                 "description": "Adjust the current outstanding balance. Use positive amount to increase (e.g. new order on credit), negative to decrease (e.g. payment received). Only supplier side or admin.",
-                "operationId": "a7918fd9eca9ec24cc345be4cb55201b",
+                "operationId": "e79b0e13167040c38496b0193c754b1b",
                 "parameters": [
                     {
                         "name": "id",
@@ -746,14 +746,14 @@
                 ]
             }
         },
-        "/buyer-supplier-relationships/{id}/check-credit": {
+        "/buyer-supplier-relationships/{relationship}/check-credit": {
             "get": {
                 "tags": [
                     "Buyer-Supplier Relationships"
                 ],
                 "summary": "Check credit availability",
                 "description": "Check if a given amount can be charged on credit for this relationship. Returns credit details and availability.",
-                "operationId": "08a569bf87666375806b45fbccd9340b",
+                "operationId": "f9db18357b3b6d0977fdeb20e140eca0",
                 "parameters": [
                     {
                         "name": "id",
@@ -2951,14 +2951,14 @@
                 ]
             }
         },
-        "/drivers/{id}": {
+        "/drivers/{driver}": {
             "get": {
                 "tags": [
                     "Drivers"
                 ],
                 "summary": "Get driver",
                 "description": "Get details of a specific driver",
-                "operationId": "dffcdf3f3a9993f9d988408e678348cf",
+                "operationId": "b410dbb73c877faf871791312b998cda",
                 "parameters": [
                     {
                         "name": "id",
@@ -2995,7 +2995,7 @@
                 ],
                 "summary": "Update driver",
                 "description": "Update an existing driver",
-                "operationId": "0613d5b80db05da154442bfc18ed541e",
+                "operationId": "ebc9410d216bad75f2ac8afc6f2068fb",
                 "parameters": [
                     {
                         "name": "id",
@@ -3035,7 +3035,7 @@
                 ],
                 "summary": "Delete driver",
                 "description": "Delete a driver (soft delete)",
-                "operationId": "a2b4b57b4e72c65aeb084bf2d34ac067",
+                "operationId": "5696e629500c8887cdd83b0b91162ab6",
                 "parameters": [
                     {
                         "name": "id",
@@ -3067,14 +3067,14 @@
                 ]
             }
         },
-        "/drivers/{id}/orders": {
+        "/drivers/{driver}/orders": {
             "get": {
                 "tags": [
                     "Drivers"
                 ],
                 "summary": "Get driver orders",
                 "description": "Get all orders assigned to a specific driver",
-                "operationId": "6b3e18f55803d993aa76171f332db437",
+                "operationId": "f51b128a32d83057e633419a92facfe0",
                 "parameters": [
                     {
                         "name": "id",
@@ -3142,14 +3142,14 @@
                 ]
             }
         },
-        "/drivers/{id}/regions": {
+        "/drivers/{driver}/regions": {
             "get": {
                 "tags": [
                     "Drivers"
                 ],
                 "summary": "Get driver region plan",
                 "description": "Get a driver's region plan: the plan type (fixed or daily), holiday weekdays, and either the fixed regions covered every day or the per-weekday schedule.",
-                "operationId": "50a573a817ba0e1aa05af573b9bf7032",
+                "operationId": "dec13dbaca3266ae01a81114fd84d546",
                 "parameters": [
                     {
                         "name": "id",
@@ -3185,8 +3185,8 @@
                     "Drivers"
                 ],
                 "summary": "Assign regions to driver (fixed plan)",
-                "description": "Assign regions to a driver as a fixed plan (covered every day). This replaces all existing region assignments and sets the plan type to fixed. Prefer POST /drivers/{id}/region-plan for daily plans. Only suppliers can assign regions to their own drivers.",
-                "operationId": "8bbe35967b255004dc487519ebf07238",
+                "description": "Assign regions to a driver as a fixed plan (covered every day). This replaces all existing region assignments and sets the plan type to fixed. Prefer POST /drivers/{driver}/region-plan for daily plans. Only suppliers can assign regions to their own drivers.",
+                "operationId": "b11ab0f87ae7779d8d7b2c760ce00a10",
                 "parameters": [
                     {
                         "name": "id",
@@ -3248,14 +3248,14 @@
                 ]
             }
         },
-        "/drivers/{id}/region-plan": {
+        "/drivers/{driver}/region-plan": {
             "post": {
                 "tags": [
                     "Drivers"
                 ],
                 "summary": "Set driver region plan",
                 "description": "Set a driver's region plan. For a `fixed` plan provide `region_ids` (one or more regions covered every day). For a `daily` plan provide `schedule`, a map of weekday to region id (one region per weekday). Weekdays marked as the driver's holidays cannot be assigned a region. Replaces any existing assignment. Only suppliers can manage their own drivers.",
-                "operationId": "fdfa28ddb68e6c463eb4213dd5694c48",
+                "operationId": "8b4ae4b86bc636300a9539ce2bfd5745",
                 "parameters": [
                     {
                         "name": "id",
@@ -3337,14 +3337,14 @@
                 ]
             }
         },
-        "/drivers/{id}/holidays": {
+        "/drivers/{driver}/holidays": {
             "put": {
                 "tags": [
                     "Drivers"
                 ],
                 "summary": "Set driver holidays",
                 "description": "Set the weekdays a driver is off. A holiday weekday cannot be assigned a region in a daily plan; any region already assigned to a newly added holiday weekday is removed automatically. Pass an empty array to clear all holidays. Only suppliers can manage their own drivers.",
-                "operationId": "d7524df7d6d7defb1d60adbeeffb903c",
+                "operationId": "f191a3550b5f9b13b45096cd2f612c08",
                 "parameters": [
                     {
                         "name": "id",
@@ -3413,14 +3413,14 @@
                 ]
             }
         },
-        "/drivers/{id}/regions/{region_id}": {
+        "/drivers/{driver}/regions/{region_id}": {
             "delete": {
                 "tags": [
                     "Drivers"
                 ],
                 "summary": "Remove region from driver",
                 "description": "Remove a specific region from a driver. Only suppliers can remove regions from their own drivers.",
-                "operationId": "181969784086c34e74c0b337b03c6988",
+                "operationId": "92b35037539731a072973c0393e4be5b",
                 "parameters": [
                     {
                         "name": "id",
@@ -5659,14 +5659,14 @@
                 ]
             }
         },
-        "/price-lists/{id}": {
+        "/price-lists/{priceList}": {
             "get": {
                 "tags": [
                     "Price Lists"
                 ],
                 "summary": "Get price list entry",
                 "description": "Get a specific price list entry with related buyer, supplier, and product details.",
-                "operationId": "bfc10bdcea9d4bda7ea61f6490fca1c0",
+                "operationId": "287a7500099012b3eb24fac609f7362f",
                 "parameters": [
                     {
                         "name": "id",
@@ -5703,7 +5703,7 @@
                 ],
                 "summary": "Update price list entry",
                 "description": "Update a custom price entry. Only the owning supplier or admin can update.",
-                "operationId": "e07705bc30cc5de4b349849b910b5f8d",
+                "operationId": "af655fc264a5885b995f5308c1b096eb",
                 "parameters": [
                     {
                         "name": "id",
@@ -5776,7 +5776,7 @@
                 ],
                 "summary": "Delete price list entry",
                 "description": "Delete a custom price entry. Only the owning supplier or admin can delete.",
-                "operationId": "a38db48f2a5718673e5eec597ccb8e9d",
+                "operationId": "1624eca2b4e854c49521efcd4657b76e",
                 "parameters": [
                     {
                         "name": "id",
@@ -7494,14 +7494,14 @@
                 ]
             }
         },
-        "/salesmen/{id}": {
+        "/salesmen/{salesman}": {
             "get": {
                 "tags": [
                     "Salesmen"
                 ],
                 "summary": "Get salesman details",
                 "description": "Get salesman profile with company, regions, and client counts.",
-                "operationId": "cdfc0d4c6de2b89d002ef1359e9052b3",
+                "operationId": "519e808d8a04b73b7cb797deed052a38",
                 "parameters": [
                     {
                         "name": "id",
@@ -7533,14 +7533,14 @@
                 ]
             }
         },
-        "/salesmen/{id}/regions": {
+        "/salesmen/{salesman}/regions": {
             "get": {
                 "tags": [
                     "Salesmen"
                 ],
                 "summary": "Get salesman regions",
                 "description": "Get all regions assigned to a salesman.",
-                "operationId": "1750a1a4c45cf8673441f86a9ae20d59",
+                "operationId": "a8a549740101dce1c0b60792e5004edb",
                 "parameters": [
                     {
                         "name": "id",
@@ -7577,7 +7577,7 @@
                 ],
                 "summary": "Assign regions to salesman",
                 "description": "Assign regions to a salesman. Only suppliers (for their salesmen) and admins can assign regions. Syncs the region list (replaces existing assignments).",
-                "operationId": "dba98b4b4d6e109a4cd41c20ad352e90",
+                "operationId": "575bb1aed660f8a04f1d0f36ba841278",
                 "parameters": [
                     {
                         "name": "id",
@@ -7635,14 +7635,14 @@
                 ]
             }
         },
-        "/salesmen/{id}/regions/{regionId}": {
+        "/salesmen/{salesman}/regions/{regionId}": {
             "delete": {
                 "tags": [
                     "Salesmen"
                 ],
                 "summary": "Remove region from salesman",
                 "description": "Remove a specific region from a salesman.",
-                "operationId": "e53a99a2e4569891e2c6cc7b9f66d34e",
+                "operationId": "a5e37e81574e8fa8c5cc59dfeb7a8428",
                 "parameters": [
                     {
                         "name": "id",
@@ -7682,14 +7682,14 @@
                 ]
             }
         },
-        "/salesmen/{id}/clients": {
+        "/salesmen/{salesman}/clients": {
             "get": {
                 "tags": [
                     "Salesmen"
                 ],
                 "summary": "Get salesman clients (pharmacies)",
                 "description": "Get all pharmacy clients assigned to a salesman.",
-                "operationId": "24e1990faa0d9863fffa96ee4d68820c",
+                "operationId": "b39345d4e524910b6a5a4a9d72427416",
                 "parameters": [
                     {
                         "name": "id",
@@ -7734,7 +7734,7 @@
                 ],
                 "summary": "Assign client (pharmacy) to salesman",
                 "description": "Assign a pharmacy company as a client of a salesman. The pharmacy must have buyer_classification = pharmacy. Prevents duplicate assignments.",
-                "operationId": "8628b8d4ecc9b5ba94c8ffeff63a2420",
+                "operationId": "4f87b93548f7fb8ca68af022ae062529",
                 "parameters": [
                     {
                         "name": "id",
@@ -7788,14 +7788,14 @@
                 ]
             }
         },
-        "/salesmen/{id}/clients/{clientId}": {
+        "/salesmen/{salesman}/clients/{clientId}": {
             "delete": {
                 "tags": [
                     "Salesmen"
                 ],
                 "summary": "Remove client from salesman",
                 "description": "Deactivate a pharmacy client assignment. Does not delete the record, marks as inactive.",
-                "operationId": "4fc71498849a2be6ff068eef3ad68b5b",
+                "operationId": "2cdd2f148f7683a38d158605c72fac15",
                 "parameters": [
                     {
                         "name": "id",
@@ -7835,14 +7835,14 @@
                 ]
             }
         },
-        "/salesmen/{id}/orders": {
+        "/salesmen/{salesman}/orders": {
             "get": {
                 "tags": [
                     "Salesmen"
                 ],
                 "summary": "Get orders placed by salesman",
                 "description": "Get all orders placed by a salesman on behalf of buyers.",
-                "operationId": "74cde8c77e389c406435508dd2b3955a",
+                "operationId": "c161d951a78e170e2cbcb13e24c2171d",
                 "parameters": [
                     {
                         "name": "id",
@@ -7890,14 +7890,14 @@
                 ]
             }
         },
-        "/salesmen/{id}/place-order": {
+        "/salesmen/{salesman}/place-order": {
             "post": {
                 "tags": [
                     "Salesmen"
                 ],
                 "summary": "Place order on behalf of a buyer",
                 "description": "A supplier-associated salesman places an order on behalf of one of their client pharmacies. The salesman must have the pharmacy assigned as a client. Prices are resolved via PricingService using the buyer company context. The order records placed_by_salesman_id for tracking.",
-                "operationId": "f5a3627fb52a51c28e391770b0fb8291",
+                "operationId": "333eb8ca4dc068cd4ced42a5eaa5102a",
                 "parameters": [
                     {
                         "name": "id",
@@ -8312,6 +8312,116 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/products/{id}/batches": {
+            "get": {
+                "tags": [
+                    "Stock Management"
+                ],
+                "summary": "List product batches",
+                "description": "Batch buckets for the product in FEFO order (earliest expiry first, never-expiring last), including remaining quantities. Empty when the product was never received with a batch. Owner supplier or admin only.",
+                "operationId": "64abeaa2f1641376d1241dfbb5eff266",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Batches retrieved successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/products/{id}/transfer": {
+            "post": {
+                "tags": [
+                    "Stock Management"
+                ],
+                "summary": "Transfer stock between suppliers",
+                "description": "Move stock from this product to another company's product atomically: an `out` movement on the source and a cross-referenced `in` movement on the destination (which inherits the source's current batch/expiry). Admin only.",
+                "operationId": "4fa8ace435974b7160296db62696be3c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "to_product_id",
+                                    "quantity"
+                                ],
+                                "properties": {
+                                    "to_product_id": {
+                                        "description": "Destination product (must belong to a different supplier company)",
+                                        "type": "integer",
+                                        "example": 12
+                                    },
+                                    "quantity": {
+                                        "type": "integer",
+                                        "example": 10
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Transfer completed successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
                     },
                     "422": {
                         "$ref": "#/components/responses/UnprocessableEntity"

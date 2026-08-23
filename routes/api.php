@@ -93,6 +93,8 @@ Route::prefix('v1')->group(function () {
             Route::get('stock/movements', [App\Http\Controllers\Api\V1\StockController::class, 'movements']);
             Route::post('stock/add', [App\Http\Controllers\Api\V1\StockController::class, 'add']);
             Route::post('stock/adjust', [App\Http\Controllers\Api\V1\StockController::class, 'adjust']);
+            Route::get('batches', [App\Http\Controllers\Api\V1\StockController::class, 'batches']);
+            Route::post('transfer', [App\Http\Controllers\Api\V1\StockController::class, 'transfer']);
         });
 
         // Product Images (literal `reorder` is registered before `{image}` so it is not captured)

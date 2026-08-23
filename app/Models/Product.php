@@ -136,6 +136,17 @@ class Product extends Model
     }
 
     /**
+     * Batch buckets for this product (FEFO allocation). Empty when the product was
+     * never received with a batch.
+     *
+     * @return HasMany<ProductBatch, $this>
+     */
+    public function batches(): HasMany
+    {
+        return $this->hasMany(ProductBatch::class);
+    }
+
+    /**
      * Get offers associated with this product.
      *
      * @return BelongsToMany<Offer, $this>

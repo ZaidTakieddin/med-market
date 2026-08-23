@@ -11,6 +11,11 @@ use Illuminate\Support\Facades\Log;
 
 class StockMovementService
 {
+    public function __construct(
+        private ProductBatchService $productBatchService
+    ) {}
+
+    /**
     /**
      * Record a stock movement and update product stock.
      *
@@ -76,6 +81,15 @@ class StockMovementService
                 $expiry = Carbon::parse($expiryDate)->startOfDay();
                 $lockedProduct->expiry_date = $expiry;
                 $product->expiry_date = $expiry;
+            }
+
+            // Maintain the batch ledger (FEFO). Positive movements receive into a
+            // bucket; negative movements allocate earliest-expiry-first. Products
+            // never received with a batch stay in legacy (untracked) mode.
+            if ($quantity > 0 && ($batchNumber !== null || $this->productBatchService->isTracked($lockedProduct))) {
+                $this->productBatchService->receive($lockedProduct, $quantity, $batchNumber, $batchNumber !== null ? $expiryDate : null);
+            } elseif ($quantity < 0 && $this->productBatchService->isTracked($lockedProduct)) {
+                $this->productBatchService->consumeFefo($lockedProduct, abs($quantity));
             }
 
             $lockedProduct->save();

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Inventory\StockMovementService;
+use App\Domain\Inventory\StockTransferService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Stock\AddStockRequest;
 use App\Http\Requests\Stock\AdjustStockRequest;
 use App\Http\Requests\Stock\BulkStockRequest;
+use App\Http\Requests\Stock\TransferStockRequest;
 use App\Http\Resources\StockMovementResource;
 use App\Models\Product;
 use App\Models\StockMovement;
@@ -18,7 +20,8 @@ use OpenApi\Attributes as OA;
 class StockController extends BaseApiController
 {
     public function __construct(
-        private StockMovementService $stockMovementService
+        private StockMovementService $stockMovementService,
+        private StockTransferService $stockTransferService
     ) {}
 
     /**
@@ -295,5 +298,101 @@ class StockController extends BaseApiController
             'succeeded' => count($results) - $failed,
             'failed' => $failed,
         ], $failed === 0 ? 'Bulk stock operations applied successfully' : 'Bulk stock operations completed with failures');
+    }
+
+    /**
+     * List the product's batch buckets (FEFO order).
+     */
+    #[OA\Get(
+        path: '/products/{id}/batches',
+        summary: 'List product batches',
+        description: 'Batch buckets for the product in FEFO order (earliest expiry first, never-expiring last), including remaining quantities. Empty when the product was never received with a batch. Owner supplier or admin only.',
+        tags: ['Stock Management'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Batches retrieved successfully'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+        ]
+    )]
+    public function batches(Product $product): JsonResponse
+    {
+        $this->authorize('viewStockMovements', $product);
+
+        $batches = $product->batches()->fefo()->get();
+
+        return $this->success([
+            'isBatchTracked' => $batches->isNotEmpty(),
+            'totalQuantity' => (int) $product->stock_quantity,
+            'batches' => \App\Http\Resources\ProductBatchResource::collection($batches)->resolve(),
+        ], 'Batches retrieved successfully');
+    }
+
+    /**
+     * Transfer stock to another company's product.
+     */
+    #[OA\Post(
+        path: '/products/{id}/transfer',
+        summary: 'Transfer stock between suppliers',
+        description: 'Move stock from this product to another company\'s product atomically: an `out` movement on the source and a cross-referenced `in` movement on the destination (which inherits the source\'s current batch/expiry). Admin only.',
+        tags: ['Stock Management'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['to_product_id', 'quantity'],
+                properties: [
+                    new OA\Property(property: 'to_product_id', type: 'integer', example: 12, description: 'Destination product (must belong to a different supplier company)'),
+                    new OA\Property(property: 'quantity', type: 'integer', example: 10),
+                    new OA\Property(property: 'reason', type: 'string', nullable: true),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Transfer completed successfully'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+        ]
+    )]
+    public function transfer(TransferStockRequest $request, Product $product): JsonResponse
+    {
+        $this->authorize('transfer', $product);
+
+        $destination = Product::query()->findOrFail((int) $request->to_product_id);
+
+        $this->stockTransferService->transfer(
+            from: $product,
+            to: $destination,
+            quantity: (int) $request->quantity,
+            actor: $this->currentUser(),
+            reason: $request->reason,
+        );
+
+        $product->refresh();
+
+        $destination->refresh();
+
+        return $this->success([
+            'from_product' => [
+                'id' => $product->id,
+                'sku' => $product->sku,
+                'stock_quantity' => $product->stock_quantity,
+            ],
+            'to_product' => [
+                'id' => $destination->id,
+                'sku' => $destination->sku,
+                'stock_quantity' => $destination->stock_quantity,
+            ],
+            'quantity' => (int) $request->quantity,
+        ], 'Stock transferred successfully');
     }
 }

@@ -33,6 +33,26 @@ optionally with batch/expiry). Rows are processed **independently** through
 stock, foreign product) does not roll back others. Response reports per-row success plus
 succeeded/failed counts.
 
+### Batch Buckets & FEFO Allocation
+
+The `product_batches` table holds per-batch buckets (`batch_number`, `expiry_date`,
+`quantity`). Products never received with a batch stay in **legacy mode** (movements
+adjust only `stock_quantity`); the first receipt starts tracking:
+
+- Positive movements receive into the matching bucket (null batch → the single
+  unbatched bucket).
+- Negative movements allocate **earliest-expiry-first** (`ProductBatchService::
+  consumeFefo`, never-expiring last); empty buckets are removed.
+- `GET /products/{id}/batches` lists buckets in FEFO order (owner supplier/admin).
+
+### Inter-Supplier Transfers
+
+`POST /products/{id}/transfer` (admin only via `ProductPolicy::transfer`) moves stock
+between different companies' products atomically: both product rows are locked in id
+order, an `out` movement is recorded on the source and a cross-referenced `in` on the
+destination (`reference_type = transfer`), which inherits the source's current
+batch/expiry.
+
 ### Stock Movement Types
 
 - **in** - Stock increase (purchases, returns, adjustments)

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Inventory;
 
+use App\Domain\Inventory\ProductBatchService;
 use App\Domain\Inventory\StockMovementService;
 use App\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -13,7 +14,7 @@ class StockMovementServiceTest extends TestCase
 
     private function service(): StockMovementService
     {
-        return new StockMovementService;
+        return new StockMovementService(new ProductBatchService);
     }
 
     public function test_record_out_deducts_stock_and_records_movement(): void

@@ -1,10 +1,50 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-08-23 (**Buyer-side analytics** + **inventory enhancements** (batch/expiry tracking, bulk stock ops), on top of notifications + admin user management. See entries below)
+> Last Updated: 2026-08-23 (**Thin-controller minors**, **FEFO batch allocation** + **inter-supplier transfers**, seeder demo data. See entries below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
 
-## 📊 2026-08-23 — Buyer-side analytics + inventory enhancements (branch `main`)
+## 🧪 2026-08-23 — Minors, FEFO batches & inter-supplier transfers (branch `main`)
+
+### Thin-controller minors closed
+
+- **Implicit route-model binding** for drivers/salesmen/buyer-supplier-relationships/
+  price-lists — `{id}`+`findOrFail` removed; role guards (`isDriver`/`isSalesman`)
+  preserve 404 semantics; resources renamed via `->parameters()`.
+- **Role-based list scoping extracted to model scopes**: `Order::visibleTo`,
+  `Invoice::visibleTo`, `Product::visibleTo` (naming follows the existing
+  `Company::scopeVisibleTo`). Controllers keep only input-filter plumbing.
+- **Cancellation reason** is now persisted on the order inside the transition
+  transaction (was an inline controller save).
+
+### Inventory #15 tranche 2 — batch buckets + FEFO + transfers
+
+- New `product_batches` table (`App\Models\ProductBatch`, partial unique per product on
+  batch_number / unbatched bucket). Products never received with a batch stay in legacy
+  mode; the first receipt starts tracking. `StockMovementService` maintains the ledger:
+  receipts fill buckets, deductions allocate earliest-expiry-first via the new
+  `Inventory\ProductBatchService::consumeFefo` — so order deductions automatically draw
+  from the soonest-expiring stock.
+- `GET /products/{id}/batches` — buckets in FEFO order (owner supplier/admin).
+- `POST /products/{id}/transfer` (admin only, `ProductPolicy::transfer`) — atomic
+  inter-supplier move with both rows locked in id order; cross-referenced
+  `reference_type = transfer` movements; destination inherits source batch/expiry.
+- Migration: `2026_08_23_160000_create_product_batches_table.php`.
+- Mistake log: initial migration put raw CREATE INDEX statements inside the Blueprint
+  closure → they executed before the table SQL (caught immediately by tests); fixed by
+  moving them after `Schema::create`. Also fixed a test that called the batch service
+  directly while bypassing `stock_quantity`.
+
+### Seeders
+
+- `ProductSeeder` now seeds batch/expiry variety — one expired, one expiring-soon and
+  one low-stock product — so the new filters have visible demo coverage.
+
+Suite green (**155 tests**), Pint clean, PHPStan level 8 clean, Swagger regenerated.
+Deploy note: run `2026_08_23_160000_create_product_batches_table.php` via the unpooled
+connection.
+
+## 🧹 2026-08-23 — Thin-controller CRUD sweep + Order Export API (branch `main`)
 
 ### Buyer dashboard (Missing Feature #8, buyer part — DONE)
 

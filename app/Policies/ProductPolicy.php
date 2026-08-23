@@ -80,4 +80,13 @@ class ProductPolicy
         return $user->isSupplier()
             && $user->company_id === $product->supplier_company_id;
     }
+
+    /**
+     * Determine if the user can move stock between companies (inter-supplier
+     * transfer). Cross-company stock changes are a platform-level action.
+     */
+    public function transfer(User $user): bool
+    {
+        return $user->isAdmin();
+    }
 }
