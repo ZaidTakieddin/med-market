@@ -43,6 +43,15 @@ Route::prefix('v1')->group(function () {
         Route::post('wishlist/items', [App\Http\Controllers\Api\V1\WishlistController::class, 'addItem']);
         Route::get('wishlist', [App\Http\Controllers\Api\V1\WishlistController::class, 'index']);
 
+        // Reviews (moderation queue must not be captured by nested routes)
+        Route::get('reviews', [App\Http\Controllers\Api\V1\ReviewController::class, 'index']);
+        Route::post('reviews/{review}/approve', [App\Http\Controllers\Api\V1\ReviewController::class, 'approve']);
+        Route::post('reviews/{review}/reject', [App\Http\Controllers\Api\V1\ReviewController::class, 'reject']);
+        Route::get('products/{product}/reviews', [App\Http\Controllers\Api\V1\ReviewController::class, 'productReviews']);
+        Route::post('products/{product}/reviews', [App\Http\Controllers\Api\V1\ReviewController::class, 'storeProductReview']);
+        Route::get('companies/{company}/reviews', [App\Http\Controllers\Api\V1\ReviewController::class, 'companyReviews']);
+        Route::post('companies/{company}/reviews', [App\Http\Controllers\Api\V1\ReviewController::class, 'storeCompanyReview']);
+
         // Auth routes
         Route::prefix('auth')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
