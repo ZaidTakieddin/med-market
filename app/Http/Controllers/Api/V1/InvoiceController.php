@@ -268,7 +268,7 @@ class InvoiceController extends BaseApiController
         $this->authorize('pay', $invoice);
 
         // Payment + credit release happen atomically inside the domain service.
-        $invoice = $this->invoicePaymentService->markAsPaid($invoice, $request->amount);
+        $invoice = $this->invoicePaymentService->markAsPaid($invoice, $request->amount, $this->currentUser()->id);
 
         if ($request->has('notes')) {
             $invoice->update(['notes' => $request->notes]);

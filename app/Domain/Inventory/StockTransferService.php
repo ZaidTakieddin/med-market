@@ -79,6 +79,13 @@ class StockTransferService
                 batchNumber: $lockedFrom->batch_number,
                 expiryDate: $lockedFrom->expiry_date?->toDateString(),
             );
+
+            \App\Support\AuditLogger::record(
+                $actor,
+                'stock.transferred',
+                $lockedFrom,
+                ['to_product_id' => (int) $lockedTo->getKey(), 'quantity' => $quantity, 'reason' => $reason],
+            );
         });
     }
 }

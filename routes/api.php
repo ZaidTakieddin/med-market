@@ -29,10 +29,13 @@ Route::prefix('v1')->group(function () {
         // Dashboard analytics
         Route::get('dashboard', [App\Http\Controllers\Api\V1\DashboardController::class, 'index']);
 
-        // Platform analytics (admin)
-        Route::get('analytics/overview', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'overview']);
-        Route::get('analytics/orders', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'orderTrends']);
-        Route::get('analytics/drivers', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'drivers']);
+        // Platform analytics (admin, IP-allowlisted when configured)
+        Route::middleware('admin.ip')->group(function () {
+            Route::get('analytics/overview', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'overview']);
+            Route::get('analytics/orders', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'orderTrends']);
+            Route::get('analytics/drivers', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'drivers']);
+            Route::get('audit-logs', [App\Http\Controllers\Api\V1\AuditLogController::class, 'index']);
+        });
 
         // Autocomplete suggestions
         Route::get('search/suggestions', [App\Http\Controllers\Api\V1\SearchController::class, 'suggestions']);

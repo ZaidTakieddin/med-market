@@ -79,6 +79,13 @@ class UserManagementService
             throw new DomainException('Cannot delete the last remaining admin.');
         }
 
+        \App\Support\AuditLogger::record(
+            $actor,
+            'user.deleted',
+            $user,
+            ['email' => $user->email, 'role' => $user->role],
+        );
+
         $user->delete();
     }
 

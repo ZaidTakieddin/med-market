@@ -4,6 +4,7 @@ namespace App\Domain\Companies;
 
 use App\Exceptions\DomainException;
 use App\Models\BuyerSupplierRelationship;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -133,6 +134,13 @@ class CreditService
 
             $relationship->current_balance = $newBalance;
             $relationship->save();
+
+            \App\Support\AuditLogger::record(
+                User::find($adjustedBy),
+                'credit.balance.adjusted',
+                $relationship,
+                ['previous_balance' => $previousBalance, 'adjustment' => $amount, 'new_balance' => $newBalance, 'reason' => $reason],
+            );
 
             Log::info('Credit balance adjusted', [
                 'relationship_id' => $relationship->id,

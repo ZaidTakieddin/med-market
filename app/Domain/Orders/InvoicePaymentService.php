@@ -7,6 +7,7 @@ use App\Domain\Companies\CreditService;
 use App\Exceptions\DomainException;
 use App\Models\Invoice;
 use App\Models\Order;
+use App\Support\AuditLogger;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -29,9 +30,9 @@ class InvoicePaymentService
      *
      * @throws DomainException If the payment exceeds the invoice total
      */
-    public function markAsPaid(Invoice $invoice, ?float $amount = null): Invoice
+    public function markAsPaid(Invoice $invoice, ?float $amount = null, ?int $paidByUserId = null): Invoice
     {
-        return DB::transaction(function () use ($invoice, $amount) {
+        return DB::transaction(function () use ($invoice, $amount, $paidByUserId) {
             $invoice = $invoice->newQuery()
                 ->whereKey($invoice->getKey())
                 ->lockForUpdate()
@@ -63,6 +64,13 @@ class InvoicePaymentService
                 }
 
                 $invoice->markAsPaid($newlyPaid);
+
+                AuditLogger::record(
+                    $paidByUserId !== null ? \App\Models\User::find($paidByUserId) : null,
+                    'invoice.payment.recorded',
+                    $invoice,
+                    ['payment_amount' => $newlyPaid, 'credit_released' => $isCreditSale],
+                );
             }
 
             return $invoice;
