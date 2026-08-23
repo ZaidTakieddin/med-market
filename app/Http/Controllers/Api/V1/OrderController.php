@@ -88,7 +88,8 @@ class OrderController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $user = $this->currentUser();
-        $query = Order::with([
+        // Role-based visibility lives in Order::scopeVisibleTo.
+        $query = Order::query()->visibleTo($user)->with([
             'buyerCompany.region.city',
             'supplierCompany.categories',
             'supplierCompany.manufacturers',
@@ -101,23 +102,6 @@ class OrderController extends BaseApiController
             'items.product.supplierCompany',
             'items.appliedOffer',
         ]);
-
-        if ($user->isAdmin()) {
-            // Admin sees all orders
-        } elseif ($user->isBuyer() || ($user->isSalesman() && $user->isIndependentSalesman())) {
-            $query->where('buyer_company_id', $user->company_id);
-        } elseif ($user->isSalesman() && $user->isSupplierSalesman()) {
-            $query->where(function ($q) use ($user) {
-                $q->where('supplier_company_id', $user->company_id)
-                    ->orWhere('placed_by_salesman_id', $user->id);
-            });
-        } elseif ($user->isSupplier()) {
-            $query->where('supplier_company_id', $user->company_id);
-        } elseif ($user->isDriver()) {
-            $query->where('driver_id', $user->id);
-        } else {
-            return $this->error('Unauthorized', null, 403);
-        }
 
         // Filter by status
         if ($request->has('status')) {
@@ -475,9 +459,7 @@ class OrderController extends BaseApiController
     {
         $this->authorize('cancel', $order);
 
-        $order->cancellation_reason = $request->reason;
-        $order->save();
-
+        // Reason is persisted on the order inside the transition transaction.
         $order = $this->orderStateTransitionService->transition(
             order: $order,
             newStatus: OrderStatus::CANCELLED,

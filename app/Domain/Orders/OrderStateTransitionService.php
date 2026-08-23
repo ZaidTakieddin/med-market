@@ -51,6 +51,12 @@ class OrderStateTransitionService
             // Update order status and timestamp
             $order->status = $newStatus;
             $this->updateStatusTimestamp($order, $newStatus);
+
+            // Persist the cancellation reason on the order itself (same transaction).
+            if ($newStatus === OrderStatus::CANCELLED && $notes !== null) {
+                $order->cancellation_reason = $notes;
+            }
+
             $order->save();
 
             // Log the status change

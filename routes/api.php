@@ -130,12 +130,12 @@ Route::prefix('v1')->group(function () {
 
         // Drivers
         Route::apiResource('drivers', App\Http\Controllers\Api\V1\DriverController::class);
-        Route::get('drivers/{id}/orders', [App\Http\Controllers\Api\V1\DriverController::class, 'orders']);
-        Route::get('drivers/{id}/regions', [App\Http\Controllers\Api\V1\DriverController::class, 'regions']);
-        Route::post('drivers/{id}/regions', [App\Http\Controllers\Api\V1\DriverController::class, 'assignRegions']);
-        Route::post('drivers/{id}/region-plan', [App\Http\Controllers\Api\V1\DriverController::class, 'setRegionPlan']);
-        Route::put('drivers/{id}/holidays', [App\Http\Controllers\Api\V1\DriverController::class, 'setHolidays']);
-        Route::delete('drivers/{id}/regions/{region_id}', [App\Http\Controllers\Api\V1\DriverController::class, 'removeRegion']);
+        Route::get('drivers/{driver}/orders', [App\Http\Controllers\Api\V1\DriverController::class, 'orders']);
+        Route::get('drivers/{driver}/regions', [App\Http\Controllers\Api\V1\DriverController::class, 'regions']);
+        Route::post('drivers/{driver}/regions', [App\Http\Controllers\Api\V1\DriverController::class, 'assignRegions']);
+        Route::post('drivers/{driver}/region-plan', [App\Http\Controllers\Api\V1\DriverController::class, 'setRegionPlan']);
+        Route::put('drivers/{driver}/holidays', [App\Http\Controllers\Api\V1\DriverController::class, 'setHolidays']);
+        Route::delete('drivers/{driver}/regions/{region_id}', [App\Http\Controllers\Api\V1\DriverController::class, 'removeRegion']);
 
         // Profile
         Route::prefix('profile')->group(function () {
@@ -149,26 +149,26 @@ Route::prefix('v1')->group(function () {
         Route::post('orders/{order}/assign-driver', [App\Http\Controllers\Api\V1\OrderController::class, 'assignDriver']);
 
         // Buyer-Supplier Relationships & Credit Management
-        Route::apiResource('buyer-supplier-relationships', App\Http\Controllers\Api\V1\BuyerSupplierRelationshipController::class);
-        Route::post('buyer-supplier-relationships/{id}/approve', [App\Http\Controllers\Api\V1\BuyerSupplierRelationshipController::class, 'approve']);
-        Route::post('buyer-supplier-relationships/{id}/reject', [App\Http\Controllers\Api\V1\BuyerSupplierRelationshipController::class, 'reject']);
-        Route::post('buyer-supplier-relationships/{id}/adjust-credit', [App\Http\Controllers\Api\V1\BuyerSupplierRelationshipController::class, 'adjustCredit']);
-        Route::get('buyer-supplier-relationships/{id}/check-credit', [App\Http\Controllers\Api\V1\BuyerSupplierRelationshipController::class, 'checkCredit']);
+        Route::apiResource('buyer-supplier-relationships', App\Http\Controllers\Api\V1\BuyerSupplierRelationshipController::class)->parameters(['buyer-supplier-relationships' => 'relationship']);
+        Route::post('buyer-supplier-relationships/{relationship}/approve', [App\Http\Controllers\Api\V1\BuyerSupplierRelationshipController::class, 'approve']);
+        Route::post('buyer-supplier-relationships/{relationship}/reject', [App\Http\Controllers\Api\V1\BuyerSupplierRelationshipController::class, 'reject']);
+        Route::post('buyer-supplier-relationships/{relationship}/adjust-credit', [App\Http\Controllers\Api\V1\BuyerSupplierRelationshipController::class, 'adjustCredit']);
+        Route::get('buyer-supplier-relationships/{relationship}/check-credit', [App\Http\Controllers\Api\V1\BuyerSupplierRelationshipController::class, 'checkCredit']);
 
         // Price Lists (Custom Per-Buyer Pricing)
         Route::get('price-lists/for-buyer/{buyerCompanyId}', [App\Http\Controllers\Api\V1\PriceListController::class, 'forBuyer']);
-        Route::apiResource('price-lists', App\Http\Controllers\Api\V1\PriceListController::class);
+        Route::apiResource('price-lists', App\Http\Controllers\Api\V1\PriceListController::class)->parameters(['price-lists' => 'priceList']);
 
         // Salesmen
         Route::get('salesmen', [App\Http\Controllers\Api\V1\SalesmanController::class, 'index']);
-        Route::get('salesmen/{id}', [App\Http\Controllers\Api\V1\SalesmanController::class, 'show']);
-        Route::get('salesmen/{id}/regions', [App\Http\Controllers\Api\V1\SalesmanController::class, 'regions']);
-        Route::post('salesmen/{id}/regions', [App\Http\Controllers\Api\V1\SalesmanController::class, 'assignRegions']);
-        Route::delete('salesmen/{id}/regions/{regionId}', [App\Http\Controllers\Api\V1\SalesmanController::class, 'removeRegion']);
-        Route::get('salesmen/{id}/clients', [App\Http\Controllers\Api\V1\SalesmanController::class, 'clients']);
-        Route::post('salesmen/{id}/clients', [App\Http\Controllers\Api\V1\SalesmanController::class, 'assignClient']);
-        Route::delete('salesmen/{id}/clients/{clientId}', [App\Http\Controllers\Api\V1\SalesmanController::class, 'removeClient']);
-        Route::get('salesmen/{id}/orders', [App\Http\Controllers\Api\V1\SalesmanController::class, 'orders']);
-        Route::post('salesmen/{id}/place-order', [App\Http\Controllers\Api\V1\SalesmanController::class, 'placeOrder']);
+        Route::get('salesmen/{salesman}', [App\Http\Controllers\Api\V1\SalesmanController::class, 'show']);
+        Route::get('salesmen/{salesman}/regions', [App\Http\Controllers\Api\V1\SalesmanController::class, 'regions']);
+        Route::post('salesmen/{salesman}/regions', [App\Http\Controllers\Api\V1\SalesmanController::class, 'assignRegions']);
+        Route::delete('salesmen/{salesman}/regions/{regionId}', [App\Http\Controllers\Api\V1\SalesmanController::class, 'removeRegion']);
+        Route::get('salesmen/{salesman}/clients', [App\Http\Controllers\Api\V1\SalesmanController::class, 'clients']);
+        Route::post('salesmen/{salesman}/clients', [App\Http\Controllers\Api\V1\SalesmanController::class, 'assignClient']);
+        Route::delete('salesmen/{salesman}/clients/{clientId}', [App\Http\Controllers\Api\V1\SalesmanController::class, 'removeClient']);
+        Route::get('salesmen/{salesman}/orders', [App\Http\Controllers\Api\V1\SalesmanController::class, 'orders']);
+        Route::post('salesmen/{salesman}/place-order', [App\Http\Controllers\Api\V1\SalesmanController::class, 'placeOrder']);
     });
 });

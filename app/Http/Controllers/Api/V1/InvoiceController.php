@@ -48,19 +48,8 @@ class InvoiceController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $user = $this->currentUser();
-        $query = Invoice::with(['order.driver', 'buyerCompany', 'supplierCompany']);
-
-        if ($user->isBuyer() || ($user->isSalesman() && $user->isIndependentSalesman())) {
-            $query->where('buyer_company_id', $user->company_id);
-        } elseif ($user->isSalesman() && $user->isSupplierSalesman()) {
-            $query->where(function ($q) use ($user) {
-                $q->where('supplier_company_id', $user->company_id)
-                    ->orWhereHas('order', fn ($oq) => $oq->where('placed_by_salesman_id', $user->id));
-            });
-        } elseif ($user->isSupplier()) {
-            $query->where('supplier_company_id', $user->company_id);
-        }
-        // Admins see all invoices
+        // Role-based visibility lives in Invoice::scopeVisibleTo.
+        $query = Invoice::query()->visibleTo($user)->with(['order.driver', 'buyerCompany', 'supplierCompany']);
 
         // Filter by order
         if ($request->has('order_id')) {

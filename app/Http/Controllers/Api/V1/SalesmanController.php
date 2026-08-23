@@ -92,7 +92,7 @@ class SalesmanController extends BaseApiController
     }
 
     #[OA\Get(
-        path: '/salesmen/{id}',
+        path: '/salesmen/{salesman}',
         summary: 'Get salesman details',
         description: 'Get salesman profile with company, regions, and client counts.',
         tags: ['Salesmen'],
@@ -107,11 +107,16 @@ class SalesmanController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function show(int $id): JsonResponse
+    public function show(User $salesman): JsonResponse
     {
-        $salesman = User::where('role', UserRole::SALESMAN)
-            ->with(['company', 'salesmanRegions.city', 'salesmanClients.pharmacyCompany'])
-            ->findOrFail($id);
+        if (! $salesman->isSalesman()) {
+            abort(404);
+        }
+
+        if (! $salesman->relationLoaded('company')) {
+            $salesman->load('company');
+        }
+        $salesman->load(['salesmanRegions.city', 'salesmanClients.pharmacyCompany']);
         $this->authorize('accessSalesman', $salesman);
 
         $data = (new UserResource($salesman))->toArray(request());
@@ -126,7 +131,7 @@ class SalesmanController extends BaseApiController
     }
 
     #[OA\Get(
-        path: '/salesmen/{id}/regions',
+        path: '/salesmen/{salesman}/regions',
         summary: 'Get salesman regions',
         description: 'Get all regions assigned to a salesman.',
         tags: ['Salesmen'],
@@ -141,9 +146,12 @@ class SalesmanController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function regions(int $id): JsonResponse
+    public function regions(User $salesman): JsonResponse
     {
-        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        if (! $salesman->isSalesman()) {
+            abort(404);
+        }
+
         $this->authorize('accessSalesman', $salesman);
 
         $regions = $salesman->salesmanRegions()->with('city')->get();
@@ -155,7 +163,7 @@ class SalesmanController extends BaseApiController
     }
 
     #[OA\Post(
-        path: '/salesmen/{id}/regions',
+        path: '/salesmen/{salesman}/regions',
         summary: 'Assign regions to salesman',
         description: 'Assign regions to a salesman. Only suppliers (for their salesmen) and admins can assign regions. Syncs the region list (replaces existing assignments).',
         tags: ['Salesmen'],
@@ -179,9 +187,12 @@ class SalesmanController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function assignRegions(AssignSalesmanRegionsRequest $request, int $id): JsonResponse
+    public function assignRegions(AssignSalesmanRegionsRequest $request, User $salesman): JsonResponse
     {
-        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        if (! $salesman->isSalesman()) {
+            abort(404);
+        }
+
         $this->authorize('manageSalesman', $salesman);
 
         $salesman->salesmanRegions()->sync($request->region_ids);
@@ -194,7 +205,7 @@ class SalesmanController extends BaseApiController
     }
 
     #[OA\Delete(
-        path: '/salesmen/{id}/regions/{regionId}',
+        path: '/salesmen/{salesman}/regions/{regionId}',
         summary: 'Remove region from salesman',
         description: 'Remove a specific region from a salesman.',
         tags: ['Salesmen'],
@@ -210,9 +221,12 @@ class SalesmanController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function removeRegion(int $id, int $regionId): JsonResponse
+    public function removeRegion(User $salesman, int $regionId): JsonResponse
     {
-        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        if (! $salesman->isSalesman()) {
+            abort(404);
+        }
+
         $this->authorize('manageSalesman', $salesman);
 
         $detached = $salesman->salesmanRegions()->detach($regionId);
@@ -224,7 +238,7 @@ class SalesmanController extends BaseApiController
     }
 
     #[OA\Get(
-        path: '/salesmen/{id}/clients',
+        path: '/salesmen/{salesman}/clients',
         summary: 'Get salesman clients (pharmacies)',
         description: 'Get all pharmacy clients assigned to a salesman.',
         tags: ['Salesmen'],
@@ -240,9 +254,12 @@ class SalesmanController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function clients(Request $request, int $id): JsonResponse
+    public function clients(Request $request, User $salesman): JsonResponse
     {
-        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        if (! $salesman->isSalesman()) {
+            abort(404);
+        }
+
         $this->authorize('accessSalesman', $salesman);
 
         $query = $salesman->salesmanClients()->with(['pharmacyCompany', 'salesmanUser', 'salesmanCompany']);
@@ -260,7 +277,7 @@ class SalesmanController extends BaseApiController
     }
 
     #[OA\Post(
-        path: '/salesmen/{id}/clients',
+        path: '/salesmen/{salesman}/clients',
         summary: 'Assign client (pharmacy) to salesman',
         description: 'Assign a pharmacy company as a client of a salesman. The pharmacy must have buyer_classification = pharmacy. Prevents duplicate assignments.',
         tags: ['Salesmen'],
@@ -285,9 +302,12 @@ class SalesmanController extends BaseApiController
             new OA\Response(response: 409, ref: '#/components/responses/Conflict'),
         ]
     )]
-    public function assignClient(AssignSalesmanClientRequest $request, int $id): JsonResponse
+    public function assignClient(AssignSalesmanClientRequest $request, User $salesman): JsonResponse
     {
-        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        if (! $salesman->isSalesman()) {
+            abort(404);
+        }
+
         $this->authorize('manageSalesman', $salesman);
 
         $pharmacy = Company::findOrFail((int) $request->pharmacy_company_id);
@@ -321,7 +341,7 @@ class SalesmanController extends BaseApiController
     }
 
     #[OA\Delete(
-        path: '/salesmen/{id}/clients/{clientId}',
+        path: '/salesmen/{salesman}/clients/{clientId}',
         summary: 'Remove client from salesman',
         description: 'Deactivate a pharmacy client assignment. Does not delete the record, marks as inactive.',
         tags: ['Salesmen'],
@@ -337,9 +357,12 @@ class SalesmanController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function removeClient(int $id, int $clientId): JsonResponse
+    public function removeClient(User $salesman, int $clientId): JsonResponse
     {
-        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        if (! $salesman->isSalesman()) {
+            abort(404);
+        }
+
         $this->authorize('manageSalesman', $salesman);
 
         $client = SalesmanClient::where('salesman_user_id', $salesman->id)
@@ -352,7 +375,7 @@ class SalesmanController extends BaseApiController
     }
 
     #[OA\Get(
-        path: '/salesmen/{id}/orders',
+        path: '/salesmen/{salesman}/orders',
         summary: 'Get orders placed by salesman',
         description: 'Get all orders placed by a salesman on behalf of buyers.',
         tags: ['Salesmen'],
@@ -369,9 +392,12 @@ class SalesmanController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function orders(Request $request, int $id): JsonResponse
+    public function orders(Request $request, User $salesman): JsonResponse
     {
-        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        if (! $salesman->isSalesman()) {
+            abort(404);
+        }
+
         $this->authorize('accessSalesman', $salesman);
 
         $query = Order::where('placed_by_salesman_id', $salesman->id)
@@ -396,7 +422,7 @@ class SalesmanController extends BaseApiController
     }
 
     #[OA\Post(
-        path: '/salesmen/{id}/place-order',
+        path: '/salesmen/{salesman}/place-order',
         summary: 'Place order on behalf of a buyer',
         description: 'A supplier-associated salesman places an order on behalf of one of their client pharmacies. The salesman must have the pharmacy assigned as a client. Prices are resolved via PricingService using the buyer company context. The order records placed_by_salesman_id for tracking.',
         tags: ['Salesmen'],
@@ -433,9 +459,12 @@ class SalesmanController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function placeOrder(PlaceOrderOnBehalfRequest $request, int $id): JsonResponse
+    public function placeOrder(PlaceOrderOnBehalfRequest $request, User $salesman): JsonResponse
     {
-        $salesman = User::where('role', UserRole::SALESMAN)->findOrFail($id);
+        if (! $salesman->isSalesman()) {
+            abort(404);
+        }
+
         $this->authorize('accessSalesman', $salesman);
 
         $user = $this->currentUser();

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Constants\DiscountType;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +16,36 @@ class Product extends Model
 {
     /** @use HasFactory<\Database\Factories\ProductFactory> */
     use HasFactory, SoftDeletes;
+
+    /**
+     * Scope the catalog to what a user may see: suppliers see their own products
+     * (including inactive); everyone else sees active products from suppliers their
+     * classification can reach (pharmacy → retail + hybrid; salesman → wholesale +
+     * hybrid; admins bypass).
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeVisibleTo(Builder $query, User $user): void
+    {
+        if ($user->isSupplier()) {
+            $query->where('supplier_company_id', $user->company_id);
+
+            return;
+        }
+
+        $query->where('is_active', true);
+
+        if ($user->isAdmin()) {
+            return;
+        }
+
+        $allowedClassifications = Company::visibleSupplierClassificationsFor($user->company);
+        if ($allowedClassifications !== null) {
+            $query->whereHas('supplierCompany', function (Builder $q) use ($allowedClassifications): void {
+                $q->whereIn('supplier_classification', $allowedClassifications);
+            });
+        }
+    }
 
     protected $fillable = [
         'supplier_company_id',

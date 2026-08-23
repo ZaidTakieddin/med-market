@@ -152,7 +152,7 @@ class PriceListController extends BaseApiController
     }
 
     #[OA\Get(
-        path: '/price-lists/{id}',
+        path: '/price-lists/{priceList}',
         summary: 'Get price list entry',
         description: 'Get a specific price list entry with related buyer, supplier, and product details.',
         tags: ['Price Lists'],
@@ -167,9 +167,10 @@ class PriceListController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function show(int $id): JsonResponse
+    public function show(PriceList $priceList): JsonResponse
     {
-        $entry = PriceList::with(['supplierCompany', 'buyerCompany', 'product.category', 'product.manufacturer'])->findOrFail($id);
+        $entry = $priceList;
+        $entry->load(['supplierCompany', 'buyerCompany', 'product.category', 'product.manufacturer']);
         $this->authorize('view', $entry);
 
         return $this->success(
@@ -179,7 +180,7 @@ class PriceListController extends BaseApiController
     }
 
     #[OA\Put(
-        path: '/price-lists/{id}',
+        path: '/price-lists/{priceList}',
         summary: 'Update price list entry',
         description: 'Update a custom price entry. Only the owning supplier or admin can update.',
         tags: ['Price Lists'],
@@ -206,12 +207,11 @@ class PriceListController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function update(UpdatePriceListRequest $request, int $id): JsonResponse
+    public function update(UpdatePriceListRequest $request, PriceList $priceList): JsonResponse
     {
-        $entry = PriceList::findOrFail($id);
-        $this->authorize('update', $entry);
+        $this->authorize('update', $priceList);
 
-        $entry = $this->priceListService->update($entry, $request->validated());
+        $entry = $this->priceListService->update($priceList, $request->validated());
         $entry->load(['supplierCompany', 'buyerCompany', 'product.category', 'product.manufacturer']);
 
         return $this->success(
@@ -221,7 +221,7 @@ class PriceListController extends BaseApiController
     }
 
     #[OA\Delete(
-        path: '/price-lists/{id}',
+        path: '/price-lists/{priceList}',
         summary: 'Delete price list entry',
         description: 'Delete a custom price entry. Only the owning supplier or admin can delete.',
         tags: ['Price Lists'],
@@ -236,12 +236,11 @@ class PriceListController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function destroy(int $id): JsonResponse
+    public function destroy(PriceList $priceList): JsonResponse
     {
-        $entry = PriceList::findOrFail($id);
-        $this->authorize('delete', $entry);
+        $this->authorize('delete', $priceList);
 
-        $this->priceListService->delete($entry);
+        $this->priceListService->delete($priceList);
 
         return $this->success(null, 'Price list entry deleted successfully');
     }

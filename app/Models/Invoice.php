@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Constants\InvoiceStatus;
 use App\Constants\PaymentStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,34 @@ class Invoice extends Model
 {
     /** @use HasFactory<\Database\Factories\InvoiceFactory> */
     use HasFactory, SoftDeletes;
+
+    /**
+     * Scope the query to the invoices a user may see: admins all; buyers and
+     * independent salesmen their company's invoices; supplier salesmen their
+     * supplier's invoices plus ones for orders they placed; suppliers their own.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeVisibleTo(Builder $query, User $user): void
+    {
+        if ($user->isAdmin()) {
+            return;
+        }
+
+        if ($user->isBuyer() || ($user->isSalesman() && $user->isIndependentSalesman())) {
+            $query->where('buyer_company_id', $user->company_id);
+        } elseif ($user->isSalesman() && $user->isSupplierSalesman()) {
+            $query->where(function (Builder $q) use ($user) {
+                $q->where('supplier_company_id', $user->company_id)
+                    ->orWhereHas('order', fn (Builder $oq) => $oq->where('placed_by_salesman_id', $user->id));
+            });
+        } elseif ($user->isSupplier()) {
+            $query->where('supplier_company_id', $user->company_id);
+        } else {
+            // Drivers/unknown roles: no rows.
+            $query->whereKey(-1);
+        }
+    }
 
     protected $fillable = [
         'invoice_number',

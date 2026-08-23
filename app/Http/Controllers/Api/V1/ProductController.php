@@ -7,7 +7,6 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Products\CreateProductRequest;
 use App\Http\Requests\Products\UpdateProductRequest;
 use App\Http\Resources\ProductResource;
-use App\Models\Company;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -50,7 +49,8 @@ class ProductController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $user = $this->currentUser();
-        $query = Product::with(['supplierCompany', 'category', 'manufacturer', 'images']);
+        // Visibility scoping lives in Product::scopeVisibleTo.
+        $query = Product::query()->visibleTo($user)->with(['supplierCompany', 'category', 'manufacturer', 'images']);
 
         $activeOffersEagerLoad = ['offers' => function ($q) {
             $q->where('is_active', true)
@@ -61,22 +61,7 @@ class ProductController extends BaseApiController
                 });
         }];
 
-        if ($user->isSupplier()) {
-            $query->where('supplier_company_id', $user->company_id);
-            $query->with($activeOffersEagerLoad);
-        } else {
-            $query->where('is_active', true);
-            $query->with($activeOffersEagerLoad);
-
-            // Hide products from suppliers the buyer cannot reach (pharmacy → retail +
-            // hybrid; salesman → wholesale + hybrid).
-            $allowedClassifications = Company::visibleSupplierClassificationsFor($user->company);
-            if ($allowedClassifications !== null) {
-                $query->whereHas('supplierCompany', function ($q) use ($allowedClassifications) {
-                    $q->whereIn('supplier_classification', $allowedClassifications);
-                });
-            }
-        }
+        $query->with($activeOffersEagerLoad);
 
         // Filter by supplier
         if ($request->has('supplier_company_id')) {

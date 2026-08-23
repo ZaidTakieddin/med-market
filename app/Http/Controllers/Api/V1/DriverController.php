@@ -136,7 +136,7 @@ class DriverController extends BaseApiController
      * Get a specific driver.
      */
     #[OA\Get(
-        path: '/drivers/{id}',
+        path: '/drivers/{driver}',
         summary: 'Get driver',
         description: 'Get details of a specific driver',
         tags: ['Drivers'],
@@ -151,9 +151,12 @@ class DriverController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function show(int $id): JsonResponse
+    public function show(User $driver): JsonResponse
     {
-        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
+        if (! $driver->isDriver()) {
+            abort(404);
+        }
+
         $this->authorize('viewDriver', $driver);
 
         $driver->load('company')->loadCount($this->orderCountRelations());
@@ -165,7 +168,7 @@ class DriverController extends BaseApiController
      * Update a driver.
      */
     #[OA\Put(
-        path: '/drivers/{id}',
+        path: '/drivers/{driver}',
         summary: 'Update driver',
         description: 'Update an existing driver',
         tags: ['Drivers'],
@@ -181,9 +184,12 @@ class DriverController extends BaseApiController
             new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
-    public function update(UpdateDriverRequest $request, int $id): JsonResponse
+    public function update(UpdateDriverRequest $request, User $driver): JsonResponse
     {
-        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
+        if (! $driver->isDriver()) {
+            abort(404);
+        }
+
         $this->authorize('manageDriver', $driver);
 
         // Passwords can never be set through this path; profile fields only.
@@ -201,7 +207,7 @@ class DriverController extends BaseApiController
      * Delete a driver.
      */
     #[OA\Delete(
-        path: '/drivers/{id}',
+        path: '/drivers/{driver}',
         summary: 'Delete driver',
         description: 'Delete a driver (soft delete)',
         tags: ['Drivers'],
@@ -216,9 +222,12 @@ class DriverController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function destroy(int $id): JsonResponse
+    public function destroy(User $driver): JsonResponse
     {
-        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
+        if (! $driver->isDriver()) {
+            abort(404);
+        }
+
         $this->authorize('manageDriver', $driver);
 
         $this->driverService->delete($driver);
@@ -230,7 +239,7 @@ class DriverController extends BaseApiController
      * Get driver's assigned orders.
      */
     #[OA\Get(
-        path: '/drivers/{id}/orders',
+        path: '/drivers/{driver}/orders',
         summary: 'Get driver orders',
         description: 'Get all orders assigned to a specific driver',
         tags: ['Drivers'],
@@ -249,12 +258,15 @@ class DriverController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function orders(Request $request, int $id): JsonResponse
+    public function orders(Request $request, User $driver): JsonResponse
     {
-        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
+        if (! $driver->isDriver()) {
+            abort(404);
+        }
+
         $this->authorize('viewDriver', $driver);
 
-        $query = Order::where('driver_id', $id)
+        $query = Order::where('driver_id', $driver->id)
             ->with([
                 'buyerCompany.region.city',
                 'supplierCompany.categories',
@@ -288,7 +300,7 @@ class DriverController extends BaseApiController
      * Get driver's region plan.
      */
     #[OA\Get(
-        path: '/drivers/{id}/regions',
+        path: '/drivers/{driver}/regions',
         summary: 'Get driver region plan',
         description: 'Get a driver\'s region plan: the plan type (fixed or daily), holiday weekdays, and either the fixed regions covered every day or the per-weekday schedule.',
         tags: ['Drivers'],
@@ -303,9 +315,12 @@ class DriverController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function regions(int $id): JsonResponse
+    public function regions(User $driver): JsonResponse
     {
-        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
+        if (! $driver->isDriver()) {
+            abort(404);
+        }
+
         $this->authorize('viewDriver', $driver);
 
         return $this->success(
@@ -318,7 +333,7 @@ class DriverController extends BaseApiController
      * Set a driver's region plan (fixed or daily).
      */
     #[OA\Post(
-        path: '/drivers/{id}/region-plan',
+        path: '/drivers/{driver}/region-plan',
         summary: 'Set driver region plan',
         description: 'Set a driver\'s region plan. For a `fixed` plan provide `region_ids` (one or more regions covered every day). For a `daily` plan provide `schedule`, a map of weekday to region id (one region per weekday). Weekdays marked as the driver\'s holidays cannot be assigned a region. Replaces any existing assignment. Only suppliers can manage their own drivers.',
         tags: ['Drivers'],
@@ -357,9 +372,12 @@ class DriverController extends BaseApiController
             new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
-    public function setRegionPlan(SetDriverRegionPlanRequest $request, int $id): JsonResponse
+    public function setRegionPlan(SetDriverRegionPlanRequest $request, User $driver): JsonResponse
     {
-        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
+        if (! $driver->isDriver()) {
+            abort(404);
+        }
+
         $this->authorize('manageDriver', $driver);
 
         $validated = $request->validated();
@@ -380,7 +398,7 @@ class DriverController extends BaseApiController
      * Set a driver's holiday weekdays.
      */
     #[OA\Put(
-        path: '/drivers/{id}/holidays',
+        path: '/drivers/{driver}/holidays',
         summary: 'Set driver holidays',
         description: 'Set the weekdays a driver is off. A holiday weekday cannot be assigned a region in a daily plan; any region already assigned to a newly added holiday weekday is removed automatically. Pass an empty array to clear all holidays. Only suppliers can manage their own drivers.',
         tags: ['Drivers'],
@@ -411,9 +429,12 @@ class DriverController extends BaseApiController
             new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
-    public function setHolidays(SetDriverHolidaysRequest $request, int $id): JsonResponse
+    public function setHolidays(SetDriverHolidaysRequest $request, User $driver): JsonResponse
     {
-        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
+        if (! $driver->isDriver()) {
+            abort(404);
+        }
+
         $this->authorize('manageDriver', $driver);
 
         $driver = $this->regionPlanService->setHolidays($driver, $request->validated()['holidays']);
@@ -428,9 +449,9 @@ class DriverController extends BaseApiController
      * Assign a fixed region plan to a driver (backward-compatible shortcut).
      */
     #[OA\Post(
-        path: '/drivers/{id}/regions',
+        path: '/drivers/{driver}/regions',
         summary: 'Assign regions to driver (fixed plan)',
-        description: 'Assign regions to a driver as a fixed plan (covered every day). This replaces all existing region assignments and sets the plan type to fixed. Prefer POST /drivers/{id}/region-plan for daily plans. Only suppliers can assign regions to their own drivers.',
+        description: 'Assign regions to a driver as a fixed plan (covered every day). This replaces all existing region assignments and sets the plan type to fixed. Prefer POST /drivers/{driver}/region-plan for daily plans. Only suppliers can assign regions to their own drivers.',
         tags: ['Drivers'],
         security: [['sanctum' => []]],
         parameters: [
@@ -459,9 +480,12 @@ class DriverController extends BaseApiController
             new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
         ]
     )]
-    public function assignRegions(AssignDriverRegionsRequest $request, int $id): JsonResponse
+    public function assignRegions(AssignDriverRegionsRequest $request, User $driver): JsonResponse
     {
-        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
+        if (! $driver->isDriver()) {
+            abort(404);
+        }
+
         $this->authorize('manageDriver', $driver);
 
         $driver = $this->regionPlanService->setFixedPlan($driver, $request->validated()['region_ids']);
@@ -476,7 +500,7 @@ class DriverController extends BaseApiController
      * Remove a region from driver.
      */
     #[OA\Delete(
-        path: '/drivers/{id}/regions/{region_id}',
+        path: '/drivers/{driver}/regions/{region_id}',
         summary: 'Remove region from driver',
         description: 'Remove a specific region from a driver. Only suppliers can remove regions from their own drivers.',
         tags: ['Drivers'],
@@ -492,9 +516,12 @@ class DriverController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function removeRegion(int $id, int $region_id): JsonResponse
+    public function removeRegion(User $driver, int $region_id): JsonResponse
     {
-        $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
+        if (! $driver->isDriver()) {
+            abort(404);
+        }
+
         $this->authorize('manageDriver', $driver);
 
         // Verify region exists

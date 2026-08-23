@@ -157,7 +157,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
     }
 
     #[OA\Get(
-        path: '/buyer-supplier-relationships/{id}',
+        path: '/buyer-supplier-relationships/{relationship}',
         summary: 'Get relationship details',
         description: 'Get a specific buyer-supplier relationship with credit details.',
         tags: ['Buyer-Supplier Relationships'],
@@ -172,9 +172,9 @@ class BuyerSupplierRelationshipController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function show(int $id): JsonResponse
+    public function show(BuyerSupplierRelationship $relationship): JsonResponse
     {
-        $relationship = BuyerSupplierRelationship::with(['buyerCompany', 'supplierCompany'])->findOrFail($id);
+        $relationship->load(['buyerCompany', 'supplierCompany']);
         $this->authorize('view', $relationship);
 
         return $this->success(
@@ -184,7 +184,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
     }
 
     #[OA\Put(
-        path: '/buyer-supplier-relationships/{id}',
+        path: '/buyer-supplier-relationships/{relationship}',
         summary: 'Update relationship',
         description: 'Update payment terms, credit limit, approval status, or notes. Only the supplier side or admin can update.',
         tags: ['Buyer-Supplier Relationships'],
@@ -209,9 +209,8 @@ class BuyerSupplierRelationshipController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function update(UpdateBuyerSupplierRelationshipRequest $request, int $id): JsonResponse
+    public function update(UpdateBuyerSupplierRelationshipRequest $request, BuyerSupplierRelationship $relationship): JsonResponse
     {
-        $relationship = BuyerSupplierRelationship::findOrFail($id);
         $this->authorize('update', $relationship);
 
         $data = $request->validated();
@@ -232,7 +231,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
     }
 
     #[OA\Delete(
-        path: '/buyer-supplier-relationships/{id}',
+        path: '/buyer-supplier-relationships/{relationship}',
         summary: 'Delete relationship',
         description: 'Delete a buyer-supplier relationship. Only the supplier side or admin can delete.',
         tags: ['Buyer-Supplier Relationships'],
@@ -247,9 +246,8 @@ class BuyerSupplierRelationshipController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function destroy(int $id): JsonResponse
+    public function destroy(BuyerSupplierRelationship $relationship): JsonResponse
     {
-        $relationship = BuyerSupplierRelationship::findOrFail($id);
         $this->authorize('delete', $relationship);
 
         if ((float) $relationship->current_balance > 0) {
@@ -262,7 +260,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
     }
 
     #[OA\Post(
-        path: '/buyer-supplier-relationships/{id}/approve',
+        path: '/buyer-supplier-relationships/{relationship}/approve',
         summary: 'Approve relationship',
         description: 'Approve a pending buyer-supplier relationship. Only supplier side or admin.',
         tags: ['Buyer-Supplier Relationships'],
@@ -278,9 +276,8 @@ class BuyerSupplierRelationshipController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function approve(int $id): JsonResponse
+    public function approve(BuyerSupplierRelationship $relationship): JsonResponse
     {
-        $relationship = BuyerSupplierRelationship::findOrFail($id);
         $this->authorize('approve', $relationship);
 
         if ($relationship->is_approved) {
@@ -301,7 +298,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
     }
 
     #[OA\Post(
-        path: '/buyer-supplier-relationships/{id}/reject',
+        path: '/buyer-supplier-relationships/{relationship}/reject',
         summary: 'Reject (revoke approval) relationship',
         description: 'Reject or revoke approval of a buyer-supplier relationship. Only supplier side or admin.',
         tags: ['Buyer-Supplier Relationships'],
@@ -317,9 +314,8 @@ class BuyerSupplierRelationshipController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function reject(int $id): JsonResponse
+    public function reject(BuyerSupplierRelationship $relationship): JsonResponse
     {
-        $relationship = BuyerSupplierRelationship::findOrFail($id);
         $this->authorize('approve', $relationship);
 
         if (! $relationship->is_approved) {
@@ -340,7 +336,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
     }
 
     #[OA\Post(
-        path: '/buyer-supplier-relationships/{id}/adjust-credit',
+        path: '/buyer-supplier-relationships/{relationship}/adjust-credit',
         summary: 'Adjust credit balance',
         description: 'Adjust the current outstanding balance. Use positive amount to increase (e.g. new order on credit), negative to decrease (e.g. payment received). Only supplier side or admin.',
         tags: ['Buyer-Supplier Relationships'],
@@ -366,9 +362,8 @@ class BuyerSupplierRelationshipController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function adjustCredit(AdjustCreditRequest $request, int $id): JsonResponse
+    public function adjustCredit(AdjustCreditRequest $request, BuyerSupplierRelationship $relationship): JsonResponse
     {
-        $relationship = BuyerSupplierRelationship::findOrFail($id);
         $this->authorize('adjustCredit', $relationship);
 
         // Balance mutation + limit checks happen atomically inside the domain service
@@ -389,7 +384,7 @@ class BuyerSupplierRelationshipController extends BaseApiController
     }
 
     #[OA\Get(
-        path: '/buyer-supplier-relationships/{id}/check-credit',
+        path: '/buyer-supplier-relationships/{relationship}/check-credit',
         summary: 'Check credit availability',
         description: 'Check if a given amount can be charged on credit for this relationship. Returns credit details and availability.',
         tags: ['Buyer-Supplier Relationships'],
@@ -405,9 +400,8 @@ class BuyerSupplierRelationshipController extends BaseApiController
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
         ]
     )]
-    public function checkCredit(CheckCreditRequest $request, int $id): JsonResponse
+    public function checkCredit(CheckCreditRequest $request, BuyerSupplierRelationship $relationship): JsonResponse
     {
-        $relationship = BuyerSupplierRelationship::findOrFail($id);
         $this->authorize('view', $relationship);
 
         $amount = (float) $request->amount;

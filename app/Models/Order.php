@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Constants\OrderStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,37 @@ class Order extends Model
 {
     /** @use HasFactory<\Database\Factories\OrderFactory> */
     use HasFactory, SoftDeletes;
+
+    /**
+     * Scope the query to the orders a user may see, by role:
+     * admins see everything; buyers/independent salesmen their company's purchases;
+     * supplier salesmen their supplier's orders plus ones they placed; suppliers
+     * their incoming orders; drivers only assigned deliveries.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeVisibleTo(Builder $query, User $user): void
+    {
+        if ($user->isAdmin()) {
+            return;
+        }
+
+        if ($user->isBuyer() || ($user->isSalesman() && $user->isIndependentSalesman())) {
+            $query->where('buyer_company_id', $user->company_id);
+        } elseif ($user->isSalesman() && $user->isSupplierSalesman()) {
+            $query->where(function (Builder $q) use ($user) {
+                $q->where('supplier_company_id', $user->company_id)
+                    ->orWhere('placed_by_salesman_id', $user->id);
+            });
+        } elseif ($user->isSupplier()) {
+            $query->where('supplier_company_id', $user->company_id);
+        } elseif ($user->isDriver()) {
+            $query->where('driver_id', $user->id);
+        } else {
+            // Unknown role: no rows.
+            $query->whereKey(-1);
+        }
+    }
 
     protected $fillable = [
         'order_number',
