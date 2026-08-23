@@ -90,6 +90,20 @@ class OrderPolicy
         return false;
     }
 
+    /**
+     * Only the supplying company (or an admin) may assign drivers to an order.
+     * Whether the target user is a valid driver for that company is validated by
+     * DriverAssignmentService (as input validation, not authorization).
+     */
+    public function assignDriver(User $user, Order $order): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $user->isSupplier() && $user->company_id === $order->supplier_company_id;
+    }
+
     public function delete(User $user, Order $order): bool
     {
         return $user->isAdmin();

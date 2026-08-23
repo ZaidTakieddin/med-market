@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Constants\OrderStatus;
+use App\Domain\Deliveries\DriverAssignmentService;
 use App\Domain\Orders\OrderCreationService;
 use App\Domain\Orders\OrderStateTransitionService;
 use App\Domain\Pricing\PricingService;
@@ -16,7 +17,6 @@ use App\Models\Order;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Orders', description: 'Order management endpoints')]
@@ -25,7 +25,8 @@ class OrderController extends BaseApiController
     public function __construct(
         private OrderCreationService $orderCreationService,
         private OrderStateTransitionService $orderStateTransitionService,
-        private PricingService $pricingService
+        private PricingService $pricingService,
+        private DriverAssignmentService $driverAssignmentService
     ) {}
 
     /**
@@ -165,7 +166,7 @@ class OrderController extends BaseApiController
     #[OA\Post(
         path: '/orders',
         summary: 'Create order',
-        description: 'Create a new order for a **single supplier**. Only buyers and salesmen can create orders. If unit_price is not provided, PricingService resolves the correct price based on buyer type, supplier classification, quantity (wholesale eligibility), and custom price lists. **Important:** This endpoint creates ONE order for ONE supplier. If you need to order from multiple suppliers, use the cart checkout endpoint (`POST /cart/checkout`) which automatically splits the cart into multiple orders (one per supplier).',
+        description: 'Create a new order for a **single supplier**. Only buyers and salesmen can create orders. Prices are always resolved server-side by PricingService based on buyer type, supplier classification, quantity (wholesale eligibility), and custom price lists — client-supplied unit prices are ignored. **Important:** This endpoint creates ONE order for ONE supplier. If you need to order from multiple suppliers, use the cart checkout endpoint (`POST /cart/checkout`) which automatically splits the cart into multiple orders (one per supplier).',
         tags: ['Orders'],
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(
@@ -182,7 +183,6 @@ class OrderController extends BaseApiController
                             properties: [
                                 new OA\Property(property: 'product_id', type: 'integer', example: 1, description: 'Product ID (must belong to supplier_company_id)'),
                                 new OA\Property(property: 'quantity', type: 'integer', example: 10, description: 'Quantity ordered'),
-                                new OA\Property(property: 'unit_price', type: 'number', format: 'float', nullable: true, description: 'Optional - PricingService resolves the correct tier price (custom, wholesale, or retail) if not provided', example: 25.50),
                                 new OA\Property(property: 'notes', type: 'string', nullable: true, description: 'Item-specific notes'),
                             ]
                         )
@@ -240,20 +240,15 @@ class OrderController extends BaseApiController
         foreach ($request->items as $item) {
             $product = \App\Models\Product::findOrFail((int) $item['product_id']);
 
-            if ($item['unit_price'] ?? null) {
-                $unitPrice = $item['unit_price'];
-                $pricingType = $item['pricing_type'] ?? null;
-            } else {
-                $priceResult = $this->pricingService->resolve($product, $buyerCompany, $item['quantity']);
-                $unitPrice = $priceResult->unitPrice;
-                $pricingType = $priceResult->pricingType;
-            }
+            // Prices are always resolved server-side (custom price list → wholesale →
+            // retail → discount). Client-supplied unit prices are never trusted.
+            $priceResult = $this->pricingService->resolve($product, $buyerCompany, (int) $item['quantity']);
 
             $items[] = [
                 'product_id' => $item['product_id'],
                 'quantity' => $item['quantity'],
-                'unit_price' => $unitPrice,
-                'pricing_type' => $pricingType,
+                'unit_price' => $priceResult->unitPrice,
+                'pricing_type' => $priceResult->pricingType,
                 'notes' => $item['notes'] ?? null,
             ];
         }
@@ -266,16 +261,8 @@ class OrderController extends BaseApiController
             notes: $request->notes,
             taxRate: $request->tax_rate ?? 0,
             paymentMethod: $request->payment_method,
+            placedBySalesmanId: $user->isSalesman() ? $user->id : null,
         );
-
-        // Salesman attribution: always the authenticated salesman (never a client-supplied
-        // id — that was a spoofing vector). On-behalf ordering uses the dedicated
-        // /salesmen/{id}/place-order endpoint. Payment terms + credit reservation are
-        // handled inside OrderCreationService (transactional, credit-limit enforced).
-        if ($user->isSalesman()) {
-            $order->salesman()->associate($user);
-            $order->save();
-        }
 
         return $this->success(
             new OrderResource($order->load([
@@ -546,42 +533,13 @@ class OrderController extends BaseApiController
     public function assignDriver(AssignDriverRequest $request, Order $order): JsonResponse
     {
         $user = $this->currentUser();
-
-        // Only suppliers can assign drivers to their orders
-        if (! $user->isSupplier() && ! $user->isAdmin()) {
-            return $this->error('Only suppliers can assign drivers', null, 403);
-        }
-
-        // Verify order belongs to supplier's company
-        if ($order->supplier_company_id !== $user->company_id && ! $user->isAdmin()) {
-            return $this->error('You can only assign drivers to your own orders', null, 403);
-        }
+        $this->authorize('assignDriver', $order);
 
         $driver = \App\Models\User::findOrFail((int) $request->driver_id);
 
-        // Verify driver belongs to supplier's company and is actually a driver
-        if (! $driver->isDriver()) {
-            return $this->error('User is not a driver', null, 400);
-        }
-
-        if ($driver->company_id !== $user->company_id && ! $user->isAdmin()) {
-            return $this->error('Driver must belong to your company', null, 403);
-        }
-
-        // Check if driver serves the pharmacy's region (optional warning, not blocking)
-        $buyerCompany = $order->buyerCompany;
-        if ($buyerCompany && $buyerCompany->region_id) {
-            if (! $driver->servesRegion($buyerCompany->region_id)) {
-                // Log warning but don't block assignment
-                Log::warning('Driver assigned to order outside their region', [
-                    'driver_id' => $driver->id,
-                    'order_id' => $order->id,
-                    'pharmacy_region_id' => $buyerCompany->region_id,
-                ]);
-            }
-        }
-
-        $order->update(['driver_id' => $driver->id]);
+        // Role/company validation, the region-mismatch warning and the audit log
+        // live in the domain service (transactional).
+        $order = $this->driverAssignmentService->assign($order, $driver, $user);
 
         $order->load([
             'buyerCompany.region.city',

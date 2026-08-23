@@ -28,10 +28,14 @@ Drivers are users with the `driver` role:
 
 ### Driver Assignment
 
-Currently handled in `OrderController`:
-- `assignDriver()` - Assigns a driver to an order
-- Driver must belong to supplier company
-- Authorization checks in place
+Handled by `App\Domain\Deliveries\DriverAssignmentService`; the endpoint
+(`POST /orders/{id}/assign-driver`) stays thin: authorize via `OrderPolicy::assignDriver`
+(supplier owning the order, or admin) → delegate → respond.
+
+- Target must be a user with the driver role (`DomainException` → 422 otherwise)
+- Driver must belong to the order's supplying company (admins may assign any driver)
+- Serving the pharmacy's region is recommended but not enforced — mismatches are logged as warnings
+- The assignment and its audit log entry happen inside a transaction
 
 ### Driver Management
 
