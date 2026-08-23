@@ -39,6 +39,12 @@ Route::prefix('v1')->group(function () {
 
         // Autocomplete suggestions
         Route::get('search/suggestions', [App\Http\Controllers\Api\V1\SearchController::class, 'suggestions']);
+        Route::post('search/history', [App\Http\Controllers\Api\V1\SavedSearchController::class, 'recordHistory']);
+        Route::get('search/history', [App\Http\Controllers\Api\V1\SavedSearchController::class, 'history']);
+
+        // Saved searches
+        Route::apiResource('saved-searches', App\Http\Controllers\Api\V1\SavedSearchController::class)
+            ->only(['index', 'store', 'destroy']);
 
         // Wishlist
         Route::post('wishlist/items/{product}/move-to-cart', [App\Http\Controllers\Api\V1\WishlistController::class, 'moveToCart']);

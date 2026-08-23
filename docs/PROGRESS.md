@@ -1,8 +1,44 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-08-23 (**Audit trail + admin IP allowlist** (#16 partial), **user-management extras** (#18): activity tracking, bulk ops, CSV export. See entries below)
+> Last Updated: 2026-08-23 (**WebSockets via Laravel Reverb** (#10 completion) + **saved searches & history** (#9 completion). See entries below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
+
+## 📡 2026-08-23 — Reverb WebSockets (#10 complete) + saved searches (#9 complete)
+
+### #10 Real-Time Features — COMPLETE
+
+WebSockets added via **Laravel Reverb** (first-party, no external service):
+
+- `BROADCAST_CONNECTION=reverb` (+ `REVERB_*` env); Sanctum-token authenticated
+  `/broadcasting/auth` (`Broadcast::routes(['middleware' => ['auth:sanctum']])`).
+- Private channels (company/role-scoped authorization in `routes/channels.php`):
+  `supplier.{companyId}` (orders/stock/driver feed), `buyer.{companyId}` (order status),
+  `driver.{driverId}`; presence channel `presence-company.{companyId}` returns online
+  user data.
+- Broadcast events: **OrderStatusChanged** (both company feeds on every transition),
+  **StockLevelChanged** (every stock movement → realtime inventory), **DriverLocationUpdated**
+  (every GPS ping → true live tracking instead of polling).
+- Tests: `RealtimeBroadcastTest` (event channels + channel authz member/outsider/admin).
+- Run with the app: `php artisan reverb:start`. Frontends subscribe with
+  `laravel-echo` + pusher-js pointing at Reverb.
+- Mistake log: framework skips loading `routes/channels.php` when the default broadcast
+  connection is "null" (tests), so the provider loads it unconditionally; broadcasting
+  tests swap the connection to reverb and re-register closures (channel registry is
+  per-broadcaster).
+
+### #9 Advanced Search & Filtering — COMPLETE
+
+- New `saved_searches` (user, name, entity products|companies|orders, JSON params) +
+  `search_histories` tables.
+- Endpoints: save/list/delete own filters (`GET|POST|DELETE /saved-searches`),
+  record terms (`POST /search/history`) and read recent ones (`GET /search/history`,
+  capped at 20/user).
+- Replay: `GET /products?saved_search_id=` merges the stored filter params as defaults
+  (explicit query params still win); ownership enforced (404 otherwise).
+- Still future: PostgreSQL full-text / Elasticsearch relevance ranking.
+
+Suite green (**202 tests**), Pint clean, PHPStan level 8 clean, Swagger regenerated.
 
 ## 🔐 2026-08-23 — Security extras (#16 partial) + user-management extras (#18)
 
@@ -1989,8 +2025,8 @@ These features significantly enhance user experience and operational efficiency.
 - [x] Multi-field search (name, SKU, description, category, manufacturer — products/companies index)
 - [x] Advanced filtering combinations (multiple categories/manufacturers, regions/cities, price ranges, in-stock)
 - [ ] Full-text search implementation (PostgreSQL full-text or Elasticsearch) — future
-- [ ] Saved search filters per user
-- [ ] Search history
+- [x] Saved search filters per user (`/saved-searches` CRUD + `?saved_search_id=` replay)
+- [x] Search history (`/search/history`, capped at 20 per user)
 - [ ] Search ranking and relevance scoring
 
 #### 10. Real-Time Features ✅ v1 DONE (2026-08-23, polling-based)
@@ -2001,7 +2037,7 @@ These features significantly enhance user experience and operational efficiency.
 - [ ] WebSocket support (Laravel Echo/Reverb/Pusher) — future infra
 - [x] Live notifications (database channel polling via /notifications unread-count)
 - [x] Real-time order status updates (notifications on every transition)
-- [ ] Real-time inventory updates
+- [x] Real-time inventory updates (StockLevelChanged broadcast on every movement)
 - [ ] Presence system (online/offline users)
 
 ### 🟡 Medium Priority Missing Features

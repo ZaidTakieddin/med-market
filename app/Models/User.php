@@ -168,6 +168,26 @@ class User extends Authenticatable
     }
 
     /**
+     * Saved search filters of this user.
+     *
+     * @return HasMany<SavedSearch, $this>
+     */
+    public function savedSearches(): HasMany
+    {
+        return $this->hasMany(SavedSearch::class);
+    }
+
+    /**
+     * Recent search terms recorded by this user.
+     *
+     * @return HasMany<SearchHistory, $this>
+     */
+    public function searchHistories(): HasMany
+    {
+        return $this->hasMany(SearchHistory::class);
+    }
+
+    /**
      * Check if user has a specific role.
      */
     public function hasRole(string $role): bool

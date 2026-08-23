@@ -49,6 +49,17 @@ class ProductController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $user = $this->currentUser();
+
+        // A saved search merges its stored params as the request input defaults
+        // (explicit query params still win).
+        if ($request->filled('saved_search_id')) {
+            $saved = $user->savedSearches()
+                ->where('entity', 'products')
+                ->findOrFail((int) $request->saved_search_id);
+
+            $request->merge(array_merge($saved->params ?? [], $request->query()));
+        }
+
         // Visibility scoping lives in Product::scopeVisibleTo.
         $query = Product::query()->visibleTo($user)->with(['supplierCompany', 'category', 'manufacturer', 'images']);
 
