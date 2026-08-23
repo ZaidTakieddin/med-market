@@ -62,6 +62,8 @@ class ProductSeeder extends Seeder
                 'discount_type' => 'percentage',
                 'stock_quantity' => 500,
                 'min_stock_level' => 50,
+                'batch_number' => 'B-2026-001',
+                'expiry_date' => now()->addYear()->toDateString(),
                 'is_active' => true,
             ],
             [
@@ -78,8 +80,11 @@ class ProductSeeder extends Seeder
                 'customer_price' => 55.00,
                 'discount' => null,
                 'discount_type' => null,
-                'stock_quantity' => 300,
+                // Low stock demo: at/below min level → ?low_stock=true filter.
+                'stock_quantity' => 20,
                 'min_stock_level' => 30,
+                'batch_number' => 'B-2026-002',
+                'expiry_date' => now()->addMonths(8)->toDateString(),
                 'is_active' => true,
             ],
             [
@@ -134,6 +139,9 @@ class ProductSeeder extends Seeder
                 'discount_type' => 'percentage',
                 'stock_quantity' => 350,
                 'min_stock_level' => 35,
+                // Expired demo: past expiry_date → ?expired=true filter.
+                'batch_number' => 'B-2024-017',
+                'expiry_date' => now()->subDays(10)->toDateString(),
                 'is_active' => true,
             ],
 
@@ -176,6 +184,9 @@ class ProductSeeder extends Seeder
                 'discount_type' => 'percentage',
                 'stock_quantity' => 450,
                 'min_stock_level' => 45,
+                // Expiring soon demo → ?expiring_before= filter.
+                'batch_number' => 'B-2025-114',
+                'expiry_date' => now()->addDays(21)->toDateString(),
                 'is_active' => true,
             ],
             [
@@ -238,6 +249,8 @@ class ProductSeeder extends Seeder
                 'discount_type' => 'percentage',
                 'stock_quantity' => 200,
                 'min_stock_level' => 20,
+                'batch_number' => 'B-2026-090',
+                'expiry_date' => now()->addMonths(14)->toDateString(),
                 'is_active' => true,
             ],
             [
