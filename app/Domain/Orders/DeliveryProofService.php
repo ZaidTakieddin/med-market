@@ -21,8 +21,6 @@ class DeliveryProofService
      * Attach a delivery proof (photo of the handover or a signature) to an order.
      * The image is stored on the configured media disk; only its metadata is persisted.
      *
-     * @param  \Illuminate\Http\UploadedFile  $file
-     *
      * @throws DomainException When the upload cannot be stored
      */
     public function attach(Order $order, User $user, string $type, UploadedFile $file, ?string $notes = null): DeliveryProof
