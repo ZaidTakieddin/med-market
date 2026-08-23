@@ -31,7 +31,8 @@ class OrderCreationService
         array $items,
         ?string $notes = null,
         float $taxRate = 0.0,
-        ?string $paymentMethod = null
+        ?string $paymentMethod = null,
+        ?int $placedBySalesmanId = null
     ): Order {
         if (empty($items)) {
             throw new DomainException('Order must have at least one item');
@@ -44,11 +45,11 @@ class OrderCreationService
         // Generate unique order number
         // If in transaction, generate inside transaction to avoid query issues
         if ($inTransaction) {
-            return $this->createOrderInTransaction($buyerCompanyId, $supplierCompanyId, $createdBy, $items, $notes, $taxRate, $paymentMethod);
+            return $this->createOrderInTransaction($buyerCompanyId, $supplierCompanyId, $createdBy, $items, $notes, $taxRate, $paymentMethod, $placedBySalesmanId);
         }
 
-        return DB::transaction(function () use ($buyerCompanyId, $supplierCompanyId, $createdBy, $items, $notes, $taxRate, $paymentMethod) {
-            return $this->createOrderInTransaction($buyerCompanyId, $supplierCompanyId, $createdBy, $items, $notes, $taxRate, $paymentMethod);
+        return DB::transaction(function () use ($buyerCompanyId, $supplierCompanyId, $createdBy, $items, $notes, $taxRate, $paymentMethod, $placedBySalesmanId) {
+            return $this->createOrderInTransaction($buyerCompanyId, $supplierCompanyId, $createdBy, $items, $notes, $taxRate, $paymentMethod, $placedBySalesmanId);
         });
     }
 
@@ -64,7 +65,8 @@ class OrderCreationService
         array $items,
         ?string $notes,
         float $taxRate,
-        ?string $paymentMethod
+        ?string $paymentMethod,
+        ?int $placedBySalesmanId
     ): Order {
         // Generate unique order number - rely on database constraint for uniqueness
         // Retry on duplicate key exception (very rare with random suffix)
@@ -75,7 +77,7 @@ class OrderCreationService
             try {
                 $orderNumber = $this->generateOrderNumber();
 
-                return $this->createOrderWithoutTransaction($buyerCompanyId, $supplierCompanyId, $createdBy, $items, $notes, $taxRate, $orderNumber, $paymentMethod);
+                return $this->createOrderWithoutTransaction($buyerCompanyId, $supplierCompanyId, $createdBy, $items, $notes, $taxRate, $orderNumber, $paymentMethod, $placedBySalesmanId);
             } catch (\Illuminate\Database\QueryException $e) {
                 // Check if it's a unique constraint violation
                 if ($e->getCode() === '23505' || str_contains($e->getMessage(), 'unique constraint') || str_contains($e->getMessage(), 'duplicate key')) {
@@ -108,7 +110,8 @@ class OrderCreationService
         ?string $notes,
         float $taxRate,
         string $orderNumber,
-        ?string $paymentMethod
+        ?string $paymentMethod,
+        ?int $placedBySalesmanId
     ): Order {
         foreach ($items as $item) {
             $product = \App\Models\Product::find((int) $item['product_id']);
@@ -137,6 +140,7 @@ class OrderCreationService
             'buyer_company_id' => $buyerCompanyId,
             'supplier_company_id' => $supplierCompanyId,
             'created_by' => $createdBy,
+            'placed_by_salesman_id' => $placedBySalesmanId,
             'status' => OrderStatus::PENDING,
             'subtotal' => $subtotal,
             'tax_amount' => $taxAmount,

@@ -416,7 +416,6 @@ class SalesmanController extends BaseApiController
                         properties: [
                             new OA\Property(property: 'product_id', type: 'integer', example: 1),
                             new OA\Property(property: 'quantity', type: 'integer', example: 10),
-                            new OA\Property(property: 'unit_price', type: 'number', format: 'float', nullable: true),
                             new OA\Property(property: 'notes', type: 'string', nullable: true),
                         ]
                     )),
@@ -459,20 +458,15 @@ class SalesmanController extends BaseApiController
         foreach ($request->items as $item) {
             $product = Product::findOrFail((int) $item['product_id']);
 
-            if ($item['unit_price'] ?? null) {
-                $unitPrice = $item['unit_price'];
-                $pricingType = $item['pricing_type'] ?? null;
-            } else {
-                $priceResult = $this->pricingService->resolve($product, $buyerCompany, $item['quantity']);
-                $unitPrice = $priceResult->unitPrice;
-                $pricingType = $priceResult->pricingType;
-            }
+            // Prices are always resolved server-side in the buyer's pricing context
+            // (custom price list → wholesale → retail). Client prices are never trusted.
+            $priceResult = $this->pricingService->resolve($product, $buyerCompany, (int) $item['quantity']);
 
             $items[] = [
                 'product_id' => $item['product_id'],
                 'quantity' => $item['quantity'],
-                'unit_price' => $unitPrice,
-                'pricing_type' => $pricingType,
+                'unit_price' => $priceResult->unitPrice,
+                'pricing_type' => $priceResult->pricingType,
                 'notes' => $item['notes'] ?? null,
             ];
         }
@@ -485,10 +479,11 @@ class SalesmanController extends BaseApiController
             notes: $request->notes,
             taxRate: $request->tax_rate ?? 0,
             paymentMethod: $request->payment_method,
+            placedBySalesmanId: $salesman->id,
         );
 
-        // Payment terms + credit reservation are handled inside OrderCreationService.
-        $order->update(['placed_by_salesman_id' => $salesman->id]);
+        // Payment terms, credit reservation and salesman attribution are handled
+        // inside OrderCreationService (transactional).
 
         return $this->success(
             new OrderResource($order->load([

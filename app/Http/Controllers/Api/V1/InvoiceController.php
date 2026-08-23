@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Constants\PaymentTerms;
-use App\Domain\Companies\CreditService;
+use App\Domain\Orders\InvoicePaymentService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Invoices\MarkInvoicePaidRequest;
 use App\Http\Resources\InvoiceResource;
@@ -19,7 +18,7 @@ use OpenApi\Attributes as OA;
 class InvoiceController extends BaseApiController
 {
     public function __construct(
-        private CreditService $creditService
+        private InvoicePaymentService $invoicePaymentService
     ) {}
 
     /**
@@ -279,22 +278,8 @@ class InvoiceController extends BaseApiController
     {
         $this->authorize('pay', $invoice);
 
-        $amount = $request->amount ?? $invoice->total_amount;
-
-        if ($amount > $invoice->total_amount) {
-            return $this->error('Payment amount cannot exceed invoice total', null, 422);
-        }
-
-        $previouslyPaid = (float) $invoice->paid_amount;
-
-        $invoice->markAsPaid($amount);
-
-        // Release the newly-paid portion of a net-term order's reserved trade credit.
-        $newlyPaid = max(0, (float) $amount - $previouslyPaid);
-        $order = $invoice->order_id ? Order::find($invoice->order_id) : null;
-        if ($newlyPaid > 0 && $order && $order->payment_method !== PaymentTerms::CASH) {
-            $this->creditService->release($invoice->buyer_company_id, $invoice->supplier_company_id, $newlyPaid);
-        }
+        // Payment + credit release happen atomically inside the domain service.
+        $invoice = $this->invoicePaymentService->markAsPaid($invoice, $request->amount);
 
         if ($request->has('notes')) {
             $invoice->update(['notes' => $request->notes]);

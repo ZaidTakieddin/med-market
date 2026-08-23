@@ -155,6 +155,20 @@ The `salesman_clients` table tracks which pharmacies a salesman serves:
 - Company verification and approval
 - Company subscription management
 
+### CreditService (Implemented)
+
+All trade-credit mutations are centralized, transactional, and row-locked:
+
+- `assertAvailable(buyerCompanyId, supplierCompanyId, amount)` — fail-fast check before order creation
+- `reserve(buyerCompanyId, supplierCompanyId, amount)` — reserve credit for a net-term order
+- `release(buyerCompanyId, supplierCompanyId, amount)` — release on cancel/payment (floors at zero)
+- `adjustBalance(relationship, amount, reason, adjustedBy)` — manual adjustment endpoint backing;
+  locks the row inside a transaction so concurrent adjustments cannot lose updates, rejects
+  results below zero or beyond the credit limit (`DomainException` → 422), and writes an audit log entry
+
+`BuyerSupplierRelationship` and `PriceList` use soft deletes: deleting never destroys the audit
+trail, and live-row-only unique indexes allow the same relationship/price to be re-created later.
+
 ### BuyerSupplierRelationshipService (Planned)
 - Manage buyer-supplier relationships
 - Credit limit management and balance tracking

@@ -136,6 +136,9 @@ Uses `PriceListPolicy` for authorization (suppliers manage, buyers view).
 4. Salesman falls back to retail price if min qty not met (no rejection)
 5. Product discount applies after tier selection
 6. Promotional offers apply after discount
+7. **Prices are always resolved server-side** — the order endpoints (`POST /orders`,
+   `POST /salesmen/{id}/place-order`) never accept a client-supplied `unit_price`;
+   negotiated pricing belongs in custom price lists, which the resolver honours
 
 ## Future Enhancements
 

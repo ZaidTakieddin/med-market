@@ -131,17 +131,24 @@ class Invoice extends Model
     }
 
     /**
-     * Mark invoice as paid.
+     * Record a payment against the invoice. Amounts accumulate (a second partial
+     * payment adds to the first); the invoice becomes fully paid once the paid
+     * amount reaches the total. Null pays off the remaining balance.
      */
     public function markAsPaid(?float $amount = null): void
     {
-        $paidAmount = $amount ?? $this->total_amount;
+        $totalAmount = (float) $this->total_amount;
+        $paidAmount = $amount === null
+            ? $totalAmount
+            : min($totalAmount, (float) $this->paid_amount + max(0, $amount));
+
+        $fullyPaid = $paidAmount >= $totalAmount;
 
         $this->update([
-            'payment_status' => $paidAmount >= $this->total_amount ? PaymentStatus::PAID : PaymentStatus::PARTIAL,
+            'payment_status' => $fullyPaid ? PaymentStatus::PAID : PaymentStatus::PARTIAL,
             'paid_amount' => $paidAmount,
             'paid_at' => now(),
-            'status' => InvoiceStatus::PAID,
+            'status' => $fullyPaid ? InvoiceStatus::PAID : $this->status,
         ]);
     }
 

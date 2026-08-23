@@ -4,6 +4,8 @@ namespace App\Domain\Companies;
 
 use App\Exceptions\DomainException;
 use App\Models\BuyerSupplierRelationship;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Buyer<->supplier trade credit (B2B net terms). This is the credit a supplier
@@ -93,5 +95,57 @@ class CreditService
 
         $relationship->current_balance = max(0, (float) $relationship->current_balance - $amount);
         $relationship->save();
+    }
+
+    /**
+     * Apply a manual adjustment to a relationship's outstanding balance. The row is
+     * locked inside a transaction so concurrent adjustments cannot lose updates, and
+     * the adjustment is rejected when it would push the balance below zero or past
+     * the credit limit.
+     *
+     * @param  float  $amount  Positive to increase the outstanding balance, negative to decrease
+     * @return array{relationship: BuyerSupplierRelationship, previousBalance: float}
+     *
+     * @throws DomainException If the result would go below zero or exceed the credit limit
+     */
+    public function adjustBalance(BuyerSupplierRelationship $relationship, float $amount, string $reason, int $adjustedBy): array
+    {
+        return DB::transaction(function () use ($relationship, $amount, $reason, $adjustedBy) {
+            $relationship = $relationship->newQuery()
+                ->whereKey($relationship->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $previousBalance = (float) $relationship->current_balance;
+            $newBalance = $previousBalance + $amount;
+
+            if ($newBalance < 0) {
+                throw new DomainException(
+                    "Balance cannot go below zero. Current balance: {$previousBalance}, requested adjustment: {$amount}."
+                );
+            }
+
+            if ($relationship->credit_limit !== null && $newBalance > (float) $relationship->credit_limit) {
+                throw new DomainException(
+                    "Adjustment would exceed credit limit. Credit limit: {$relationship->credit_limit}, current balance: {$previousBalance}, requested adjustment: {$amount}."
+                );
+            }
+
+            $relationship->current_balance = $newBalance;
+            $relationship->save();
+
+            Log::info('Credit balance adjusted', [
+                'relationship_id' => $relationship->id,
+                'buyer_company_id' => $relationship->buyer_company_id,
+                'supplier_company_id' => $relationship->supplier_company_id,
+                'previous_balance' => $previousBalance,
+                'adjustment' => $amount,
+                'new_balance' => $newBalance,
+                'reason' => $reason,
+                'adjusted_by' => $adjustedBy,
+            ]);
+
+            return ['relationship' => $relationship, 'previousBalance' => $previousBalance];
+        });
     }
 }

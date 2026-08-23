@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Companies\CreditService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\BuyerSupplierRelationships\AdjustCreditRequest;
 use App\Http\Requests\BuyerSupplierRelationships\CheckCreditRequest;
@@ -12,7 +13,6 @@ use App\Models\BuyerSupplierRelationship;
 use App\Models\Company;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(
@@ -21,6 +21,10 @@ use OpenApi\Attributes as OA;
 )]
 class BuyerSupplierRelationshipController extends BaseApiController
 {
+    public function __construct(
+        private CreditService $creditService
+    ) {}
+
     #[OA\Get(
         path: '/buyer-supplier-relationships',
         summary: 'List relationships',
@@ -367,40 +371,20 @@ class BuyerSupplierRelationshipController extends BaseApiController
         $relationship = BuyerSupplierRelationship::findOrFail($id);
         $this->authorize('adjustCredit', $relationship);
 
-        $amount = (float) $request->amount;
-        $newBalance = (float) $relationship->current_balance + $amount;
-
-        if ($newBalance < 0) {
-            return $this->error('Balance cannot go below zero', null, 400);
-        }
-
-        if ($relationship->credit_limit !== null && $newBalance > (float) $relationship->credit_limit) {
-            return $this->error(
-                'Adjustment would exceed credit limit. Credit limit: '.$relationship->credit_limit.', current balance: '.$relationship->current_balance.', requested adjustment: '.$amount,
-                null,
-                400
-            );
-        }
-
-        $previousBalance = (float) $relationship->current_balance;
-        $relationship->update(['current_balance' => $newBalance]);
-
-        Log::info('Credit balance adjusted', [
-            'relationship_id' => $relationship->id,
-            'buyer_company_id' => $relationship->buyer_company_id,
-            'supplier_company_id' => $relationship->supplier_company_id,
-            'previous_balance' => $previousBalance,
-            'adjustment' => $amount,
-            'new_balance' => $newBalance,
-            'reason' => $request->reason,
-            'adjusted_by' => auth()->id(),
-        ]);
+        // Balance mutation + limit checks happen atomically inside the domain service
+        // (row-locked, transactional); violations throw DomainException → 422.
+        ['relationship' => $relationship, 'previousBalance' => $previousBalance] = $this->creditService->adjustBalance(
+            $relationship,
+            (float) $request->amount,
+            (string) $request->reason,
+            (int) $this->currentUser()->id
+        );
 
         $relationship->load(['buyerCompany', 'supplierCompany']);
 
         return $this->success(
             new BuyerSupplierRelationshipResource($relationship),
-            'Credit balance adjusted successfully. Previous: '.number_format($previousBalance, 2).', New: '.number_format($newBalance, 2)
+            'Credit balance adjusted successfully. Previous: '.number_format($previousBalance, 2).', New: '.number_format((float) $relationship->current_balance, 2)
         );
     }
 

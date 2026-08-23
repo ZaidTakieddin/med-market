@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Salesmen;
 
 use App\Constants\PaymentTerms;
-use App\Constants\PricingType;
 use App\Http\Requests\BaseFormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,8 +19,6 @@ class PlaceOrderOnBehalfRequest extends BaseFormRequest
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
-            'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
-            'items.*.pricing_type' => ['nullable', 'string', Rule::in(PricingType::all())],
             'items.*.notes' => ['nullable', 'string', 'max:500'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
