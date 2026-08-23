@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Products\TaxonomyService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Manufacturers\CreateManufacturerRequest;
 use App\Http\Requests\Manufacturers\UpdateManufacturerRequest;
@@ -15,6 +16,10 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Manufacturers', description: 'Manufacturer management endpoints (Admin only)')]
 class ManufacturerController extends BaseApiController
 {
+    public function __construct(
+        private TaxonomyService $taxonomyService
+    ) {}
+
     /**
      * List manufacturers.
      */
@@ -127,7 +132,7 @@ class ManufacturerController extends BaseApiController
             return $this->error('Only admins can create manufacturers.', null, 403);
         }
 
-        $manufacturer = Manufacturer::create($request->validated());
+        $manufacturer = $this->taxonomyService->createManufacturer($request->validated());
 
         return $this->success(
             new ManufacturerResource($manufacturer),
@@ -202,7 +207,7 @@ class ManufacturerController extends BaseApiController
             return $this->error('Only admins can update manufacturers.', null, 403);
         }
 
-        $manufacturer->update($request->validated());
+        $manufacturer = $this->taxonomyService->updateManufacturer($manufacturer, $request->validated());
 
         return $this->success(
             new ManufacturerResource($manufacturer),
@@ -236,7 +241,7 @@ class ManufacturerController extends BaseApiController
             return $this->error('Only admins can delete manufacturers.', null, 403);
         }
 
-        $manufacturer->delete();
+        $this->taxonomyService->deleteManufacturer($manufacturer);
 
         return $this->success(null, 'Manufacturer deleted successfully');
     }

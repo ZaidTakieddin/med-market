@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Products\ProductService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Products\CreateProductRequest;
 use App\Http\Requests\Products\UpdateProductRequest;
@@ -15,6 +16,10 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Products', description: 'Product management endpoints')]
 class ProductController extends BaseApiController
 {
+    public function __construct(
+        private ProductService $productService
+    ) {}
+
     /**
      * List products.
      */
@@ -166,13 +171,13 @@ class ProductController extends BaseApiController
         $this->authorize('create', Product::class);
 
         $user = $this->currentUser();
-        $supplierCompanyId = $user->isSupplier()
+        $supplierCompanyId = (int) ($user->isSupplier()
             ? $user->company_id
-            : $request->supplier_company_id;
+            : $request->supplier_company_id);
 
-        $pharmacistPrice = $request->pharmacist_price;
-        $product = Product::create([
-            'supplier_company_id' => $supplierCompanyId,
+        // Attribute assembly, defaults and the transactional create live in the
+        // domain service. Stock is only settable at creation (rule #4).
+        $product = $this->productService->create($supplierCompanyId, [
             'name' => $request->name,
             'description' => $request->description,
             'category_id' => $request->category_id,
@@ -180,10 +185,10 @@ class ProductController extends BaseApiController
             'sku' => $request->sku,
             'barcode' => $request->barcode,
             'unit' => $request->unit ?? 'piece',
-            'price' => $pharmacistPrice,
+            'price' => $request->pharmacist_price,
             'wholesale_price' => $request->wholesale_price,
             'wholesale_min_qty' => $request->wholesale_min_qty,
-            'pharmacist_price' => $pharmacistPrice,
+            'pharmacist_price' => $request->pharmacist_price,
             'customer_price' => $request->customer_price,
             'discount' => $request->discount,
             'discount_type' => $request->discount_type,
@@ -345,7 +350,7 @@ class ProductController extends BaseApiController
     {
         $this->authorize('update', $product);
 
-        $product->update($request->validated());
+        $product = $this->productService->update($product, $request->validated());
         $product->load(['supplierCompany', 'category', 'manufacturer', 'images', 'offers']);
 
         return $this->success(
@@ -377,7 +382,7 @@ class ProductController extends BaseApiController
     {
         $this->authorize('delete', $product);
 
-        $product->delete();
+        $this->productService->delete($product);
 
         return $this->success(null, 'Product deleted successfully');
     }

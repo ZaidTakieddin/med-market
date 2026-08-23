@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Constants\DriverStatus;
 use App\Constants\OrderStatus;
 use App\Constants\RegionPlanType;
 use App\Constants\UserRole;
 use App\Domain\Deliveries\DriverRegionPlanService;
+use App\Domain\Deliveries\DriverService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Drivers\AssignDriverRegionsRequest;
 use App\Http\Requests\Drivers\CreateDriverRequest;
@@ -22,14 +22,14 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Drivers', description: 'Driver management endpoints')]
 class DriverController extends BaseApiController
 {
     public function __construct(
-        private DriverRegionPlanService $regionPlanService
+        private DriverRegionPlanService $regionPlanService,
+        private DriverService $driverService
     ) {}
 
     /**
@@ -122,19 +122,8 @@ class DriverController extends BaseApiController
 
         $user = $this->currentUser();
 
-        $driver = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'password' => Hash::make($request->password),
-            'company_id' => $user->company_id,
-            'role' => UserRole::DRIVER,
-            'work_start_time' => $request->work_start_time,
-            'work_end_time' => $request->work_end_time,
-            'employment_start_date' => $request->employment_start_date,
-            'employment_end_date' => $request->employment_end_date,
-            'driver_status' => $request->driver_status ?? DriverStatus::AVAILABLE,
-        ]);
+        // Account creation, password hashing and role assignment live in the domain service.
+        $driver = $this->driverService->create($user, $request->validated());
 
         return $this->success(
             new UserResource($this->withOrderCounts(User::whereKey($driver->id))->with('company')->first()),
@@ -197,7 +186,8 @@ class DriverController extends BaseApiController
         $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('manageDriver', $driver);
 
-        $driver->update($request->validated());
+        // Passwords can never be set through this path; profile fields only.
+        $driver = $this->driverService->update($driver, $request->validated());
 
         $driver->load('company')->loadCount($this->orderCountRelations());
 
@@ -231,7 +221,7 @@ class DriverController extends BaseApiController
         $driver = User::where('role', UserRole::DRIVER)->findOrFail($id);
         $this->authorize('manageDriver', $driver);
 
-        $driver->delete();
+        $this->driverService->delete($driver);
 
         return $this->success(null, 'Driver deleted successfully');
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Constants\SupplierClassification;
+use App\Domain\Companies\CompanyService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Companies\CreateCompanyRequest;
 use App\Http\Requests\Companies\UpdateCompanyRequest;
@@ -15,6 +16,10 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Companies', description: 'Company management endpoints')]
 class CompanyController extends BaseApiController
 {
+    public function __construct(
+        private CompanyService $companyService
+    ) {}
+
     /**
      * List companies.
      */
@@ -154,7 +159,7 @@ class CompanyController extends BaseApiController
     {
         $this->authorize('create', Company::class);
 
-        $company = Company::create($request->validated());
+        $company = $this->companyService->create($request->validated());
 
         return $this->success(
             new CompanyResource($company),
@@ -231,7 +236,7 @@ class CompanyController extends BaseApiController
     {
         $this->authorize('update', $company);
 
-        $company->update($request->validated());
+        $company = $this->companyService->update($company, $request->validated());
 
         return $this->success(
             new CompanyResource($company),
@@ -262,7 +267,7 @@ class CompanyController extends BaseApiController
     {
         $this->authorize('delete', $company);
 
-        $company->delete();
+        $this->companyService->delete($company);
 
         return $this->success(null, 'Company deleted successfully');
     }

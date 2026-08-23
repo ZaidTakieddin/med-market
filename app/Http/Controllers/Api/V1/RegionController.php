@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Location\LocationService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Regions\CreateRegionRequest;
 use App\Http\Requests\Regions\UpdateRegionRequest;
@@ -15,6 +16,10 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Regions', description: 'Region management endpoints (Admin only)')]
 class RegionController extends BaseApiController
 {
+    public function __construct(
+        private LocationService $locationService
+    ) {}
+
     /**
      * List regions.
      */
@@ -131,7 +136,7 @@ class RegionController extends BaseApiController
     {
         $this->authorize('create', Region::class);
 
-        $region = Region::create($request->validated());
+        $region = $this->locationService->createRegion($request->validated());
 
         return $this->success(
             new RegionResource($region->load('city')),
@@ -205,7 +210,7 @@ class RegionController extends BaseApiController
     {
         $this->authorize('update', $region);
 
-        $region->update($request->validated());
+        $region = $this->locationService->updateRegion($region, $request->validated());
 
         return $this->success(
             new RegionResource($region->load('city')),
@@ -236,7 +241,7 @@ class RegionController extends BaseApiController
     {
         $this->authorize('delete', $region);
 
-        $region->delete();
+        $this->locationService->deleteRegion($region);
 
         return $this->success(null, 'Region deleted successfully');
     }

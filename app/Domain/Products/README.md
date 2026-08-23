@@ -4,7 +4,21 @@ This domain handles product-related business logic in the Med Market B2B system.
 
 ## Overview
 
-The Products domain manages product information, pricing, inventory, and relationships. While product CRUD operations are handled in controllers, this domain is prepared for future product-specific business logic and services.
+The Products domain manages product information, pricing, inventory, and relationships. Product catalog writes go through the domain services below; controllers stay thin (validate → authorize → delegate).
+
+## Domain Services
+
+### ProductService (Implemented)
+
+Product CRUD for suppliers/admins: `create(supplierCompanyId, data)` (stock settable only at creation — rule #4), `update(product, data)` (never touches stock), `delete(product)`.
+
+### PromotionService (Implemented)
+
+Offer CRUD with transactional offer↔product pivot sync: `create(supplierCompanyId, data, products?, productIds?)`, `update(offer, data, products?, productIds?)`, `delete(offer)`. Bundle offers use per-product `quantity_required` via the pivot.
+
+### TaxonomyService (Implemented)
+
+Admin-managed reference data: create/update/delete for Category and Manufacturer. Supplier taxonomy sync (from products) lives in `App\Domain\Companies\SupplierTaxonomySyncService`.
 
 ## Key Concepts
 

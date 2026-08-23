@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Users\ProfileService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Profile\ChangePasswordRequest;
 use App\Http\Requests\Profile\UpdateCompanyRequest;
@@ -9,12 +10,15 @@ use App\Http\Requests\Profile\UpdateProfileRequest;
 use App\Http\Resources\CompanyResource;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Hash;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Profile', description: 'User profile management endpoints')]
 class ProfileController extends BaseApiController
 {
+    public function __construct(
+        private ProfileService $profileService
+    ) {}
+
     /**
      * Get current user profile.
      */
@@ -63,7 +67,7 @@ class ProfileController extends BaseApiController
     public function update(UpdateProfileRequest $request): JsonResponse
     {
         $user = $this->currentUser();
-        $user->update($request->validated());
+        $this->profileService->updateProfile($user, $request->validated());
 
         return $this->success([
             'user' => new UserResource($user->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])])),
@@ -100,13 +104,9 @@ class ProfileController extends BaseApiController
     {
         $user = $this->currentUser();
 
-        if (! Hash::check($request->current_password, $user->password)) {
-            return $this->error('Current password is incorrect', null, 422);
-        }
-
-        $user->update([
-            'password' => Hash::make($request->password),
-        ]);
+        // Current-password verification + hashing happen in the domain service
+        // (mismatch throws DomainException → 422).
+        $this->profileService->changePassword($user, (string) $request->current_password, (string) $request->password);
 
         return $this->success(null, 'Password changed successfully');
     }
@@ -152,12 +152,8 @@ class ProfileController extends BaseApiController
             return $this->error('You do not have permission to update company information', null, 403);
         }
 
-        $company = $user->company;
-        if (! $company) {
-            return $this->error('User does not belong to a company', null, 404);
-        }
-
-        $company->update($request->validated());
+        // Company lookup + update live in the domain service.
+        $company = $this->profileService->updateCompany($user, $request->validated());
         $company->load(['categories', 'manufacturers']);
 
         return $this->success(

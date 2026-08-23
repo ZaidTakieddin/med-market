@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Products\TaxonomyService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Categories\CreateCategoryRequest;
 use App\Http\Requests\Categories\UpdateCategoryRequest;
@@ -15,6 +16,10 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Categories', description: 'Category management endpoints (Admin only)')]
 class CategoryController extends BaseApiController
 {
+    public function __construct(
+        private TaxonomyService $taxonomyService
+    ) {}
+
     /**
      * List categories.
      */
@@ -122,7 +127,7 @@ class CategoryController extends BaseApiController
             return $this->error('Only admins can create categories.', null, 403);
         }
 
-        $category = Category::create($request->validated());
+        $category = $this->taxonomyService->createCategory($request->validated());
 
         return $this->success(
             new CategoryResource($category),
@@ -193,7 +198,7 @@ class CategoryController extends BaseApiController
             return $this->error('Only admins can update categories.', null, 403);
         }
 
-        $category->update($request->validated());
+        $category = $this->taxonomyService->updateCategory($category, $request->validated());
 
         return $this->success(
             new CategoryResource($category),
@@ -227,7 +232,7 @@ class CategoryController extends BaseApiController
             return $this->error('Only admins can delete categories.', null, 403);
         }
 
-        $category->delete();
+        $this->taxonomyService->deleteCategory($category);
 
         return $this->success(null, 'Category deleted successfully');
     }

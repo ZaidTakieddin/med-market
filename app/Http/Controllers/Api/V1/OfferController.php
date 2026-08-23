@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Products\PromotionService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Offers\CreateOfferRequest;
 use App\Http\Requests\Offers\UpdateOfferRequest;
@@ -17,6 +18,10 @@ use OpenApi\Attributes as OA;
 )]
 class OfferController extends BaseApiController
 {
+    public function __construct(
+        private PromotionService $promotionService
+    ) {}
+
     /**
      * List offers.
      */
@@ -143,21 +148,23 @@ class OfferController extends BaseApiController
 
         $user = $this->currentUser();
 
-        $offer = Offer::create([
-            'supplier_company_id' => $user->company_id,
-            'name' => $request->name,
-            'description' => $request->description,
-            'offer_type' => $request->offer_type,
-            'discount_value' => $request->discount_value,
-            'quantity_required' => $request->quantity_required,
-            'quantity_free' => $request->quantity_free,
-            'start_date' => $request->start_date,
-            'end_date' => $request->end_date,
-            'is_active' => $request->is_active ?? true,
-        ]);
-
-        // Attach products (with per-product quantity for bundles)
-        $this->syncOfferProducts($offer, $request);
+        // Offer + product pivot sync happen transactionally in the domain service.
+        $offer = $this->promotionService->create(
+            supplierCompanyId: (int) $user->company_id,
+            data: [
+                'name' => $request->name,
+                'description' => $request->description,
+                'offer_type' => $request->offer_type,
+                'discount_value' => $request->discount_value,
+                'quantity_required' => $request->quantity_required,
+                'quantity_free' => $request->quantity_free,
+                'start_date' => $request->start_date,
+                'end_date' => $request->end_date,
+                'is_active' => $request->is_active ?? true,
+            ],
+            products: $request->input('products'),
+            productIds: $request->input('product_ids'),
+        );
 
         $offer->load(['supplierCompany', 'products']);
 
@@ -166,31 +173,6 @@ class OfferController extends BaseApiController
             'Offer created successfully',
             201
         );
-    }
-
-    /**
-     * Sync offer products with optional per-product quantity (for bundle offers).
-     */
-    private function syncOfferProducts(Offer $offer, \Illuminate\Http\Request $request): void
-    {
-        $products = $request->input('products');
-        $productIds = $request->input('product_ids');
-
-        if (! empty($products)) {
-            $syncData = [];
-            foreach ($products as $item) {
-                $productId = $item['product_id'] ?? $item['id'] ?? null;
-                $quantity = (int) ($item['quantity'] ?? 1);
-                if ($productId) {
-                    $syncData[$productId] = ['quantity_required' => $quantity];
-                }
-            }
-            $offer->products()->sync($syncData);
-        } elseif (! empty($productIds)) {
-            $quantityRequired = $offer->quantity_required ?? 1;
-            $syncData = array_fill_keys($productIds, ['quantity_required' => $quantityRequired]);
-            $offer->products()->sync($syncData);
-        }
     }
 
     /**
@@ -265,12 +247,13 @@ class OfferController extends BaseApiController
     {
         $this->authorize('update', $offer);
 
-        $offer->update($request->validated());
-
-        // Update products if provided
-        if ($request->has('product_ids') || $request->has('products')) {
-            $this->syncOfferProducts($offer, $request);
-        }
+        // Update products only when provided (nulls keep the current pivot).
+        $offer = $this->promotionService->update(
+            offer: $offer,
+            data: $request->validated(),
+            products: $request->has('products') ? $request->input('products') : null,
+            productIds: $request->has('product_ids') ? $request->input('product_ids') : null,
+        );
 
         $offer->load(['supplierCompany', 'products']);
 
@@ -303,7 +286,7 @@ class OfferController extends BaseApiController
     {
         $this->authorize('delete', $offer);
 
-        $offer->delete();
+        $this->promotionService->delete($offer);
 
         return $this->success(null, 'Offer deleted successfully');
     }

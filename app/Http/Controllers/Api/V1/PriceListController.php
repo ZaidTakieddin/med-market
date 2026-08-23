@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Pricing\PriceListService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\PriceLists\CreatePriceListRequest;
 use App\Http\Requests\PriceLists\UpdatePriceListRequest;
@@ -18,6 +19,10 @@ use OpenApi\Attributes as OA;
 )]
 class PriceListController extends BaseApiController
 {
+    public function __construct(
+        private PriceListService $priceListService
+    ) {}
+
     #[OA\Get(
         path: '/price-lists',
         summary: 'List price list entries',
@@ -136,7 +141,7 @@ class PriceListController extends BaseApiController
         $data['supplier_company_id'] = $product->supplier_company_id;
         $data['is_active'] = $request->boolean('is_active', true);
 
-        $entry = PriceList::create($data);
+        $entry = $this->priceListService->create($data);
         $entry->load(['supplierCompany', 'buyerCompany', 'product.category', 'product.manufacturer']);
 
         return $this->success(
@@ -206,7 +211,7 @@ class PriceListController extends BaseApiController
         $entry = PriceList::findOrFail($id);
         $this->authorize('update', $entry);
 
-        $entry->update($request->validated());
+        $entry = $this->priceListService->update($entry, $request->validated());
         $entry->load(['supplierCompany', 'buyerCompany', 'product.category', 'product.manufacturer']);
 
         return $this->success(
@@ -236,7 +241,7 @@ class PriceListController extends BaseApiController
         $entry = PriceList::findOrFail($id);
         $this->authorize('delete', $entry);
 
-        $entry->delete();
+        $this->priceListService->delete($entry);
 
         return $this->success(null, 'Price list entry deleted successfully');
     }

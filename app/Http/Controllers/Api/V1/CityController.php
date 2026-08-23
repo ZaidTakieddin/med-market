@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Location\LocationService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Cities\CreateCityRequest;
 use App\Http\Requests\Cities\UpdateCityRequest;
@@ -15,6 +16,10 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Cities', description: 'City management endpoints (Admin only)')]
 class CityController extends BaseApiController
 {
+    public function __construct(
+        private LocationService $locationService
+    ) {}
+
     /**
      * List cities.
      */
@@ -124,7 +129,7 @@ class CityController extends BaseApiController
     {
         $this->authorize('create', City::class);
 
-        $city = City::create($request->validated());
+        $city = $this->locationService->createCity($request->validated());
 
         return $this->success(
             new CityResource($city),
@@ -197,7 +202,7 @@ class CityController extends BaseApiController
     {
         $this->authorize('update', $city);
 
-        $city->update($request->validated());
+        $city = $this->locationService->updateCity($city, $request->validated());
 
         return $this->success(
             new CityResource($city),
@@ -228,7 +233,7 @@ class CityController extends BaseApiController
     {
         $this->authorize('delete', $city);
 
-        $city->delete();
+        $this->locationService->deleteCity($city);
 
         return $this->success(null, 'City deleted successfully');
     }
