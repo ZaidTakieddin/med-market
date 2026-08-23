@@ -74,6 +74,9 @@ class AnalyticsService
         $counts = [];
         $revenue = [];
         foreach ($rows as $order) {
+            if ($order->created_at === null) {
+                continue;
+            }
             $key = $this->bucketKey($order->created_at, $granularity);
             $counts[$key] = ($counts[$key] ?? 0) + 1;
             if ($order->status === OrderStatus::DELIVERED) {
@@ -149,7 +152,14 @@ class AnalyticsService
             return null;
         }
 
-        $totalHours = $orders->sum(fn (Order $order): float => $order->shipped_at->diffInHours($order->delivered_at));
+        $totalHours = 0.0;
+        foreach ($orders as $order) {
+            if ($order->shipped_at === null || $order->delivered_at === null) {
+                continue;
+            }
+
+            $totalHours += (float) $order->shipped_at->diffInHours($order->delivered_at);
+        }
 
         return round($totalHours / $orders->count(), 1);
     }

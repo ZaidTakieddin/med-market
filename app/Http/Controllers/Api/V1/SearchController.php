@@ -69,7 +69,7 @@ class SearchController extends BaseApiController
                     'name' => $p->name,
                     'sku' => $p->sku,
                     'price' => $p->pharmacist_price !== null ? (float) $p->pharmacist_price : null,
-                    'imageUrl' => $p->images->firstWhere('is_primary', true)?->url ?? $p->images->first()?->url,
+                    'imageUrl' => $p->images->firstWhere('is_primary', true)->url ?? $p->images->first()?->url,
                 ])
                 ->all();
         }
