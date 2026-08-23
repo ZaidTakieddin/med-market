@@ -3774,6 +3774,136 @@
                 ]
             }
         },
+        "/drivers/{driver}/status": {
+            "post": {
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "Set driver availability status",
+                "description": "Update a driver's availability: available, on_delivery or off. Owner supplier or admin only.",
+                "operationId": "c1e11e4016cf83fa036646dd9d55b85b",
+                "parameters": [
+                    {
+                        "name": "driver",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "driver_status"
+                                ],
+                                "properties": {
+                                    "driver_status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "available",
+                                            "on_delivery",
+                                            "off"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Status updated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/drivers/available": {
+            "get": {
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "List available drivers",
+                "description": "Drivers whose status is `available` and below their max concurrent-delivery capacity, optionally filtered by `region_id`. Suppliers see their own drivers; admins see all companies'.",
+                "operationId": "9a35e38e8fb7a4d87ced2682ea313d3b",
+                "parameters": [
+                    {
+                        "name": "region_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Available drivers retrieved"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/orders/{order}/suggested-driver": {
+            "get": {
+                "tags": [
+                    "Drivers"
+                ],
+                "summary": "Suggest a driver for an order",
+                "description": "Least-loaded available driver of the supplying company covering the buyer's region (when known). For assignment decisions; does not assign.",
+                "operationId": "84cf35f81374054358071da5f1351036",
+                "parameters": [
+                    {
+                        "name": "order",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Suggestion returned (data may be null when no candidate exists)"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/enums": {
             "get": {
                 "tags": [
@@ -5814,6 +5944,263 @@
                 ]
             }
         },
+        "/order-templates": {
+            "get": {
+                "tags": [
+                    "Order Templates"
+                ],
+                "summary": "List order templates",
+                "description": "All templates of the authenticated user's buyer company (shared across company users).",
+                "operationId": "99aa472ac197c46cdf3df81711c23243",
+                "responses": {
+                    "200": {
+                        "description": "Templates retrieved successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Order Templates"
+                ],
+                "summary": "Create order template",
+                "description": "Create a template.",
+                "operationId": "1524f87ac850cf0ff701d3f37188e605",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "items"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Monthly restock"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "items": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "product_id",
+                                                "quantity"
+                                            ],
+                                            "properties": {
+                                                "product_id": {
+                                                    "type": "integer"
+                                                },
+                                                "quantity": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Template created successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/order-templates/{id}": {
+            "get": {
+                "tags": [
+                    "Order Templates"
+                ],
+                "summary": "Get order template",
+                "description": "Get a template.",
+                "operationId": "dc94de23c214f50938dd3ca6630c8fd7",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Template retrieved successfully"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Order Templates"
+                ],
+                "summary": "Update order template",
+                "description": "Update a template.",
+                "operationId": "bf30f6a860811329bfb05900868bf3b5",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Template updated successfully"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Order Templates"
+                ],
+                "summary": "Delete order template",
+                "description": "Delete a template.",
+                "operationId": "73a8b74de435ba041d582073e0bc4a26",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Template deleted successfully"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/order-templates/{id}/reorder": {
+            "post": {
+                "tags": [
+                    "Order Templates"
+                ],
+                "summary": "Reorder from template",
+                "description": "Places fresh orders from the template — one order per supplier, grouped automatically — at current server-resolved prices. Credit rules and catalog visibility apply.",
+                "operationId": "521a79272f412da95f2424b07758061d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "payment_method": {
+                                        "type": "string",
+                                        "enum": [
+                                            "cash",
+                                            "net_15",
+                                            "net_30",
+                                            "net_60"
+                                        ],
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Orders placed. Returns an array of created orders."
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/price-lists": {
             "get": {
                 "tags": [
@@ -7751,6 +8138,304 @@
                 ]
             }
         },
+        "/products/{id}/reviews": {
+            "get": {
+                "tags": [
+                    "Reviews"
+                ],
+                "summary": "List product reviews",
+                "description": "Product reviews list + aggregates.",
+                "operationId": "386da410a8a840ac9f62646ce5bbc6ea",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reviews retrieved with rating aggregates"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Reviews"
+                ],
+                "summary": "Review a product",
+                "description": "Create or update the authenticated user's review of a product. Requires a delivered order from the buyer company containing the product. Re-reviewing updates the existing review.",
+                "operationId": "22e24af28f3533fc9c471a89485b739f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "rating"
+                                ],
+                                "properties": {
+                                    "rating": {
+                                        "type": "integer",
+                                        "maximum": 5,
+                                        "minimum": 1,
+                                        "example": 5
+                                    },
+                                    "body": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "order_id": {
+                                        "description": "Optional delivered-order reference for verification",
+                                        "type": "integer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Review saved successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/companies/{id}/reviews": {
+            "get": {
+                "tags": [
+                    "Reviews"
+                ],
+                "summary": "List supplier reviews",
+                "description": "Supplier reviews list + aggregates.",
+                "operationId": "f9b6162882f740719c2eedd9929e1267",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reviews retrieved with rating aggregates"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Reviews"
+                ],
+                "summary": "Review a supplier",
+                "description": "Create or update the authenticated user's review of a supplier. Requires a delivered order supplied by that company.",
+                "operationId": "fb7edead61172b641e4e2438393fbd95",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "rating"
+                                ],
+                                "properties": {
+                                    "rating": {
+                                        "type": "integer",
+                                        "maximum": 5,
+                                        "minimum": 1
+                                    },
+                                    "body": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "order_id": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Review saved successfully"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/reviews/{review}/approve": {
+            "post": {
+                "tags": [
+                    "Reviews"
+                ],
+                "summary": "Approve review",
+                "description": "Moderate: approve.",
+                "operationId": "81923c72f8bcfa5a4559d8911a42a72a",
+                "parameters": [
+                    {
+                        "name": "review",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Review approved"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/reviews/{review}/reject": {
+            "post": {
+                "tags": [
+                    "Reviews"
+                ],
+                "summary": "Reject review",
+                "description": "Moderate: reject.",
+                "operationId": "959ecd26191cde5eefc78927dea81b13",
+                "parameters": [
+                    {
+                        "name": "review",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Review rejected"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/reviews": {
+            "get": {
+                "tags": [
+                    "Reviews"
+                ],
+                "summary": "List reviews (moderation)",
+                "description": "All reviews with optional `?status=` filter (approved/pending/rejected). Admin only.",
+                "operationId": "cddaa011d70cf2eb6215a2981dacd17c",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "approved",
+                                "pending",
+                                "rejected"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reviews retrieved"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/salesmen": {
             "get": {
                 "tags": [
@@ -9112,6 +9797,152 @@
                     }
                 ]
             }
+        },
+        "/wishlist": {
+            "get": {
+                "tags": [
+                    "Wishlist"
+                ],
+                "summary": "List my wishlist",
+                "description": "The authenticated user's wishlisted products, newest first (visibility-scoped products only).",
+                "operationId": "da6be1eb8372c9e10f167c3317eb6408",
+                "responses": {
+                    "200": {
+                        "description": "Wishlist retrieved successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/wishlist/items": {
+            "post": {
+                "tags": [
+                    "Wishlist"
+                ],
+                "summary": "Add product to wishlist",
+                "description": "Add a product to my wishlist.",
+                "operationId": "b1da2bf3ea6f2b482b99e66f6d19dba7",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "product_id"
+                                ],
+                                "properties": {
+                                    "product_id": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Product added (idempotent)"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/wishlist/items/{productId}": {
+            "delete": {
+                "tags": [
+                    "Wishlist"
+                ],
+                "summary": "Remove product from wishlist",
+                "description": "Remove a product from my wishlist.",
+                "operationId": "d185965a714d61e3e132d24388a13258",
+                "parameters": [
+                    {
+                        "name": "productId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Product removed"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/wishlist/items/{productId}/move-to-cart": {
+            "post": {
+                "tags": [
+                    "Wishlist"
+                ],
+                "summary": "Move wishlist item to cart",
+                "description": "Adds the product to the cart at current server-resolved pricing (with best offer), then removes it from the wishlist.",
+                "operationId": "2ac987c597ba455ed9e70754eea6121e",
+                "parameters": [
+                    {
+                        "name": "productId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "quantity": {
+                                        "type": "integer",
+                                        "default": 1,
+                                        "minimum": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Cart returned with the item added; the wishlist entry is removed"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -9459,6 +10290,10 @@
             "description": "Async order exports (CSV/JSON). Exports are queued, scoped to a single company, and downloaded once completed."
         },
         {
+            "name": "Order Templates",
+            "description": "Reusable order templates per buyer company. Templates are shared between the company's users; reorder places fresh orders at current server-resolved prices."
+        },
+        {
             "name": "Price Lists",
             "description": "Custom per-buyer pricing management. Suppliers can set negotiated prices for specific buyers and products. Custom prices have the highest priority in the pricing resolution engine (above wholesale and retail tiers)."
         },
@@ -9483,6 +10318,10 @@
             "description": "Region management endpoints (Admin only)"
         },
         {
+            "name": "Reviews",
+            "description": "Verified-purchase reviews for products and suppliers. One review per user per target; admin-moderated."
+        },
+        {
             "name": "Salesmen",
             "description": "Salesman management: listing, region assignment, client (pharmacy) management, and on-behalf ordering. Supplier-associated salesmen belong to a supplier company. Independent salesmen have their own buyer company."
         },
@@ -9497,6 +10336,10 @@
         {
             "name": "Users",
             "description": "Admin user management: list, create, inspect, update (role/company/password reset), and deactivate accounts."
+        },
+        {
+            "name": "Wishlist",
+            "description": "Per-user product wishlist. Items can be moved to the cart at current server-resolved prices."
         }
     ]
 }

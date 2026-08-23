@@ -1,8 +1,54 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-08-23 (**Analytics endpoints** (#8), **advanced search/filtering** (#9), **real-time delivery v1** (#10). See entries below)
+> Last Updated: 2026-08-23 (**Order templates** (#11), **wishlist** (#12), **reviews/ratings** (#13), **driver availability completion** (#6). See entries below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
+
+## 🛒 2026-08-23 — Order templates (#11), wishlist (#12), reviews (#13), driver availability (#6)
+
+### #11 Order Templates — DONE
+
+`order_templates` + `order_template_items` (unique per template/product, soft-deleted).
+Company-scoped CRUD shared between a buyer company's users
+(`OrderTemplatePolicy`). `POST /order-templates/{id}/reorder` groups items per supplier
+and places fresh orders **at current server-resolved prices** in one transaction —
+credit rules and catalog visibility still enforced (unreachable supplier → 422).
+Tests: `OrderTemplateTest` (sharing, price-change-on-reorder, unreachable-supplier,
+update/delete flows).
+
+### #12 Wishlist — DONE
+
+`wishlist_items` (unique user/product). Endpoints: list/add/remove +
+`POST /wishlist/items/{product}/move-to-cart`. Move-to-cart reuses the new shared
+`Domain\Cart\CartService::addItem` (extracted from `CartController::addItem` so cart and
+wishlist use identical pricing/offer/totals logic). Price drops on a wishlisted product's
+pharmacist price notify its watchers (`PriceDropNotification`, mail + database) via
+`ProductObserver`. Tests: `WishlistTest`.
+
+### #13 Reviews & Ratings — DONE
+
+Morphable `reviews` table (Product | Company), one review per user per target,
+soft-deleted, admin-moderated (approved/pending/rejected). Verified-purchase required:
+a delivered order of the reviewer's buyer company containing the product (or supplied by
+the reviewed company); re-reviewing updates in place. Aggregates (average, count,
+1–5 distribution) via the list endpoints; moderation queue/approve/reject for admins.
+Tests: `ReviewTest`.
+
+### #6 Driver Availability Management — DONE
+
+- `POST /drivers/{driver}/status` — set available/on_delivery/off.
+- `GET /drivers/available?region_id=` — status **and capacity** aware
+  (new `users.max_concurrent_orders`, default 5; active = shipped assignments),
+  region filter, supplier-scoped.
+- `GET /orders/{id}/suggested-driver` — least-loaded available candidate of the
+  supplying company covering the buyer's region (auto-assignment input; does not assign).
+
+Deploy note: run migrations `2026_08_23_180000_create_order_templates_tables.php`,
+`2026_08_23_190000_create_wishlist_items_table.php`,
+`2026_08_23_200000_create_reviews_table.php`,
+`2026_08_23_210000_add_max_concurrent_orders_to_users.php`
+(unpooled connection). Suite green (**187 tests**), Pint clean, PHPStan level 8 clean,
+Swagger regenerated.
 
 ## 📈 2026-08-23 — Analytics (#8) + advanced search (#9) + real-time delivery v1 (#10)
 
@@ -1864,16 +1910,16 @@ such as Cloudflare R2) is a one-line config change.
 
 These features significantly enhance user experience and operational efficiency.
 
-#### 6. Driver Availability Management
-**Status**: Basic driver management exists, but no availability tracking
-- [ ] Driver status management (available, busy, off-duty, unavailable)
-- [ ] Driver capacity limits (max orders per driver)
-- [ ] Automatic driver assignment based on availability and region
-- [ ] Load balancing across drivers
-- [ ] Driver location tracking (current location updates)
-- [ ] Driver schedule management (working hours, days off)
-- [ ] Driver performance metrics (delivery time, completion rate)
-- [ ] Endpoints: `PUT /api/v1/drivers/{id}/status`, `GET /api/v1/drivers/available`
+#### 6. Driver Availability Management ? DONE (2026-08-23)
+**Status**: Status/capacity/region-aware availability, suggestions, location tracking and performance metrics all implemented (see the 2026-08-23 entry at the top)
+- [x] Driver status management (available / on_delivery / off via `POST /drivers/{id}/status`)
+- [x] Driver capacity limits (`users.max_concurrent_orders`, default 5)
+- [x] Automatic driver suggestion based on availability + region + load (`GET /orders/{id}/suggested-driver`)
+- [x] Load balancing across drivers (least-active-assignments first in the suggestion)
+- [x] Driver location tracking (`driver_locations` pings + latest-location endpoint)
+- [x] Driver schedule management (work hours + region plans/holidays � pre-existing)
+- [x] Driver performance metrics (`GET /analytics/drivers` � delivered count + avg delivery hours)
+- [x] Endpoints: `POST /api/v1/drivers/{driver}/status`, `GET /api/v1/drivers/available`
 
 #### 7. Payment Integration
 **Status**: No payment system implemented

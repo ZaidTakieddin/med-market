@@ -661,4 +661,106 @@ class DriverController extends BaseApiController
 
         return $response;
     }
+
+    /**
+     * Set a driver's availability status.
+     */
+    #[OA\Post(
+        path: '/drivers/{driver}/status',
+        summary: 'Set driver availability status',
+        description: "Update a driver's availability: available, on_delivery or off. Owner supplier or admin only.",
+        tags: ['Drivers'],
+        security: [['sanctum' => []]],
+        parameters: [new OA\Parameter(name: 'driver', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(required: ['driver_status'], properties: [
+            new OA\Property(property: 'driver_status', type: 'string', enum: ['available', 'on_delivery', 'off']),
+        ])),
+        responses: [
+            new OA\Response(response: 200, description: 'Status updated'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+        ]
+    )]
+    public function setStatus(Request $request, User $driver): JsonResponse
+    {
+        if (! $driver->isDriver()) {
+            abort(404);
+        }
+
+        $this->authorize('manageDriver', $driver);
+
+        $data = $request->validate([
+            'driver_status' => ['required', 'string'],
+        ]);
+
+        try {
+            $driver = $this->driverService->setStatus($driver, (string) $data['driver_status']);
+        } catch (\App\Exceptions\DomainException $e) {
+            return $this->error($e->getMessage(), null, 422);
+        }
+
+        return $this->success(
+            ['id' => $driver->id, 'driverStatus' => $driver->driver_status],
+            'Driver status updated successfully'
+        );
+    }
+
+    /**
+     * List available drivers (status + capacity aware).
+     */
+    #[OA\Get(
+        path: '/drivers/available',
+        summary: 'List available drivers',
+        description: "Drivers whose status is `available` and below their max concurrent-delivery capacity, optionally filtered by `region_id`. Suppliers see their own drivers; admins see all companies'.",
+        tags: ['Drivers'],
+        security: [['sanctum' => []]],
+        parameters: [new OA\Parameter(name: 'region_id', in: 'query', schema: new OA\Schema(type: 'integer'))],
+        responses: [
+            new OA\Response(response: 200, description: 'Available drivers retrieved'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+        ]
+    )]
+    public function available(Request $request): JsonResponse
+    {
+        $this->authorize('viewDrivers', User::class);
+
+        $regionId = $request->filled('region_id') ? (int) $request->region_id : null;
+        $drivers = $this->driverService->availableFor($this->currentUser(), $regionId);
+
+        return $this->success(
+            \App\Http\Resources\UserResource::collection($drivers)->resolve(),
+            'Available drivers retrieved successfully'
+        );
+    }
+
+    /**
+     * Suggest the best driver for an order.
+     */
+    #[OA\Get(
+        path: '/orders/{order}/suggested-driver',
+        summary: 'Suggest a driver for an order',
+        description: "Least-loaded available driver of the supplying company covering the buyer's region (when known). For assignment decisions; does not assign.",
+        tags: ['Drivers'],
+        security: [['sanctum' => []]],
+        parameters: [new OA\Parameter(name: 'order', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
+        responses: [
+            new OA\Response(response: 200, description: 'Suggestion returned (data may be null when no candidate exists)'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+        ]
+    )]
+    public function suggestForOrder(\App\Models\Order $order): JsonResponse
+    {
+        $user = $this->currentUser();
+        $this->authorize('assignDriver', $order);
+        $order->load('buyerCompany');
+
+        return $this->success(
+            ['driver' => ($suggested = $this->driverService->suggestFor($order, $user)) !== null
+                ? new UserResource($suggested->load('company'))
+                : null],
+            'Suggested driver retrieved successfully'
+        );
+    }
 }

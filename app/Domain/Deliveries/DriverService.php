@@ -63,4 +63,68 @@ class DriverService
     {
         $driver->delete();
     }
+
+    /**
+     * Update a driver's availability status.
+     *
+     * @throws DomainException When the status is invalid
+     */
+    public function setStatus(User $driver, string $status): User
+    {
+        if (! DriverStatus::isValid($status)) {
+            throw new DomainException("Invalid driver status: {$status}");
+        }
+
+        $driver->driver_status = $status;
+        $driver->save();
+
+        return $driver;
+    }
+
+    /**
+     * Drivers who are available and below their concurrent-delivery capacity,
+     * optionally filtered to those serving a specific region. Scoped to the
+     * viewing supplier's company (admins see every company's drivers).
+     *
+     * @return \Illuminate\Support\Collection<int, User>
+     */
+    public function availableFor(?User $viewer, ?int $regionId = null): \Illuminate\Support\Collection
+    {
+        $query = User::query()
+            ->where('role', UserRole::DRIVER)
+            ->where('driver_status', DriverStatus::AVAILABLE)
+            ->with('company')
+            ->withCount(['driverOrders as active_assignments' => fn ($q) => $q->where('status', 'shipped')])
+            ->orderBy('active_assignments');
+
+        if ($viewer !== null && ! $viewer->isAdmin() && $viewer->company_id !== null) {
+            $query->where('company_id', $viewer->company_id);
+        }
+
+        // Capacity check post-fetch: the count is a select alias.
+        $drivers = $query->get()->filter(
+            fn (User $driver): bool => (int) $driver->getAttribute('active_assignments') < (int) $driver->max_concurrent_orders
+        )->values();
+
+        if ($regionId !== null) {
+            $drivers = $drivers->filter(fn (User $driver): bool => $driver->servesRegion($regionId));
+        }
+
+        return $drivers->values();
+    }
+
+    /**
+     * Suggest the best driver for an order: available, under capacity, covering the
+     * buyer's region when known — least active assignments first.
+     */
+    public function suggestFor(\App\Models\Order $order, ?User $viewer): ?User
+    {
+        $buyerCompany = $order->buyerCompany;
+
+        $candidates = $this->availableFor($viewer, $buyerCompany?->region_id)
+            ->filter(fn (User $driver): bool => $driver->company_id === $order->supplier_company_id);
+
+        /** @var User|null */
+        return $candidates->sortBy(fn (User $driver): int => (int) $driver->getAttribute('active_assignments'))->first();
+    }
 }

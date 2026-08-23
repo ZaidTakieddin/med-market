@@ -86,6 +86,7 @@ Route::prefix('v1')->group(function () {
 
         // Invoices
         Route::apiResource('invoices', App\Http\Controllers\Api\V1\InvoiceController::class)->only(['index', 'show']);
+        Route::get('orders/{order}/suggested-driver', [App\Http\Controllers\Api\V1\DriverController::class, 'suggestForOrder']);
         Route::get('orders/{order}/invoice', [App\Http\Controllers\Api\V1\InvoiceController::class, 'getByOrder']);
         Route::get('invoices/{invoice}/download', [App\Http\Controllers\Api\V1\InvoiceController::class, 'download']);
         Route::post('invoices/{invoice}/send', [App\Http\Controllers\Api\V1\InvoiceController::class, 'markAsSent']);
@@ -163,6 +164,8 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('offers', App\Http\Controllers\Api\V1\OfferController::class);
 
         // Drivers
+        Route::get('drivers/available', [App\Http\Controllers\Api\V1\DriverController::class, 'available']);
+        Route::post('drivers/{driver}/status', [App\Http\Controllers\Api\V1\DriverController::class, 'setStatus']);
         Route::apiResource('drivers', App\Http\Controllers\Api\V1\DriverController::class);
         // Location ping must be defined before {driver} bindings could capture "location"
         Route::post('drivers/location', [App\Http\Controllers\Api\V1\DriverController::class, 'pingLocation']);
