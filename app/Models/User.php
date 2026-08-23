@@ -44,8 +44,10 @@ class User extends Authenticatable
         'employment_start_date',
         'employment_end_date',
         'driver_status',
+        'max_concurrent_orders',
         'region_plan_type',
         'holidays',
+        'last_login_at',
     ];
 
     /**
@@ -71,6 +73,7 @@ class User extends Authenticatable
             'employment_start_date' => 'date',
             'employment_end_date' => 'date',
             'holidays' => 'array',
+            'last_login_at' => 'datetime',
         ];
     }
 

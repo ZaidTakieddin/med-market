@@ -96,4 +96,49 @@ class UserManagementService
             ->whereKeyNot($except->getKey())
             ->count();
     }
+
+    /**
+     * Bulk deactivate accounts (soft delete) with the same guards as single
+     * deletion. Skips invalid targets and reports them.
+     *
+     * @param  list<int>  $userIds
+     * @return array{deactivated: list<int>, skipped: array<int, string>}
+     */
+    public function bulkDeactivate(User $actor, array $userIds): array
+    {
+        $deactivated = [];
+        $skipped = [];
+
+        foreach ($userIds as $id) {
+            $user = User::query()->find((int) $id);
+
+            if ($user === null) {
+                $skipped[(int) $id] = 'Not found.';
+
+                continue;
+            }
+
+            try {
+                $this->delete($actor, $user);
+                $deactivated[] = (int) $id;
+            } catch (DomainException $e) {
+                $skipped[(int) $id] = $e->getMessage();
+            }
+        }
+
+        return ['deactivated' => $deactivated, 'skipped' => $skipped];
+    }
+
+    /**
+     * Restore previously deactivated accounts.
+     *
+     * @param  list<int>  $userIds
+     */
+    public function bulkActivate(array $userIds): int
+    {
+        return (int) User::withTrashed()
+            ->whereIn('id', array_map('intval', $userIds))
+            ->whereNotNull('deleted_at')
+            ->restore();
+    }
 }

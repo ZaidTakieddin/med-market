@@ -225,4 +225,99 @@ class UserController extends BaseApiController
 
         return $this->success(null, 'User deleted successfully');
     }
+
+    /**
+     * Bulk activate/deactivate users.
+     */
+    #[OA\Post(
+        path: '/users/bulk-status',
+        summary: 'Bulk activate/deactivate users',
+        description: '`action`: `deactivate` soft-deletes the listed accounts (self and last-admin targets are skipped and reported); `activate` restores previously deactivated ones.',
+        tags: ['Users'],
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(required: ['action', 'user_ids'], properties: [
+            new OA\Property(property: 'action', type: 'string', enum: ['activate', 'deactivate']),
+            new OA\Property(property: 'user_ids', type: 'array', items: new OA\Items(type: 'integer')),
+        ])),
+        responses: [
+            new OA\Response(response: 200, description: 'Bulk operation result'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+        ]
+    )]
+    public function bulkStatus(Request $request): JsonResponse
+    {
+        $actor = $this->currentUser();
+        $this->authorize('manageAny', User::class);
+
+        $data = $request->validate([
+            'action' => ['required', 'string', 'in:activate,deactivate'],
+            'user_ids' => ['required', 'array', 'min:1'],
+            'user_ids.*' => ['required', 'integer'],
+        ]);
+
+        if ($data['action'] === 'activate') {
+            return $this->success(
+                ['restored' => $this->userManagementService->bulkActivate($data['user_ids'])],
+                'Users activated successfully'
+            );
+        }
+
+        $result = $this->userManagementService->bulkDeactivate($actor, $data['user_ids']);
+
+        return $this->success($result, 'Bulk deactivation completed');
+    }
+
+    /**
+     * Export all users as CSV.
+     */
+    #[OA\Get(
+        path: '/users/export',
+        summary: 'Export users as CSV',
+        description: 'Streams every account (name, email, phone, role, company, status, last login) as a CSV download. Admin only.',
+        tags: ['Users'],
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(response: 200, description: 'CSV file stream'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+        ]
+    )]
+    public function export(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $this->authorize('manageAny', User::class);
+
+        $filename = 'users_'.now()->format('Ymd_His').'.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        return response()->streamDownload(function (): void {
+            $out = fopen('php://output', 'w');
+
+            if ($out === false) {
+                throw new \RuntimeException('Unable to open output stream for CSV export.');
+            }
+
+            fputcsv($out, ['id', 'name', 'email', 'phone', 'role', 'company', 'status', 'last_login_at']);
+
+            User::query()->with('company')->orderBy('name')->chunk(500, function ($users) use ($out): void {
+                foreach ($users as $user) {
+                    fputcsv($out, [
+                        $user->id,
+                        $user->name,
+                        $user->email,
+                        $user->phone,
+                        $user->role,
+                        $user->company?->name,
+                        $user->deleted_at !== null ? 'deactivated' : 'active',
+                        optional($user->last_login_at)->toDateTimeString(),
+                    ]);
+                }
+            });
+
+            fclose($out);
+        }, $filename, $headers);
+    }
 }

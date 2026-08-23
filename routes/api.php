@@ -61,8 +61,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/me', [AuthController::class, 'me']);
         });
 
-        // User management (admin)
-        Route::apiResource('users', App\Http\Controllers\Api\V1\UserController::class);
+        // User management (admin, IP-allowlisted when configured)
+        Route::middleware('admin.ip')->group(function () {
+            Route::post('users/bulk-status', [App\Http\Controllers\Api\V1\UserController::class, 'bulkStatus']);
+            Route::get('users/export', [App\Http\Controllers\Api\V1\UserController::class, 'export']);
+            Route::apiResource('users', App\Http\Controllers\Api\V1\UserController::class);
+        });
 
         // Order templates (buyer companies)
         Route::post('order-templates/{orderTemplate}/reorder', [App\Http\Controllers\Api\V1\OrderTemplateController::class, 'reorder']);

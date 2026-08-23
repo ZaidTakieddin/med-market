@@ -127,6 +127,9 @@ class AuthController extends BaseApiController
 
         $token = $user->createToken('auth-token')->plainTextToken;
 
+        // Activity tracking (user-management metrics).
+        $user->forceFill(['last_login_at' => now()])->save();
+
         return $this->success([
             'user' => new UserResource($user->load(['company' => fn ($q) => $q->with(['categories', 'manufacturers'])])),
             'token' => $token,

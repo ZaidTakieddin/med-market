@@ -119,6 +119,47 @@
                 ]
             }
         },
+        "/audit-logs": {
+            "get": {
+                "tags": [
+                    "Audit Logs"
+                ],
+                "summary": "List audit log entries",
+                "description": "Newest-first trail of sensitive actions. Filterable by `action` and `subject_type`.",
+                "operationId": "cf8bf28edb453c307138b11c3bfb9998",
+                "parameters": [
+                    {
+                        "name": "action",
+                        "in": "query",
+                        "description": "e.g. credit.balance.adjusted, invoice.payment.recorded, stock.transferred, user.deleted",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "subject_type",
+                        "in": "query",
+                        "description": "Fully-qualified or basename class filter",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Audit logs retrieved successfully"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/auth/register": {
             "post": {
                 "tags": [
@@ -9798,6 +9839,84 @@
                 ]
             }
         },
+        "/users/bulk-status": {
+            "post": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Bulk activate/deactivate users",
+                "description": "`action`: `deactivate` soft-deletes the listed accounts (self and last-admin targets are skipped and reported); `activate` restores previously deactivated ones.",
+                "operationId": "6da0cdf799ebb93cb91b800950a92ff4",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "action",
+                                    "user_ids"
+                                ],
+                                "properties": {
+                                    "action": {
+                                        "type": "string",
+                                        "enum": [
+                                            "activate",
+                                            "deactivate"
+                                        ]
+                                    },
+                                    "user_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Bulk operation result"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/users/export": {
+            "get": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Export users as CSV",
+                "description": "Streams every account (name, email, phone, role, company, status, last login) as a CSV download. Admin only.",
+                "operationId": "6a8da12941270455ef4e10ba98c8e23b",
+                "responses": {
+                    "200": {
+                        "description": "CSV file stream"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/wishlist": {
             "get": {
                 "tags": [
@@ -10220,6 +10339,10 @@
         {
             "name": "Analytics",
             "description": "Platform analytics (admin only): system-wide statistics, order trends and driver performance."
+        },
+        {
+            "name": "Audit Logs",
+            "description": "Immutable audit trail of sensitive operations (credit adjustments, invoice payments, stock transfers, account deletions). Admin only; IP-allowlisted when configured."
         },
         {
             "name": "Authentication",

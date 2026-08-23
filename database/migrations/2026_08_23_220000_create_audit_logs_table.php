@@ -28,6 +28,10 @@ return new class extends Migration
 
             $table->index(['subject_type', 'subject_id']);
         });
+
+        Schema::table('users', function (Blueprint $table) {
+            $table->timestamp('last_login_at')->nullable()->after('max_concurrent_orders');
+        });
     }
 
     /**
@@ -35,6 +39,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('last_login_at');
+        });
+
         Schema::dropIfExists('audit_logs');
     }
 };
