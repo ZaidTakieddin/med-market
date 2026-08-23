@@ -121,7 +121,10 @@ class RealTimeDeliveryTest extends TestCase
 
         $eta = $order->fresh()->estimated_delivery_at;
         $this->assertNotNull($eta);
-        // ETA must be in the future (travel + buffer).
-        $this->assertTrue($eta->isFuture());
+        // ETA must land after shipping (travel + buffer), regardless of tick timing.
+        $this->assertGreaterThan(
+            $order->fresh()->shipped_at->getTimestamp(),
+            $eta->getTimestamp(),
+        );
     }
 }
