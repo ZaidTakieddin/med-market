@@ -34,6 +34,35 @@ class ProductObserver
                 }
             }
         }
+
+        // Wishlist price-drop alerts.
+        if ($product->wasChanged('pharmacist_price')) {
+            $this->notifyPriceDrop($product);
+        }
+    }
+
+    /**
+     * Notify users who wishlisted this product when its price drops.
+     */
+    protected function notifyPriceDrop(Product $product): void
+    {
+        $oldPrice = (float) $product->getOriginal('pharmacist_price');
+        $newPrice = (float) $product->pharmacist_price;
+
+        if (! ($newPrice > 0 && $newPrice < $oldPrice)) {
+            return;
+        }
+
+        $watchers = \App\Models\WishlistItem::query()
+            ->where('product_id', $product->id)
+            ->with('user')
+            ->get()
+            ->pluck('user')
+            ->filter();
+
+        foreach ($watchers as $user) {
+            $user->notify(new \App\Notifications\PriceDropNotification($product, $oldPrice, $newPrice));
+        }
     }
 
     /**

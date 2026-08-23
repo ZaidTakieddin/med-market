@@ -155,6 +155,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Wishlist entries of this user.
+     *
+     * @return HasMany<WishlistItem, $this>
+     */
+    public function wishlistItems(): HasMany
+    {
+        return $this->hasMany(WishlistItem::class);
+    }
+
+    /**
      * Check if user has a specific role.
      */
     public function hasRole(string $role): bool

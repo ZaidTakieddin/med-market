@@ -37,6 +37,12 @@ Route::prefix('v1')->group(function () {
         // Autocomplete suggestions
         Route::get('search/suggestions', [App\Http\Controllers\Api\V1\SearchController::class, 'suggestions']);
 
+        // Wishlist
+        Route::post('wishlist/items/{product}/move-to-cart', [App\Http\Controllers\Api\V1\WishlistController::class, 'moveToCart']);
+        Route::delete('wishlist/items/{product}', [App\Http\Controllers\Api\V1\WishlistController::class, 'removeItem']);
+        Route::post('wishlist/items', [App\Http\Controllers\Api\V1\WishlistController::class, 'addItem']);
+        Route::get('wishlist', [App\Http\Controllers\Api\V1\WishlistController::class, 'index']);
+
         // Auth routes
         Route::prefix('auth')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Cart\CartService;
 use App\Domain\Cart\Services\CartOfferService;
 use App\Domain\Cart\Services\CheckoutService;
 use App\Domain\Pricing\PricingService;
@@ -29,7 +30,8 @@ class CartController extends BaseApiController
     public function __construct(
         private CheckoutService $checkoutService,
         private CartOfferService $cartOfferService,
-        private PricingService $pricingService
+        private PricingService $pricingService,
+        private CartService $cartService
     ) {}
 
     /**
@@ -155,86 +157,13 @@ class CartController extends BaseApiController
             return $this->error('Supplier-associated salesmen must use the salesman place-order endpoint instead of the cart', null, 403);
         }
 
-        $product = Product::findOrFail((int) $request->product_id);
-
-        if (! $product->is_active) {
-            return $this->error('Product is not available', null, 400);
-        }
-
-        $buyerCompany = $user->company;
-        if (! $buyerCompany) {
-            return $this->error('User has no company assigned', null, 400);
-        }
-
-        if (! $this->pricingService->canBuyerSeeSupplier($product->supplierCompany, $buyerCompany)) {
-            return $this->error('This product is not available for your account type', null, 403);
-        }
-
-        $cart = Cart::firstOrCreate(
-            ['user_id' => $user->id],
-            ['company_id' => $user->company_id]
+        // Pricing, offer selection and totals recalculation live in CartService.
+        $cart = $this->cartService->addItem(
+            user: $user,
+            product: Product::findOrFail((int) $request->product_id),
+            quantity: (int) $request->quantity,
+            notes: $request->notes,
         );
-
-        $product->load('offers');
-        $currentCartItems = $cart->items()->with('product')->get();
-        $existingItem = $cart->items()->where('product_id', $product->id)->first();
-
-        if ($existingItem) {
-            $newQuantity = $existingItem->quantity + $request->quantity;
-
-            $priceResult = $this->pricingService->resolve($product, $buyerCompany, $newQuantity);
-            $tierPrice = $priceResult->unitPrice;
-
-            $offerResult = $this->cartOfferService->findBestOffer($product, $newQuantity, $currentCartItems, $tierPrice);
-
-            if ($offerResult) {
-                $existingItem->quantity = $newQuantity;
-                $existingItem->unit_price = $offerResult['unit_price'];
-                $existingItem->total_price = $offerResult['total_price'];
-                $existingItem->applied_offer_id = $offerResult['offer']->id;
-            } else {
-                $existingItem->quantity = $newQuantity;
-                $existingItem->unit_price = $tierPrice;
-                $existingItem->total_price = $newQuantity * $tierPrice;
-                $existingItem->applied_offer_id = null;
-            }
-
-            $existingItem->pricing_type = $priceResult->pricingType;
-            $existingItem->notes = $request->notes ?? $existingItem->notes;
-            $existingItem->save();
-        } else {
-            $priceResult = $this->pricingService->resolve($product, $buyerCompany, $request->quantity);
-            $tierPrice = $priceResult->unitPrice;
-
-            $offerResult = $this->cartOfferService->findBestOffer($product, $request->quantity, $currentCartItems, $tierPrice);
-
-            if ($offerResult) {
-                $cartItem = CartItem::create([
-                    'cart_id' => $cart->id,
-                    'product_id' => $product->id,
-                    'quantity' => $request->quantity,
-                    'unit_price' => $offerResult['unit_price'],
-                    'total_price' => $offerResult['total_price'],
-                    'pricing_type' => $priceResult->pricingType,
-                    'applied_offer_id' => $offerResult['offer']->id,
-                    'notes' => $request->notes,
-                ]);
-            } else {
-                $cartItem = CartItem::create([
-                    'cart_id' => $cart->id,
-                    'product_id' => $product->id,
-                    'quantity' => $request->quantity,
-                    'unit_price' => $tierPrice,
-                    'total_price' => $request->quantity * $tierPrice,
-                    'pricing_type' => $priceResult->pricingType,
-                    'applied_offer_id' => null,
-                    'notes' => $request->notes,
-                ]);
-            }
-        }
-
-        // Recalculate cart totals
-        $cart->calculateTotals();
 
         $cart->load([
             'items.product.supplierCompany',
