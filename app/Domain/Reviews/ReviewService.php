@@ -77,8 +77,11 @@ class ReviewService
             $distribution[$review->rating] = ($distribution[$review->rating] ?? 0) + 1;
         }
 
+        /** @var float|int|null $average */
+        $average = $reviews->avg('rating');
+
         return [
-            'average' => $reviews->isNotEmpty() ? round($reviews->avg('rating'), 2) : null,
+            'average' => $average !== null ? round((float) $average, 2) : null,
             'count' => $reviews->count(),
             'distribution' => $distribution,
         ];

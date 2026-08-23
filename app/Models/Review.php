@@ -18,6 +18,12 @@ class Review extends Model
 
     public const TYPE_COMPANY = Company::class;
 
+    public const STATUS_APPROVED = 'approved';
+
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_REJECTED = 'rejected';
+
     protected $fillable = [
         'user_id',
         'reviewable_type',
@@ -34,6 +40,8 @@ class Review extends Model
 
     /**
      * The reviewed entity (Product or Company).
+     *
+     * @return MorphTo<\Illuminate\Database\Eloquent\Model, $this>
      */
     public function reviewable(): MorphTo
     {
@@ -69,10 +77,4 @@ class Review extends Model
     {
         $query->where('status', self::STATUS_APPROVED);
     }
-
-    public const STATUS_APPROVED = 'approved';
-
-    public const STATUS_PENDING = 'pending';
-
-    public const STATUS_REJECTED = 'rejected';
 }
