@@ -103,6 +103,10 @@ class OrderTemplateService
         // Group quantities per supplier.
         $bySupplier = [];
         foreach ($items as $item) {
+            if ($item->product === null) {
+                throw new DomainException("A product in this template ({$item->product_id}) no longer exists.");
+            }
+
             $supplierId = (int) $item->product->supplier_company_id;
             $bySupplier[$supplierId][] = [
                 'product_id' => $item->product_id,
