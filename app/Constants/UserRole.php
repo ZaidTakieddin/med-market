@@ -58,6 +58,22 @@ class UserRole
     }
 
     /**
+     * Roles that place/own data under a company (everything except admins, who are
+     * platform-level and have no company).
+     *
+     * @return list<string>
+     */
+    public static function companyRoles(): array
+    {
+        return [
+            self::SUPPLIER,
+            self::BUYER,
+            self::DRIVER,
+            self::SALESMAN,
+        ];
+    }
+
+    /**
      * Check if a role is valid.
      */
     public static function isValid(string $role): bool

@@ -7,6 +7,17 @@ use App\Models\User;
 class UserPolicy
 {
     /**
+     * Determine whether the user can use the admin user-management endpoints
+     * (/users CRUD). Deliberately stricter than view/viewAny-self rules: only
+     * admins may manage accounts, so non-admins can never touch roles/companies
+     * (including their own) through these endpoints.
+     */
+    public function manageAny(User $user): bool
+    {
+        return $user->isAdmin();
+    }
+
+    /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
