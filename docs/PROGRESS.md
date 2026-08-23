@@ -1,8 +1,40 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-08-23 (**Money-integrity hardening**, driver assignment domain service, **Order Export API**, thin-controller CRUD sweep. See entries below)
+> Last Updated: 2026-08-23 (**Notifications infrastructure** + **admin user management**, on top of the money-integrity hardening / export API / thin-controller sweep. See entry below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
+
+## 🔔 2026-08-23 — Notifications infrastructure + admin user management (branch `main`)
+
+**Missing Feature #4 (Notification System Infrastructure) and #18 (User Management, Admin) — DONE.**
+
+### Notifications
+
+- New `notifications` table (Laravel database channel standard schema); `User` already had `Notifiable`.
+- New `App\Notifications\OrderStatusNotification` and `LowStockNotification` — queued,
+  delivered via **mail + database** channels with structured payloads (`kind`, `title`,
+  `message`, entity ids).
+- `SendOrderNotificationJob`/`LowStockAlertJob` reworked: they now notify **Users**
+  through the notification system instead of raw `Mail::raw` stubs; magic role strings
+  replaced by `UserRole` constants; recipient dedup by id.
+- API (`NotificationController`, own-notifications only): `GET /notifications`
+  (`?unread=true`), `GET /notifications/unread-count` (badge polling),
+  `POST /notifications/{uuid}/mark-read`, `POST /notifications/mark-all-read`.
+- Push/SMS channels and per-user preferences remain future work (channels are additive).
+
+### Admin user management (#18)
+
+- `/users` CRUD (`UserController`) gated by new strict `UserPolicy::manageAny`
+  (**admin-only**) — non-admins can never touch roles/companies through it, including
+  their own (the generic self-update ability is deliberately not used here).
+- `Domain\Users\UserManagementService`: hashed passwords, optional admin password reset,
+  guards → 422: cannot delete yourself, cannot demote/delete the last remaining admin.
+- List filters: `role`, `company_id`, portable `search` (name/email/phone). Company
+  required for supplier/buyer/driver/salesman roles via new `UserRole::companyRoles()`.
+- Tests: `tests/Feature/Notifications/NotificationTest.php`,
+  `tests/Feature/Users/UserManagementTest.php`. Suite green (**137 tests**), Pint clean,
+  PHPStan level 8 clean, Swagger regenerated. One deploy note: run the new
+  `create_notifications_table` migration via the unpooled connection.
 
 ## 🧹 2026-08-23 — Thin-controller CRUD sweep + Order Export API (branch `main`)
 
@@ -1679,17 +1711,14 @@ such as Cloudflare R2) is a one-line config change.
 - [x] Export filtering (date range, status, company — always scoped to exactly one company)
 - [x] Background export processing with status updates (`order_exports` table + `App\Constants\ExportStatus`)
 
-#### 4. Notification System Infrastructure
-**Status**: Jobs exist but infrastructure incomplete
-- [ ] Email service configuration (SMTP/SendGrid/Mailgun)
-- [ ] SMS integration (Twilio, etc.)
-- [ ] Push notification service (Firebase, OneSignal)
+#### 4. Notification System Infrastructure ✅ DONE (2026-08-23)
+**Status**: Core infrastructure implemented — database + mail channels, history, and API (see the 2026-08-23 entry at the top); SMS/push remain future channels
+- [x] Notification history table (`notifications`, Laravel database channel) and endpoints (list/unread-count/mark-read/mark-all-read)
+- [x] In-app notification system (structured payloads via `OrderStatusNotification` / `LowStockNotification`)
+- [x] Email delivery wired through Laravel's mail system (driver-configurable: SMTP/SendGrid/Mailgun via env)
+- [ ] SMS integration (Twilio, etc.) — future channel
+- [ ] Push notification service (Firebase, OneSignal) — future channel
 - [ ] Notification preferences per user/company
-- [ ] Notification history table and endpoints
-- [ ] Read/unread status tracking
-- [ ] In-app notification system
-- [ ] Notification templates management
-- [ ] Notification delivery status tracking
 
 #### 5. Testing Suite
 **Status**: Established — feature/unit suite + model factories + cross-DB (sqlite) test database + GitHub Actions CI are in place; broaden coverage to all endpoints over time
@@ -1851,15 +1880,15 @@ These features improve security, performance, and code quality.
 - [ ] API response compression
 - [ ] Eager loading optimization audit
 
-#### 18. User Management (Admin)
-**Status**: Basic user management, but no admin endpoints
-- [ ] Admin endpoints to manage users:
-  - [ ] `GET /api/v1/admin/users` - List all users
-  - [ ] `POST /api/v1/admin/users` - Create user
-  - [ ] `PUT /api/v1/admin/users/{id}` - Update user
-  - [ ] `DELETE /api/v1/admin/users/{id}` - Delete/deactivate user
-- [ ] User role management
-- [ ] User activation/deactivation
+#### 18. User Management (Admin) ✅ DONE (2026-08-23)
+**Status**: Implemented at `/api/v1/users` (admin-only via `UserPolicy::manageAny`; see the 2026-08-23 entry at the top)
+- [x] Admin endpoints to manage users:
+  - [x] `GET /api/v1/users` - List all users (role/company/search filters)
+  - [x] `POST /api/v1/users` - Create user (any role; company required for company roles)
+  - [x] `PUT /api/v1/users/{id}` - Update user (profile, role, company, password reset)
+  - [x] `DELETE /api/v1/users/{id}` - Delete/deactivate user (soft delete)
+- [x] User role management (with last-admin protection → 422)
+- [x] User activation/deactivation (soft delete)
 - [ ] Bulk user operations
 - [ ] User activity tracking
 - [ ] User import/export

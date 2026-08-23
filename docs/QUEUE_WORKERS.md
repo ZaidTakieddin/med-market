@@ -10,7 +10,7 @@ The application uses Laravel's queue system to process background jobs asynchron
 
 The following background jobs are implemented:
 
-1. **SendOrderNotificationJob** - Sends email notifications when order status changes
+1. **SendOrderNotificationJob** - Sends order-status notifications (mail + in-app database channel) to buyer-side and supplier-side users
    - Queue: `notifications`
    - Triggers: Automatically dispatched from `OrderStateTransitionService`
 
@@ -18,13 +18,13 @@ The following background jobs are implemented:
    - Queue: `invoices`
    - Triggers: Automatically dispatched when order status changes to `accepted`
 
-3. **LowStockAlertJob** - Sends alerts when product stock is low
+3. **LowStockAlertJob** - Sends low-stock alerts (mail + in-app database channel) to the supplying company's users
    - Queue: `alerts`
    - Triggers: Automatically dispatched from `StockMovementObserver` when low stock detected
 
-4. **ExportOrdersJob** - Generates order export files (CSV/JSON)
+4. **ExportOrdersJob** - Generates order export files (CSV/JSON) for a tracked `order_exports` record
    - Queue: `exports`
-   - Triggers: Manually dispatched from controllers/endpoints
+   - Triggers: Dispatched from `OrderExportService` via `POST /orders/exports`
 
 5. **ImportProductsJob** - Coordinates a bulk product import (Excel/CSV)
    - Queue: `imports`
