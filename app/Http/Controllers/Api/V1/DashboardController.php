@@ -21,7 +21,7 @@ class DashboardController extends BaseApiController
     #[OA\Get(
         path: '/dashboard',
         summary: 'Dashboard overview',
-        description: 'Aggregated analytics for the supplier dashboard home page: KPI cards (pending orders, active shipments, total products, total orders with trend), a daily sales series, best-selling products, and top buyers. Revenue-based metrics (sales series, top products, top buyers) only count fulfilled (delivered) orders. Suppliers see metrics scoped to their own company. Admins see global metrics, or a single supplier when `supplier_company_id` is provided. Other roles are forbidden.',
+        description: 'Aggregated analytics for the dashboard home page, shaped by role. **Suppliers** (and supplier salesmen) get KPI cards (pending orders, active shipments, total products, total orders with trend), a daily sales series, best-selling products, and top buyers. **Buyers** (pharmacies and salesman buyer companies) get purchase analytics: KPIs (total orders with trend, pending orders, active shipments, total spend), a daily spend series, top suppliers by spend, and most-purchased products. Revenue/spend-based metrics only count fulfilled (delivered) orders. Suppliers see metrics scoped to their own company; admins see global metrics or a single supplier via `supplier_company_id`. Drivers are forbidden.',
         tags: ['Dashboard'],
         security: [['sanctum' => []]],
         parameters: [
@@ -87,6 +87,27 @@ class DashboardController extends BaseApiController
                                         new OA\Property(property: 'totalSpent', type: 'number', format: 'float', example: 5200),
                                     ])
                                 ),
+                                new OA\Property(
+                                    property: 'spendSeries',
+                                    description: '**Buyer payload only** — daily spend across delivered orders for the trailing `days` window, oldest first, zero-filled.',
+                                    type: 'array',
+                                    items: new OA\Items(type: 'object', properties: [
+                                        new OA\Property(property: 'date', type: 'string', format: 'date', example: '2026-08-23'),
+                                        new OA\Property(property: 'spend', type: 'number', format: 'float', example: 1250.50),
+                                    ])
+                                ),
+                                new OA\Property(
+                                    property: 'topSuppliers',
+                                    description: '**Buyer payload only** — suppliers ranked by total spent on delivered orders.',
+                                    type: 'array',
+                                    items: new OA\Items(type: 'object', properties: [
+                                        new OA\Property(property: 'id', type: 'integer', example: 2),
+                                        new OA\Property(property: 'name', type: 'string', example: 'Al Shifa Medical Supply'),
+                                        new OA\Property(property: 'region', type: 'string', nullable: true),
+                                        new OA\Property(property: 'ordersCount', type: 'integer', example: 18),
+                                        new OA\Property(property: 'totalSpent', type: 'number', format: 'float', example: 4300),
+                                    ])
+                                ),
                             ]
                         ),
                     ]
@@ -99,24 +120,39 @@ class DashboardController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $user = $this->currentUser();
-
-        if (! $user->isSupplier() && ! $user->isAdmin()) {
-            return $this->error('Only suppliers and admins can access the dashboard', null, 403);
-        }
+        $company = $user->company;
 
         $days = min(max($request->integer('days', 7), 1), 90);
         $limit = min(max($request->integer('limit', 5), 1), 20);
 
+        // Admins see global supplier metrics, or a single supplier when scoped.
         if ($user->isAdmin()) {
             $supplierCompanyId = $request->filled('supplier_company_id')
                 ? $request->integer('supplier_company_id')
                 : null;
-        } else {
-            $supplierCompanyId = $user->company_id;
+
+            return $this->success(
+                $this->dashboardService->supplierOverview($supplierCompanyId, $days, $limit),
+                'Dashboard data retrieved successfully'
+            );
         }
 
-        $data = $this->dashboardService->supplierOverview($supplierCompanyId, $days, $limit);
+        // Buyers (pharmacies and salesman buyer companies) get purchase analytics.
+        if ($company !== null && $company->isBuyer() && ($user->isBuyer() || $user->isSalesman())) {
+            return $this->success(
+                $this->dashboardService->buyerOverview((int) $company->id, $days, $limit),
+                'Dashboard data retrieved successfully'
+            );
+        }
 
-        return $this->success($data, 'Dashboard data retrieved successfully');
+        // Suppliers (and their salesmen) see their own company's metrics.
+        if ($company !== null && $company->isSupplier() && ($user->isSupplier() || $user->isSalesman())) {
+            return $this->success(
+                $this->dashboardService->supplierOverview((int) $company->id, $days, $limit),
+                'Dashboard data retrieved successfully'
+            );
+        }
+
+        return $this->error('Your account cannot access the dashboard', null, 403);
     }
 }

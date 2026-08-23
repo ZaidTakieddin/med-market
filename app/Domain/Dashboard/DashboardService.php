@@ -36,6 +36,193 @@ class DashboardService
     }
 
     /**
+     * Build the buyer dashboard overview payload.
+     *
+     * All metrics are scoped to the buying company (pharmacy or salesman buyer).
+     * Spend-based metrics only count fulfilled (delivered) orders.
+     *
+     * @return array{
+     *     kpis: list<array<string, mixed>>,
+     *     spendSeries: list<array{date: string, spend: float}>,
+     *     topSuppliers: list<array{id: int, name: string, region: string|null, ordersCount: int, totalSpent: float}>,
+     *     topProducts: list<array{id: int, name: string, totalUnits: int, totalSpent: float}>
+     * }
+     */
+    public function buyerOverview(int $buyerCompanyId, int $days = 7, int $limit = 5): array
+    {
+        return [
+            'kpis' => $this->buyerKpis($buyerCompanyId),
+            'spendSeries' => $this->spendSeries($buyerCompanyId, $days),
+            'topSuppliers' => $this->topSuppliers($buyerCompanyId, $limit),
+            'topProducts' => $this->topPurchasedProducts($buyerCompanyId, $limit),
+        ];
+    }
+
+    /**
+     * Buyer headline KPI cards shaped for the frontend `DashboardKpi` contract.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function buyerKpis(int $buyerCompanyId): array
+    {
+        $now = Carbon::now();
+
+        $pendingOrders = $this->scopedBuyerOrders($buyerCompanyId)
+            ->where('status', OrderStatus::PENDING)
+            ->count();
+
+        $activeShipments = $this->scopedBuyerOrders($buyerCompanyId)
+            ->where('status', OrderStatus::SHIPPED)
+            ->count();
+
+        $totalOrders = $this->scopedBuyerOrders($buyerCompanyId)->count();
+
+        $totalSpent = (float) $this->scopedBuyerOrders($buyerCompanyId)
+            ->where('status', OrderStatus::DELIVERED)
+            ->sum('total_amount');
+
+        $ordersChange = $this->monthOverMonthChangeFor(
+            $this->scopedBuyerOrders($buyerCompanyId),
+            'created_at',
+            $now
+        );
+
+        return [
+            $this->kpi(
+                id: 'total_orders',
+                title: 'إجمالي الطلبات',
+                value: $this->formatNumber($totalOrders),
+                description: 'منذ الشهر الماضي',
+                trend: $this->trend($ordersChange, goodWhenUp: true),
+            ),
+            $this->kpi(
+                id: 'pending_orders',
+                title: 'الطلبات المعلقة',
+                value: $this->formatNumber($pendingOrders),
+                description: $pendingOrders > 0 ? 'في انتظار قبول المورّد' : 'لا توجد طلبات معلقة',
+            ),
+            $this->kpi(
+                id: 'active_shipments',
+                title: 'شحنات قيد التوصيل',
+                value: $this->formatNumber($activeShipments),
+                description: 'قيد الطريق إليك',
+            ),
+            $this->kpi(
+                id: 'total_spent',
+                title: 'إجمالي الإنفاق',
+                value: $this->formatMoney($totalSpent),
+                description: 'على الطلبات المسلَّمة',
+            ),
+        ];
+    }
+
+    /**
+     * Daily spend across fulfilled (delivered) orders for the trailing $days window
+     * (zero-filled), oldest first.
+     *
+     * @return list<array{date: string, spend: float}>
+     */
+    private function spendSeries(int $buyerCompanyId, int $days): array
+    {
+        $start = Carbon::now()->subDays($days - 1)->startOfDay();
+
+        $spendByDay = $this->scopedBuyerOrders($buyerCompanyId)
+            ->where('status', OrderStatus::DELIVERED)
+            ->where('delivered_at', '>=', $start)
+            ->selectRaw('DATE(delivered_at) as day, SUM(total_amount) as daily_spend')
+            ->groupBy('day')
+            ->pluck('daily_spend', 'day');
+
+        $series = [];
+        for ($offset = 0; $offset < $days; $offset++) {
+            $date = $start->copy()->addDays($offset);
+
+            $series[] = [
+                'date' => $date->toDateString(),
+                'spend' => round((float) ($spendByDay[$date->toDateString()] ?? 0), 2),
+            ];
+        }
+
+        return $series;
+    }
+
+    /**
+     * Top suppliers by total amount spent across fulfilled (delivered) orders.
+     *
+     * @return list<array{id: int, name: string, region: string|null, ordersCount: int, totalSpent: float}>
+     */
+    private function topSuppliers(int $buyerCompanyId, int $limit): array
+    {
+        $rows = $this->scopedBuyerOrders($buyerCompanyId)
+            ->where('orders.status', OrderStatus::DELIVERED)
+            ->join('companies', 'companies.id', '=', 'orders.supplier_company_id')
+            ->leftJoin('regions', 'regions.id', '=', 'companies.region_id')
+            ->whereNull('companies.deleted_at')
+            ->selectRaw('companies.id as supplier_id, companies.name as supplier_name, regions.name as region_name, COUNT(*) as orders_count, SUM(orders.total_amount) as total_spent')
+            ->groupBy('companies.id', 'companies.name', 'regions.name')
+            ->orderByDesc('total_spent')
+            ->limit($limit)
+            ->get();
+
+        $suppliers = [];
+        foreach ($rows as $row) {
+            $region = $row->getAttribute('region_name');
+
+            $suppliers[] = [
+                'id' => (int) $row->getAttribute('supplier_id'),
+                'name' => (string) $row->getAttribute('supplier_name'),
+                'region' => $region !== null ? (string) $region : null,
+                'ordersCount' => (int) $row->getAttribute('orders_count'),
+                'totalSpent' => round((float) $row->getAttribute('total_spent'), 2),
+            ];
+        }
+
+        return $suppliers;
+    }
+
+    /**
+     * Most-purchased products by units across fulfilled (delivered) orders.
+     *
+     * @return list<array{id: int, name: string, totalUnits: int, totalSpent: float}>
+     */
+    private function topPurchasedProducts(int $buyerCompanyId, int $limit): array
+    {
+        $rows = \App\Models\OrderItem::query()
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->where('orders.buyer_company_id', $buyerCompanyId)
+            ->where('orders.status', OrderStatus::DELIVERED)
+            ->whereNull('products.deleted_at')
+            ->selectRaw('products.id as product_id, products.name as product_name, SUM(order_items.quantity) as total_units, SUM(order_items.total_price) as total_spent')
+            ->groupBy('products.id', 'products.name')
+            ->orderByDesc('total_units')
+            ->limit($limit)
+            ->get();
+
+        $products = [];
+        foreach ($rows as $row) {
+            $products[] = [
+                'id' => (int) $row->getAttribute('product_id'),
+                'name' => (string) $row->getAttribute('product_name'),
+                'totalUnits' => (int) $row->getAttribute('total_units'),
+                'totalSpent' => round((float) $row->getAttribute('total_spent'), 2),
+            ];
+        }
+
+        return $products;
+    }
+
+    /**
+     * Order query scoped to a buying company.
+     *
+     * @return Builder<Order>
+     */
+    private function scopedBuyerOrders(int $buyerCompanyId): Builder
+    {
+        return Order::query()->where('buyer_company_id', $buyerCompanyId);
+    }
+
+    /**
      * Headline KPI cards shaped for the frontend `DashboardKpi` contract.
      *
      * @return list<array<string, mixed>>
@@ -188,6 +375,14 @@ class DashboardService
     }
 
     /**
+     * Format a money metric for display (thousands separated, two decimals).
+     */
+    private function formatMoney(float $value): string
+    {
+        return number_format($value, 2);
+    }
+
+    /**
      * Best-selling products by quantity sold across fulfilled (delivered) orders.
      *
      * @return list<array{id: int, name: string, stock: int, price: float, totalSold: int}>
@@ -283,14 +478,25 @@ class DashboardService
      */
     private function monthOverMonthChange(?int $supplierCompanyId, string $column, CarbonInterface $now): array
     {
+        return $this->monthOverMonthChangeFor($this->scopedOrders($supplierCompanyId), $column, $now);
+    }
+
+    /**
+     * Month-over-month change over an arbitrary (already-scoped) order query.
+     *
+     * @param  Builder<Order>  $query
+     * @return array{percent: float, direction: string, period: string}
+     */
+    private function monthOverMonthChangeFor(Builder $query, string $column, CarbonInterface $now): array
+    {
         $thisMonthStart = $now->copy()->startOfMonth();
         $lastMonthStart = $thisMonthStart->copy()->subMonth();
 
-        $current = $this->scopedOrders($supplierCompanyId)
+        $current = (clone $query)
             ->where($column, '>=', $thisMonthStart)
             ->count();
 
-        $previous = $this->scopedOrders($supplierCompanyId)
+        $previous = (clone $query)
             ->whereBetween($column, [$lastMonthStart, $thisMonthStart])
             ->count();
 

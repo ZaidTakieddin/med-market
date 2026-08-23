@@ -2550,7 +2550,7 @@
                     "Dashboard"
                 ],
                 "summary": "Dashboard overview",
-                "description": "Aggregated analytics for the supplier dashboard home page: KPI cards (pending orders, active shipments, total products, total orders with trend), a daily sales series, best-selling products, and top buyers. Revenue-based metrics (sales series, top products, top buyers) only count fulfilled (delivered) orders. Suppliers see metrics scoped to their own company. Admins see global metrics, or a single supplier when `supplier_company_id` is provided. Other roles are forbidden.",
+                "description": "Aggregated analytics for the dashboard home page, shaped by role. **Suppliers** (and supplier salesmen) get KPI cards (pending orders, active shipments, total products, total orders with trend), a daily sales series, best-selling products, and top buyers. **Buyers** (pharmacies and salesman buyer companies) get purchase analytics: KPIs (total orders with trend, pending orders, active shipments, total spend), a daily spend series, top suppliers by spend, and most-purchased products. Revenue/spend-based metrics only count fulfilled (delivered) orders. Suppliers see metrics scoped to their own company; admins see global metrics or a single supplier via `supplier_company_id`. Drivers are forbidden.",
                 "operationId": "07d2d0f81b9051bfc2a937097221e0ce",
                 "parameters": [
                     {
@@ -2722,6 +2722,55 @@
                                                                 "type": "number",
                                                                 "format": "float",
                                                                 "example": 5200
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "spendSeries": {
+                                                    "description": "**Buyer payload only** — daily spend across delivered orders for the trailing `days` window, oldest first, zero-filled.",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "date": {
+                                                                "type": "string",
+                                                                "format": "date",
+                                                                "example": "2026-08-23"
+                                                            },
+                                                            "spend": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 1250.5
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "topSuppliers": {
+                                                    "description": "**Buyer payload only** — suppliers ranked by total spent on delivered orders.",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 2
+                                                            },
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "Al Shifa Medical Supply"
+                                                            },
+                                                            "region": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
+                                                            "ordersCount": {
+                                                                "type": "integer",
+                                                                "example": 18
+                                                            },
+                                                            "totalSpent": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 4300
                                                             }
                                                         },
                                                         "type": "object"
