@@ -72,6 +72,15 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
+        // Token-based clients (mobile/API) authenticate WebSocket channel
+        // subscriptions with their Sanctum bearer token.
+        \Illuminate\Support\Facades\Broadcast::routes(['middleware' => ['auth:sanctum']]);
+
+        // The framework only loads routes/channels.php when a real broadcast driver
+        // is configured; tests run on "null", so load them unconditionally here.
+        // Duplicate registrations under real drivers are harmless (first match wins).
+        require base_path('routes/channels.php');
+
         // Register observers
         Order::observe(OrderObserver::class);
         Product::observe(ProductObserver::class);

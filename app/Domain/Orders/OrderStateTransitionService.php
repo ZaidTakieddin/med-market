@@ -82,7 +82,8 @@ class OrderStateTransitionService
             // Reload to reflect the saved status + timestamps for the jobs and return value.
             $order->refresh();
 
-            // Dispatch notification job
+            // Realtime push (WebSockets) + queued notification job.
+            broadcast(new \App\Events\OrderStatusChanged($order, $oldStatus, $newStatus));
             SendOrderNotificationJob::dispatch($order, $oldStatus, $newStatus, $userId);
 
             // Generate invoice when order is accepted

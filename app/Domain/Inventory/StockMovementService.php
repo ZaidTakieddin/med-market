@@ -95,6 +95,14 @@ class StockMovementService
             $lockedProduct->save();
             $product->stock_quantity = $quantityAfter;
 
+            // Realtime inventory update for the owning supplier's dashboard feed.
+            broadcast(new \App\Events\StockLevelChanged(
+                product: $lockedProduct,
+                quantityBefore: $quantityBefore,
+                quantityAfter: $quantityAfter,
+                movementType: $type,
+            ));
+
             // Record the movement
             $movement = StockMovement::create([
                 'product_id' => $product->id,

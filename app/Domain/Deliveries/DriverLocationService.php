@@ -8,7 +8,8 @@ use Illuminate\Support\Collection;
 class DriverLocationService
 {
     /**
-     * Record a driver's current GPS position (a ping from the driver app).
+     * Record a driver's current GPS position (a ping from the driver app) and push
+     * it to the supplier feed over WebSockets for live tracking.
      */
     public function ping(User $driver, float $latitude, float $longitude): void
     {
@@ -16,8 +17,10 @@ class DriverLocationService
             'driver_id' => $driver->id,
             'latitude' => $latitude,
             'longitude' => $longitude,
-            'recorded_at' => now(),
+            'recorded_at' => $now = now(),
         ]);
+
+        broadcast(new \App\Events\DriverLocationUpdated($driver, $latitude, $longitude, $now));
     }
 
     /**
