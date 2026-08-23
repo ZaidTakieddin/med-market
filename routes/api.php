@@ -46,6 +46,11 @@ Route::prefix('v1')->group(function () {
         // User management (admin)
         Route::apiResource('users', App\Http\Controllers\Api\V1\UserController::class);
 
+        // Order templates (buyer companies)
+        Route::post('order-templates/{orderTemplate}/reorder', [App\Http\Controllers\Api\V1\OrderTemplateController::class, 'reorder']);
+        Route::apiResource('order-templates', App\Http\Controllers\Api\V1\OrderTemplateController::class)
+            ->parameters(['order-templates' => 'orderTemplate']);
+
         // Notifications
         Route::get('notifications/unread-count', [App\Http\Controllers\Api\V1\NotificationController::class, 'unreadCount']);
         Route::post('notifications/mark-all-read', [App\Http\Controllers\Api\V1\NotificationController::class, 'markAllRead']);

@@ -9,6 +9,7 @@ use App\Models\Invoice;
 use App\Models\Offer;
 use App\Models\Order;
 use App\Models\OrderExport;
+use App\Models\OrderTemplate;
 use App\Models\PriceList;
 use App\Models\Product;
 use App\Models\Region;
@@ -24,6 +25,7 @@ use App\Policies\InvoicePolicy;
 use App\Policies\OfferPolicy;
 use App\Policies\OrderExportPolicy;
 use App\Policies\OrderPolicy;
+use App\Policies\OrderTemplatePolicy;
 use App\Policies\PriceListPolicy;
 use App\Policies\ProductPolicy;
 use App\Policies\RegionPolicy;
@@ -48,6 +50,7 @@ class AppServiceProvider extends ServiceProvider
         Invoice::class => InvoicePolicy::class,
         Offer::class => OfferPolicy::class,
         OrderExport::class => OrderExportPolicy::class,
+        OrderTemplate::class => OrderTemplatePolicy::class,
         BuyerSupplierRelationship::class => BuyerSupplierRelationshipPolicy::class,
         PriceList::class => PriceListPolicy::class,
         City::class => CityPolicy::class,
