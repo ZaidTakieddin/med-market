@@ -1,8 +1,43 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-08-23 (**Notifications infrastructure** + **admin user management**, on top of the money-integrity hardening / export API / thin-controller sweep. See entry below)
+> Last Updated: 2026-08-23 (**Buyer-side analytics** + **inventory enhancements** (batch/expiry tracking, bulk stock ops), on top of notifications + admin user management. See entries below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
+
+## 📊 2026-08-23 — Buyer-side analytics + inventory enhancements (branch `main`)
+
+### Buyer dashboard (Missing Feature #8, buyer part — DONE)
+
+`GET /dashboard` is now **role-shaped** (was supplier/admin-only):
+
+- **Buyers** (pharmacy + salesman buyer companies): KPI cards (total orders with
+  month-over-month trend, pending orders, active shipments, total spend on delivered
+  orders), `spendSeries` (daily delivered-order spend, zero-filled, trailing `?days`≤90),
+  `topSuppliers` by spend, and most-purchased products by units (`topProducts`).
+- Suppliers/supplier salesmen keep the existing supplier payload; admins global/scoped;
+  drivers still 403. Eligibility is company-type + user-role based.
+- Tests: DashboardTest extended to 8 cases (buyer payload values incl. spend formatting,
+  salesman-company routing both ways, driver 403, days clamping).
+
+### Inventory enhancements (Missing Feature #15, first tranche)
+
+- **Batch & expiry tracking**: new nullable `batch_number`/`expiry_date` on products
+  (current shelf batch) and stock_movements (per-receipt history). Stock add/adjust accept
+  them; `StockMovementService::recordMovement` persists them and syncs the product's
+  current batch atomically inside the locked transaction. `ProductResource` exposes
+  `batchNumber`/`expiryDate`/`isExpired`; `StockMovementResource` exposes both.
+- **New product list filters**: `?expiring_before=DATE`, `?expired=true`, `?low_stock=true`
+  (stock_quantity <= min_stock_level).
+- **Bulk stock operations**: `POST /products/stock/bulk` (≤200 rows; type
+  in/out/adjustment/return with sign normalization; optional batch/expiry per row). Rows
+  process independently through `StockMovementService` — a failed row never rolls back
+  others; response reports per-row success/error + totals. Foreign-company rows are
+  rejected via `ProductPolicy::mutateStock`.
+- Migration: `2026_08_23_150000_add_batch_and_expiry_to_products_and_stock_movements.php`
+  (unpooled connection for deploy). Tests:
+  `tests/Feature/Inventory/InventoryEnhancementsTest.php` (5 cases). Suite green
+  (**147 tests**), Pint clean, PHPStan level 8 clean, Swagger regenerated.
+- Still open from #15: stock transfer between suppliers, multi-batch FEFO allocation.
 
 ## 🔔 2026-08-23 — Notifications infrastructure + admin user management (branch `main`)
 

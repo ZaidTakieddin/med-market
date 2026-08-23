@@ -41,6 +41,8 @@ class CreateProductRequest extends BaseFormRequest
             'discount_type' => ['nullable', 'string', Rule::in(DiscountType::all())],
             'stock_quantity' => ['nullable', 'integer', 'min:0'],
             'min_stock_level' => ['nullable', 'integer', 'min:0'],
+            'batch_number' => ['nullable', 'string', 'max:100'],
+            'expiry_date' => ['nullable', 'date'],
             'is_active' => ['nullable', 'boolean'],
             'metadata' => ['nullable', 'array'],
         ];

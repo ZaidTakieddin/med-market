@@ -34,6 +34,8 @@ class Product extends Model
         'discount_type',
         'stock_quantity',
         'min_stock_level',
+        'batch_number',
+        'expiry_date',
         'is_active',
         'metadata',
     ];
@@ -47,6 +49,7 @@ class Product extends Model
         'discount' => 'decimal:2',
         'stock_quantity' => 'integer',
         'min_stock_level' => 'integer',
+        'expiry_date' => 'date',
         'is_active' => 'boolean',
         'metadata' => 'array',
     ];

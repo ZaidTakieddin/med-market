@@ -5,6 +5,7 @@ namespace App\Domain\Inventory;
 use App\Exceptions\DomainException;
 use App\Models\Product;
 use App\Models\StockMovement;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -25,7 +26,9 @@ class StockMovementService
         ?int $userId = null,
         ?string $reason = null,
         ?string $referenceType = null,
-        ?string $referenceId = null
+        ?string $referenceId = null,
+        ?string $batchNumber = null,
+        ?string $expiryDate = null
     ): StockMovement {
         if ($quantity === 0) {
             throw new DomainException('Stock movement quantity cannot be zero');
@@ -39,7 +42,9 @@ class StockMovementService
             $userId,
             $reason,
             $referenceType,
-            $referenceId
+            $referenceId,
+            $batchNumber,
+            $expiryDate
         ) {
             // Pessimistically lock the product row so two concurrent movements cannot
             // both read the same quantity and oversell (stock < 0). lockForUpdate is a
@@ -61,6 +66,18 @@ class StockMovementService
 
             // Update product stock on the locked row, keeping the caller's instance in sync.
             $lockedProduct->stock_quantity = $quantityAfter;
+
+            // Keep the product's current batch/expiry in sync when the receipt carries one.
+            if ($batchNumber !== null) {
+                $lockedProduct->batch_number = $batchNumber;
+                $product->batch_number = $batchNumber;
+            }
+            if ($expiryDate !== null) {
+                $expiry = Carbon::parse($expiryDate)->startOfDay();
+                $lockedProduct->expiry_date = $expiry;
+                $product->expiry_date = $expiry;
+            }
+
             $lockedProduct->save();
             $product->stock_quantity = $quantityAfter;
 
@@ -76,6 +93,8 @@ class StockMovementService
                 'reason' => $reason,
                 'reference_type' => $referenceType,
                 'reference_id' => $referenceId,
+                'batch_number' => $batchNumber,
+                'expiry_date' => $expiryDate,
             ]);
 
             // Log to application log
@@ -88,6 +107,8 @@ class StockMovementService
                 'quantity_after' => $quantityAfter,
                 'order_id' => $orderId,
                 'user_id' => $userId,
+                'batch_number' => $batchNumber,
+                'expiry_date' => $expiryDate,
             ]);
 
             return $movement;
@@ -95,15 +116,26 @@ class StockMovementService
     }
 
     /**
-     * Record stock increase (incoming stock).
+     * Record stock increase (incoming stock). Batch/expiry, when provided, are stored
+     * on the movement and become the product's current batch/expiry.
      */
     public function recordIn(
         Product $product,
         int $quantity,
         ?int $userId = null,
-        ?string $reason = null
+        ?string $reason = null,
+        ?string $batchNumber = null,
+        ?string $expiryDate = null
     ): StockMovement {
-        return $this->recordMovement($product, 'in', abs($quantity), null, $userId, $reason);
+        return $this->recordMovement(
+            product: $product,
+            type: 'in',
+            quantity: abs($quantity),
+            userId: $userId,
+            reason: $reason,
+            batchNumber: $batchNumber,
+            expiryDate: $expiryDate
+        );
     }
 
     /**

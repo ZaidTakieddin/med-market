@@ -19,6 +19,8 @@ class AddStockRequest extends BaseFormRequest
         return [
             'quantity' => ['required', 'integer', 'min:1'],
             'reason' => ['nullable', 'string', 'max:500'],
+            'batch_number' => ['nullable', 'string', 'max:100'],
+            'expiry_date' => ['nullable', 'date'],
         ];
     }
 

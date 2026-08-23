@@ -22,6 +22,8 @@ class AdjustStockRequest extends BaseFormRequest
             'quantity' => ['required', 'integer', 'not_in:0'],
             'type' => ['required', 'string', Rule::in([StockMovementType::ADJUSTMENT, StockMovementType::RETURN])],
             'reason' => ['nullable', 'string', 'max:500'],
+            'batch_number' => ['nullable', 'string', 'max:100'],
+            'expiry_date' => ['nullable', 'date'],
         ];
     }
 

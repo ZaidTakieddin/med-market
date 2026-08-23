@@ -15,6 +15,23 @@ Every change to product stock is recorded as a movement:
 - **Quantity**: Positive for `in`, negative for `out`
 - **Context**: Order ID, user ID, reason, and reference information
 - **Audit Trail**: Before/after quantities are recorded
+- **Batch/Expiry**: Optional `batch_number` and `expiry_date` per receipt (2026-08-23)
+
+### Batch & Expiry Tracking
+
+Products carry their **current** batch (`batch_number`, `expiry_date`, nullable — suppliers
+not tracking batches are unaffected). When a receipt movement (`in` via stock add/bulk)
+provides a batch/expiry, the movement records it and the product's current values are
+synced atomically inside the same locked transaction. Product list filters:
+`?expiring_before=YYYY-MM-DD`, `?expired=true`, `?low_stock=true`.
+
+### Bulk Stock Operations
+
+`POST /products/stock/bulk` applies up to 200 operations (in/out/adjustment/return, each
+optionally with batch/expiry). Rows are processed **independently** through
+`StockMovementService` — each is its own locked transaction; a failed row (insufficient
+stock, foreign product) does not roll back others. Response reports per-row success plus
+succeeded/failed counts.
 
 ### Stock Movement Types
 

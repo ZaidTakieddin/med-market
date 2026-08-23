@@ -35,6 +35,8 @@ class UpdateProductRequest extends BaseFormRequest
             'discount' => ['nullable', 'numeric', 'min:0'],
             'discount_type' => ['nullable', 'string', Rule::in(DiscountType::all())],
             'min_stock_level' => ['nullable', 'integer', 'min:0'],
+            'batch_number' => ['nullable', 'string', 'max:100'],
+            'expiry_date' => ['nullable', 'date'],
             'is_active' => ['nullable', 'boolean'],
             'metadata' => ['nullable', 'array'],
         ];

@@ -5902,6 +5902,31 @@
                         }
                     },
                     {
+                        "name": "expiring_before",
+                        "in": "query",
+                        "description": "Only products whose expiry_date is on/before this date",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "expired",
+                        "in": "query",
+                        "description": "Only products already past their expiry_date",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "low_stock",
+                        "in": "query",
+                        "description": "Only products at or below their min_stock_level",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
                         "name": "search",
                         "in": "query",
                         "description": "Search in name, SKU, description, or category",
@@ -8086,6 +8111,18 @@
                                         "type": "string",
                                         "example": "New shipment received",
                                         "nullable": true
+                                    },
+                                    "batch_number": {
+                                        "description": "Recorded on the movement and set as the product's current batch",
+                                        "type": "string",
+                                        "example": "BATCH-2026-A",
+                                        "nullable": true
+                                    },
+                                    "expiry_date": {
+                                        "description": "Recorded on the movement and set as the product's expiry date",
+                                        "type": "string",
+                                        "format": "date",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -8162,6 +8199,15 @@
                                         "type": "string",
                                         "example": "Stock adjustment due to inventory count",
                                         "nullable": true
+                                    },
+                                    "batch_number": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "expiry_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -8181,6 +8227,91 @@
                     },
                     "404": {
                         "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/products/stock/bulk": {
+            "post": {
+                "tags": [
+                    "Stock Management"
+                ],
+                "summary": "Bulk stock operations",
+                "description": "Apply up to 200 stock operations in one call (in / out / adjustment / return per row). Each row is processed independently through StockMovementService — authorization and stock rules are enforced per product; a failed row does not roll back the others. Rows may carry `batch_number`/`expiry_date`, which also update the product's current batch. **Route note:** registered before the products resource so `{product}` cannot capture it.",
+                "operationId": "7e959711b357e3d4b406d7465877e63d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "operations"
+                                ],
+                                "properties": {
+                                    "operations": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "product_id",
+                                                "type",
+                                                "quantity"
+                                            ],
+                                            "properties": {
+                                                "product_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "in",
+                                                        "out",
+                                                        "adjustment",
+                                                        "return"
+                                                    ]
+                                                },
+                                                "quantity": {
+                                                    "description": "Signed for adjustment/return",
+                                                    "type": "integer",
+                                                    "example": 25
+                                                },
+                                                "reason": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "batch_number": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "expiry_date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Bulk operations processed. Returns one result per row with success/failure details."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
                     },
                     "422": {
                         "$ref": "#/components/responses/UnprocessableEntity"

@@ -34,6 +34,9 @@ class ProductController extends BaseApiController
             new OA\Parameter(name: 'category_id', in: 'query', schema: new OA\Schema(type: 'integer'), description: 'Filter by product category ID'),
             new OA\Parameter(name: 'manufacturer_id', in: 'query', schema: new OA\Schema(type: 'integer'), description: 'Filter by manufacturer ID'),
             new OA\Parameter(name: 'is_active', in: 'query', schema: new OA\Schema(type: 'boolean'), description: 'Filter by active status'),
+            new OA\Parameter(name: 'expiring_before', in: 'query', schema: new OA\Schema(type: 'string', format: 'date'), description: 'Only products whose expiry_date is on/before this date'),
+            new OA\Parameter(name: 'expired', in: 'query', schema: new OA\Schema(type: 'boolean'), description: 'Only products already past their expiry_date'),
+            new OA\Parameter(name: 'low_stock', in: 'query', schema: new OA\Schema(type: 'boolean'), description: 'Only products at or below their min_stock_level'),
             new OA\Parameter(name: 'search', in: 'query', schema: new OA\Schema(type: 'string'), description: 'Search in name, SKU, description, or category'),
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
             new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer', default: 15), description: 'Items per page. Use "all" for no pagination.'),
@@ -93,6 +96,21 @@ class ProductController extends BaseApiController
         // Filter by active status
         if ($request->has('is_active')) {
             $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        // Inventory filters (expiry / batch tracking)
+        if ($request->filled('expiring_before')) {
+            $query->whereNotNull('expiry_date')
+                ->where('expiry_date', '<=', $request->input('expiring_before'));
+        }
+
+        if ($request->boolean('expired')) {
+            $query->whereNotNull('expiry_date')
+                ->where('expiry_date', '<', now()->toDateString());
+        }
+
+        if ($request->boolean('low_stock')) {
+            $query->whereColumn('stock_quantity', '<=', 'min_stock_level');
         }
 
         // Search
@@ -194,6 +212,8 @@ class ProductController extends BaseApiController
             'discount_type' => $request->discount_type,
             'stock_quantity' => $request->stock_quantity ?? 0,
             'min_stock_level' => $request->min_stock_level ?? 0,
+            'batch_number' => $request->batch_number,
+            'expiry_date' => $request->expiry_date,
             'is_active' => $request->is_active ?? true,
             'metadata' => $request->metadata,
         ]);

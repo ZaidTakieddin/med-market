@@ -23,12 +23,15 @@ class StockMovement extends Model
         'reason',
         'reference_type',
         'reference_id',
+        'batch_number',
+        'expiry_date',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
         'quantity_before' => 'integer',
         'quantity_after' => 'integer',
+        'expiry_date' => 'date',
     ];
 
     /**

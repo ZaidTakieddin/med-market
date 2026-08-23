@@ -85,6 +85,9 @@ Route::prefix('v1')->group(function () {
         // Products
         Route::apiResource('products', App\Http\Controllers\Api\V1\ProductController::class);
 
+        // Bulk stock (registered before the products/{product} stock prefix)
+        Route::post('products/stock/bulk', [App\Http\Controllers\Api\V1\StockController::class, 'bulk']);
+
         // Stock Management
         Route::prefix('products/{product}')->group(function () {
             Route::get('stock/movements', [App\Http\Controllers\Api\V1\StockController::class, 'movements']);

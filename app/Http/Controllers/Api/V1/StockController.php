@@ -6,6 +6,7 @@ use App\Domain\Inventory\StockMovementService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Stock\AddStockRequest;
 use App\Http\Requests\Stock\AdjustStockRequest;
+use App\Http\Requests\Stock\BulkStockRequest;
 use App\Http\Resources\StockMovementResource;
 use App\Models\Product;
 use App\Models\StockMovement;
@@ -87,6 +88,8 @@ class StockController extends BaseApiController
                 properties: [
                     new OA\Property(property: 'quantity', type: 'integer', example: 100),
                     new OA\Property(property: 'reason', type: 'string', nullable: true, example: 'New shipment received'),
+                    new OA\Property(property: 'batch_number', type: 'string', nullable: true, example: 'BATCH-2026-A', description: 'Recorded on the movement and set as the product\'s current batch'),
+                    new OA\Property(property: 'expiry_date', type: 'string', format: 'date', nullable: true, description: 'Recorded on the movement and set as the product\'s expiry date'),
                 ]
             )
         ),
@@ -108,7 +111,9 @@ class StockController extends BaseApiController
             product: $product,
             quantity: $request->quantity,
             userId: $user->id,
-            reason: $request->reason
+            reason: $request->reason,
+            batchNumber: $request->batch_number,
+            expiryDate: $request->expiry_date
         );
 
         $product->refresh();
@@ -146,6 +151,8 @@ class StockController extends BaseApiController
                     new OA\Property(property: 'quantity', type: 'integer', example: -10, description: 'Positive for increase, negative for decrease'),
                     new OA\Property(property: 'type', type: 'string', enum: ['adjustment', 'return'], example: 'adjustment'),
                     new OA\Property(property: 'reason', type: 'string', nullable: true, example: 'Stock adjustment due to inventory count'),
+                    new OA\Property(property: 'batch_number', type: 'string', nullable: true),
+                    new OA\Property(property: 'expiry_date', type: 'string', format: 'date', nullable: true),
                 ]
             )
         ),
@@ -170,7 +177,9 @@ class StockController extends BaseApiController
             userId: $user->id,
             reason: $request->reason,
             referenceType: 'manual',
-            referenceId: (string) $user->id
+            referenceId: (string) $user->id,
+            batchNumber: $request->batch_number,
+            expiryDate: $request->expiry_date
         );
 
         $product->refresh();
@@ -186,5 +195,105 @@ class StockController extends BaseApiController
                 'is_low_stock' => $product->isLowStock(),
             ],
         ], 'Stock adjusted successfully');
+    }
+
+    /**
+     * Apply bulk stock operations.
+     */
+    #[OA\Post(
+        path: '/products/stock/bulk',
+        summary: 'Bulk stock operations',
+        description: 'Apply up to 200 stock operations in one call (in / out / adjustment / return per row). Each row is processed independently through StockMovementService — authorization and stock rules are enforced per product; a failed row does not roll back the others. Rows may carry `batch_number`/`expiry_date`, which also update the product\'s current batch. **Route note:** registered before the products resource so `{product}` cannot capture it.',
+        tags: ['Stock Management'],
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['operations'],
+                properties: [
+                    new OA\Property(property: 'operations', type: 'array', items: new OA\Items(
+                        type: 'object',
+                        required: ['product_id', 'type', 'quantity'],
+                        properties: [
+                            new OA\Property(property: 'product_id', type: 'integer', example: 1),
+                            new OA\Property(property: 'type', type: 'string', enum: ['in', 'out', 'adjustment', 'return']),
+                            new OA\Property(property: 'quantity', type: 'integer', example: 25, description: 'Signed for adjustment/return'),
+                            new OA\Property(property: 'reason', type: 'string', nullable: true),
+                            new OA\Property(property: 'batch_number', type: 'string', nullable: true),
+                            new OA\Property(property: 'expiry_date', type: 'string', format: 'date', nullable: true),
+                        ]
+                    )),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Bulk operations processed. Returns one result per row with success/failure details.'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+        ]
+    )]
+    public function bulk(BulkStockRequest $request): JsonResponse
+    {
+        $user = $this->currentUser();
+
+        $results = [];
+        foreach ($request->operations as $index => $operation) {
+            /** @var Product|null $product */
+            $product = Product::find((int) $operation['product_id']);
+
+            $row = [
+                'index' => $index,
+                'product_id' => (int) $operation['product_id'],
+                'success' => false,
+            ];
+
+            if ($product === null || ! $user->can('mutateStock', $product)) {
+                $row['error'] = 'Product not found or not owned by your company.';
+
+                $results[] = $row;
+
+                continue;
+            }
+
+            try {
+                // Normalize sign by movement type: 'in' adds, 'out' subtracts,
+                // adjustment/return keep their explicit sign.
+                $quantity = (int) $operation['quantity'];
+                if ($operation['type'] === \App\Constants\StockMovementType::IN) {
+                    $quantity = abs($quantity);
+                } elseif ($operation['type'] === \App\Constants\StockMovementType::OUT) {
+                    $quantity = -abs($quantity);
+                }
+
+                $movement = $this->stockMovementService->recordMovement(
+                    product: $product,
+                    type: (string) $operation['type'],
+                    quantity: $quantity,
+                    userId: $user->id,
+                    reason: $operation['reason'] ?? null,
+                    referenceType: 'manual',
+                    referenceId: (string) $user->id,
+                    batchNumber: $operation['batch_number'] ?? null,
+                    expiryDate: $operation['expiry_date'] ?? null
+                );
+
+                $row['success'] = true;
+                $row['new_stock_quantity'] = $product->stock_quantity;
+                $row['movement_id'] = $movement->id;
+            } catch (\App\Exceptions\DomainException $e) {
+                $row['error'] = $e->getMessage();
+            }
+
+            $results[] = $row;
+        }
+
+        $failed = count(array_filter($results, fn (array $row): bool => ! $row['success']));
+
+        return $this->success([
+            'results' => $results,
+            'total' => count($results),
+            'succeeded' => count($results) - $failed,
+            'failed' => $failed,
+        ], $failed === 0 ? 'Bulk stock operations applied successfully' : 'Bulk stock operations completed with failures');
     }
 }

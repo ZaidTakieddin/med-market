@@ -72,6 +72,9 @@ class ProductResource extends JsonResource
             'pharmacistPriceAfterDiscount' => $pharmacistPriceAfterDiscount,
             'stockQuantity' => $this->stock_quantity,
             'minStockLevel' => $this->min_stock_level,
+            'batchNumber' => $this->batch_number,
+            'expiryDate' => $this->expiry_date?->toDateString(),
+            'isExpired' => $this->expiry_date !== null && $this->expiry_date->isPast(),
             'isActive' => $this->is_active,
             'supplierCompany' => $this->when($this->relationLoaded('supplierCompany') && $this->supplierCompany, fn () => new CompanyResource($this->supplierCompany)),
             'images' => $this->relationLoaded('images')
