@@ -2,8 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Constants\ExportStatus;
 use App\Models\Order;
-use App\Models\User;
+use App\Models\OrderExport;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -34,16 +35,13 @@ class ExportOrdersJob implements ShouldQueue
     public int $timeout = 75;
 
     /**
-     * Create a new job instance.
-     *
-     * @param  array<string, mixed>  $filters
+     * Generate an order-export file for a tracked OrderExport record. The export is
+     * always scoped to a single company (buyer or supplier side); status transitions
+     * (queued → processing → completed/failed) are persisted so clients can poll.
      */
     public function __construct(
-        public User $user,
-        public array $filters = [],
-        public string $format = 'csv'
+        public OrderExport $export
     ) {
-        // Set queue name
         $this->onQueue('exports');
     }
 
@@ -53,52 +51,59 @@ class ExportOrdersJob implements ShouldQueue
     public function handle(): void
     {
         try {
-            // Build query based on filters
-            $query = Order::with(['buyerCompany', 'supplierCompany', 'items.product']);
+            $this->export->update([
+                'status' => ExportStatus::PROCESSING,
+                'started_at' => now(),
+            ]);
 
-            // Apply filters
-            if (isset($this->filters['company_id'])) {
-                $query->where(function ($q) {
-                    $q->where('buyer_company_id', $this->filters['company_id'])
-                        ->orWhere('supplier_company_id', $this->filters['company_id']);
+            $query = Order::with(['buyerCompany', 'supplierCompany', 'items.product', 'creator'])
+                ->where(function ($q): void {
+                    $q->where('buyer_company_id', $this->export->company_id)
+                        ->orWhere('supplier_company_id', $this->export->company_id);
                 });
+
+            /** @var array<string, mixed> $filters */
+            $filters = $this->export->filters ?? [];
+
+            if (isset($filters['status'])) {
+                $query->where('status', $filters['status']);
             }
 
-            if (isset($this->filters['status'])) {
-                $query->where('status', $this->filters['status']);
+            if (isset($filters['date_from'])) {
+                $query->whereDate('created_at', '>=', $filters['date_from']);
             }
 
-            if (isset($this->filters['date_from'])) {
-                $query->whereDate('created_at', '>=', $this->filters['date_from']);
-            }
-
-            if (isset($this->filters['date_to'])) {
-                $query->whereDate('created_at', '<=', $this->filters['date_to']);
+            if (isset($filters['date_to'])) {
+                $query->whereDate('created_at', '<=', $filters['date_to']);
             }
 
             // Get orders
             $orders = $query->orderBy('created_at', 'desc')->get();
 
             // Generate export file
-            $filePath = $this->generateExportFile($orders, $this->format);
+            $filePath = $this->generateExportFile($orders, $this->export->format);
+
+            $this->export->update([
+                'status' => ExportStatus::COMPLETED,
+                'file_path' => $filePath,
+                'orders_count' => $orders->count(),
+                'error' => null,
+                'completed_at' => now(),
+            ]);
 
             // Log export generation
             Log::info('Orders export generated successfully', [
-                'user_id' => $this->user->id,
+                'order_export_id' => $this->export->id,
+                'user_id' => $this->export->user_id,
+                'company_id' => $this->export->company_id,
                 'orders_count' => $orders->count(),
-                'format' => $this->format,
+                'format' => $this->export->format,
                 'file_path' => $filePath,
             ]);
-
-            // In a real implementation, you might:
-            // - Send export file via email
-            // - Store export reference in database
-            // - Provide download link
-            // - Generate different formats (Excel, PDF, etc.)
-
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Orders export job failed', [
-                'user_id' => $this->user->id,
+                'order_export_id' => $this->export->id ?? null,
+                'user_id' => $this->export->user_id ?? null,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -115,7 +120,7 @@ class ExportOrdersJob implements ShouldQueue
     {
         $directory = 'exports/orders/'.now()->format('Y/m');
         $timestamp = now()->format('Ymd_His');
-        $filename = "orders_export_{$timestamp}.{$format}";
+        $filename = "orders_export_{$this->export->id}_{$timestamp}.{$format}";
         $path = "{$directory}/{$filename}";
 
         // Ensure directory exists
@@ -222,8 +227,15 @@ class ExportOrdersJob implements ShouldQueue
      */
     public function failed(\Throwable $exception): void
     {
+        $this->export->update([
+            'status' => ExportStatus::FAILED,
+            'error' => 'The export could not be generated.',
+            'completed_at' => now(),
+        ]);
+
         Log::error('Orders export job permanently failed', [
-            'user_id' => $this->user->id ?? null,
+            'order_export_id' => $this->export->id ?? null,
+            'user_id' => $this->export->user_id ?? null,
             'error' => $exception->getMessage(),
             'trace' => $exception->getTraceAsString(),
         ]);

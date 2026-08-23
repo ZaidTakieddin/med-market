@@ -7,6 +7,7 @@ use App\Constants\CompanyType;
 use App\Constants\DayOfWeek;
 use App\Constants\DiscountType;
 use App\Constants\DriverStatus;
+use App\Constants\ExportStatus;
 use App\Constants\InvoiceStatus;
 use App\Constants\OfferType;
 use App\Constants\OrderStatus;
@@ -116,6 +117,7 @@ class EnumsController extends BaseApiController
             'buyerClassification' => BuyerClassification::all(),
             'pricingType' => PricingType::all(),
             'productImportStatus' => ProductImportStatus::all(),
+            'exportStatus' => ExportStatus::all(),
             'paymentTerms' => PaymentTerms::all(),
             'stockMovementType' => StockMovementType::all(),
             'discountType' => DiscountType::all(),

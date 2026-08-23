@@ -21,8 +21,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
     });
 
-    // Protected routes (require authentication)
-    Route::middleware('auth:sanctum')->group(function () {
+    // Protected routes (require authentication, rate-limited per account)
+    Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         // Enums (system constants for dropdowns, forms)
         Route::get('enums', [App\Http\Controllers\Api\V1\EnumsController::class, 'index']);
 
@@ -34,6 +34,13 @@ Route::prefix('v1')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
             Route::get('/me', [AuthController::class, 'me']);
         });
+
+        // Order exports — registered before the orders apiResource so
+        // GET /orders/exports can't be captured by GET /orders/{order}
+        Route::get('orders/exports', [App\Http\Controllers\Api\V1\OrderExportController::class, 'index']);
+        Route::post('orders/exports', [App\Http\Controllers\Api\V1\OrderExportController::class, 'store']);
+        Route::get('orders/exports/{id}', [App\Http\Controllers\Api\V1\OrderExportController::class, 'show']);
+        Route::get('orders/exports/{id}/download', [App\Http\Controllers\Api\V1\OrderExportController::class, 'download']);
 
         // Orders
         Route::apiResource('orders', App\Http\Controllers\Api\V1\OrderController::class)->except(['update', 'destroy']);

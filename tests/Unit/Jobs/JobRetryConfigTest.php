@@ -9,8 +9,8 @@ use App\Jobs\ImportProductsJob;
 use App\Jobs\LowStockAlertJob;
 use App\Jobs\SendOrderNotificationJob;
 use App\Models\Order;
+use App\Models\OrderExport;
 use App\Models\Product;
-use App\Models\User;
 use Tests\TestCase;
 
 class JobRetryConfigTest extends TestCase
@@ -28,7 +28,7 @@ class JobRetryConfigTest extends TestCase
             new GenerateInvoiceJob(new Order),
             new SendOrderNotificationJob(new Order, 'pending', 'accepted'),
             new LowStockAlertJob(new Product),
-            new ExportOrdersJob(new User),
+            new ExportOrdersJob(new OrderExport),
             new ImportProductsJob(1),
             new FinalizeProductImportJob(1, 1),
         ];
