@@ -1,8 +1,116 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-06-30 (**Product images & company logos**: Cloudinary-backed media with a `MEDIA_DISK` switch; binaries never stored in the DB. See entry below)
+> Last Updated: 2026-08-23 (**Money-integrity hardening**, driver assignment domain service, **Order Export API**, thin-controller CRUD sweep. See entries below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
+
+## 🧹 2026-08-23 — Thin-controller CRUD sweep + Order Export API (branch `main`)
+
+**Missing Feature #3 (Export Functionality API) — DONE.** `ExportOrdersJob` previously
+generated files nobody could find: no tracking, no download, no status. Now:
+
+- **New `order_exports` table** (`2026_08_23_130000`): user/company scoping, status
+  (`App\Constants\ExportStatus`: queued/processing/completed/failed), format
+  (csv/json), JSON filters, file_path, orders_count, error — with soft deletes.
+- **`ExportOrdersJob` reworked**: takes an `OrderExport` record; always scopes the query
+  to a single company (buyer or supplier side); persists transitions
+  queued → processing → completed (+file path & count) or failed; eager-loads `creator`
+  (fixes an N+1); idempotent filename per export.
+- **New `Orders\OrderExportService`** + `OrderExportController`:
+  `POST /orders/exports` (202, queues job), `GET /orders/exports`,
+  `GET /orders/exports/{id}` (poll), `GET /orders/exports/{id}/download` (422 until
+  complete). Routes registered before the orders apiResource to avoid `{order}`
+  shadowing. `OrderExportPolicy` (drivers excluded; same-company/admin viewing).
+  `exportStatus` exposed via `/enums`.
+- Tests: `tests/Feature/Orders/OrderExportTest.php` (queue+scoping, driver forbidden,
+  cross-company rejected, admin targeting, company-scoped listing, real CSV generation,
+  download gating). `JobRetryConfigTest` updated for the new job signature.
+
+**Thin-controller CRUD sweep** — all remaining inline model writes moved into domain
+services (controllers now only validate → authorize → delegate):
+
+| Service | Replaces inline writes in |
+|---|---|
+| `Location\LocationService` (new domain) | CityController, RegionController |
+| `Products\TaxonomyService` | CategoryController, ManufacturerController |
+| `Products\ProductService` | ProductController (create/update/delete) |
+| `Products\PromotionService` | OfferController (offer + transactional pivot sync) |
+| `Companies\CompanyService` | CompanyController |
+| `Pricing\PriceListService` | PriceListController |
+| `Deliveries\DriverService` | DriverController (account creation, password hashing, role assignment; passwords can never be set via update) |
+| `Users\ProfileService` | ProfileController (profile, password change — mismatch now `DomainException`→422, company update) |
+
+Behaviour notes: admin creating a driver without a company now returns 422 (previously
+created a null-company account); password-change failure keeps its 422 but through the
+central handler. Docs updated: Products README (services), new Location README, Orders
+README (OrderExportService). Suite green (**123 tests**), Pint clean, PHPStan level 8
+clean, Swagger regenerated.
+
+## 🚚 2026-08-23 — Driver assignment → domain service + Policy (branch `main`)
+
+`OrderController::assignDriver` was the last order mutation done inline in a controller:
+hand-rolled role/company checks (mixing 400/403 responses), a raw `$order->update(...)`,
+no audit log. Now:
+
+- **New `App\Domain\Deliveries\DriverAssignmentService`**: validates the target (driver
+  role, belongs to the order's supplying company — admins exempt) as business rules
+  (`DomainException` → 422), keeps the non-blocking region-mismatch warning, associates
+  the driver and writes an audit log entry inside a transaction.
+- **New `OrderPolicy::assignDriver` ability**: actor-level authorization only (supplier
+  owning the order, or admin) — controller calls `$this->authorize(...)` like every other
+  order action.
+- Behaviour change: assigning a non-driver or a foreign-company driver returns **422**
+  (was 400/403 mix); unauthorized actors get the standard **403**.
+- Tests: new `tests/Feature/Deliveries/DriverAssignmentTest.php` (supplier happy path,
+  buyer forbidden, cross-supplier forbidden, non-driver 422, foreign-driver 422,
+  admin override). Suite green; Pint + PHPStan level 8 clean.
+
+## 💰 2026-08-23 — Money-integrity hardening (branch `main`)
+
+A full repo audit found that several money-touching paths bypassed the otherwise-solid
+domain services. All fixed; suite green (**109 tests**), Pint clean, PHPStan clean at
+level 8, Swagger regenerated.
+
+1. **Client-supplied order prices eliminated (P0 pricing bypass)**: `POST /orders` and
+   `POST /salesmen/{id}/place-order` previously used the request's `unit_price` verbatim
+   when provided (validated only `min:0`) — any buyer could order at an arbitrary price,
+   flowing into invoices and credit releases. Prices are now **always** resolved by
+   `PricingService` in both endpoints; `unit_price`/`pricing_type` removed from
+   `CreateOrderRequest` and `PlaceOrderOnBehalfRequest` (+Swagger). Negotiated pricing
+   belongs in custom price lists, which the resolver already honours.
+2. **Transactional credit adjustments**: `adjustCredit` did unlocked read-modify-write of
+   `current_balance` in the controller (lost-update race, float math) and returned `400`
+   for rule violations. New `CreditService::adjustBalance()` locks the row inside a
+   transaction, rejects below-zero/over-limit results as `DomainException` → **422**
+   (consistent with the error contract), and owns the audit log.
+3. **Atomic invoice payment + credit release**: `InvoiceController::markAsPaid` wrote the
+   invoice and released trade credit in two untransactioned steps (a failure between them
+   left invoice paid but credit reserved). New `Orders\InvoicePaymentService` does both in
+   one row-locked transaction, **accumulates partial payments** (previously a second
+   partial payment overwrote `paid_amount`, losing payment history), only flips
+   `InvoiceStatus::PAID` at full settlement, and is idempotent (repeat full payments no-op;
+   credit never double-released).
+4. **Uniqueness backing check-then-create flows** (migration `2026_08_23_120100`):
+   - `cart_items`: UNIQUE `(cart_id, product_id)` — closes the concurrent duplicate-row race.
+   - `price_lists`: expression+partial unique `(supplier, buyer, product, COALESCE(min_qty,-1)) WHERE deleted_at IS NULL`
+     (NULL min_qty compares equal, mirroring the app check; soft-deleted entries don't block re-creation).
+   - `buyer_supplier_relationships`: replaced the hard pair unique with a live-rows-only
+     partial unique so a soft-deleted relationship can be created again.
+   - Both tables deduped before indexing; migrations use `$withinTransaction = false` (Neon DDL).
+5. **Soft deletes for credit/pricing records** (migration `2026_08_23_120000`):
+   `BuyerSupplierRelationship` and `PriceList` are now never hard-deleted, keeping the
+   audit trail consistent with the rest of the critical data.
+6. **Global authenticated-API rate limiter**: new named `api` limiter (120 req/min per user)
+   applied to the whole `auth:sanctum` route group — previously only register/login were
+   throttled.
+7. **Salesman attribution made atomic**: `OrderCreationService::create()` gained
+   `placedBySalesmanId`; both order endpoints now set it inside the creation transaction
+   instead of post-create updates.
+
+Tests added: `OrderPricingIntegrityTest` (client prices ignored on both endpoints),
+`CreditAdjustmentTest` (adjust rules + authz + 422 contract), `InvoicePaymentTest`
+(partial accumulation, incremental release, overpay rejection, idempotency),
+`ApiRateLimitTest`. Docs updated: Orders/Pricing/Companies READMEs.
 
 ## 🖼️ 2026-06-30 — Product images (gallery) + company logos (branch `main`)
 
@@ -1561,15 +1669,15 @@ such as Cloudflare R2) is a one-line config change.
 - [x] Image CDN integration — Cloudinary delivery CDN
 - [x] Migration adding the `product_images` table and `companies.logo_*` columns
 
-#### 3. Export Functionality API
-**Status**: `ExportOrdersJob` exists but no API endpoints
-- [ ] `POST /api/v1/exports/orders` - Trigger order export
-- [ ] `GET /api/v1/exports` - List export history
-- [ ] `GET /api/v1/exports/{id}` - Get export status
-- [ ] `GET /api/v1/exports/{id}/download` - Download exported file
-- [ ] Export format options (CSV, JSON, Excel)
-- [ ] Export filtering (date range, status, company)
-- [ ] Background export processing with status updates
+#### 3. Export Functionality API ✅ DONE (2026-08-23)
+**Status**: Fully implemented — DB-tracked async exports with download (see the 2026-08-23 entry at the top)
+- [x] `POST /api/v1/orders/exports` - Trigger order export (202, queued on the `exports` queue)
+- [x] `GET /api/v1/orders/exports` - List export history (company-scoped; admins see all)
+- [x] `GET /api/v1/orders/exports/{id}` - Get export status (queued/processing/completed/failed)
+- [x] `GET /api/v1/orders/exports/{id}/download` - Download exported file
+- [x] Export format options (CSV, JSON; Excel possible later via the same job pattern)
+- [x] Export filtering (date range, status, company — always scoped to exactly one company)
+- [x] Background export processing with status updates (`order_exports` table + `App\Constants\ExportStatus`)
 
 #### 4. Notification System Infrastructure
 **Status**: Jobs exist but infrastructure incomplete

@@ -4707,7 +4707,7 @@
                     "Orders"
                 ],
                 "summary": "Create order",
-                "description": "Create a new order for a **single supplier**. Only buyers and salesmen can create orders. If unit_price is not provided, PricingService resolves the correct price based on buyer type, supplier classification, quantity (wholesale eligibility), and custom price lists. **Important:** This endpoint creates ONE order for ONE supplier. If you need to order from multiple suppliers, use the cart checkout endpoint (`POST /cart/checkout`) which automatically splits the cart into multiple orders (one per supplier).",
+                "description": "Create a new order for a **single supplier**. Only buyers and salesmen can create orders. Prices are always resolved server-side by PricingService based on buyer type, supplier classification, quantity (wholesale eligibility), and custom price lists — client-supplied unit prices are ignored. **Important:** This endpoint creates ONE order for ONE supplier. If you need to order from multiple suppliers, use the cart checkout endpoint (`POST /cart/checkout`) which automatically splits the cart into multiple orders (one per supplier).",
                 "operationId": "fccc497d8bcac727afdc854cf0521698",
                 "requestBody": {
                     "required": true,
@@ -4738,13 +4738,6 @@
                                                     "description": "Quantity ordered",
                                                     "type": "integer",
                                                     "example": 10
-                                                },
-                                                "unit_price": {
-                                                    "description": "Optional - PricingService resolves the correct tier price (custom, wholesale, or retail) if not provided",
-                                                    "type": "number",
-                                                    "format": "float",
-                                                    "example": 25.5,
-                                                    "nullable": true
                                                 },
                                                 "notes": {
                                                     "description": "Item-specific notes",
@@ -5103,6 +5096,208 @@
                 "responses": {
                     "200": {
                         "description": "Driver assigned successfully. Order includes driver relationship."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/orders/exports": {
+            "get": {
+                "tags": [
+                    "Order Exports"
+                ],
+                "summary": "List order exports",
+                "description": "List order exports for the current company (newest first), including status so clients can poll for completion. Admins see all exports.",
+                "operationId": "fd3a51da3ef01322d8be7955cb4abefb",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Exports retrieved successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Order Exports"
+                ],
+                "summary": "Request an order export",
+                "description": "Queue an async export of orders (CSV or JSON) for one company. The response is **202 Accepted** with the export record (status `queued`) — poll `GET /orders/exports/{id}` until status is `completed`, then download via `GET /orders/exports/{id}/download`. Users export their own company's orders; admins may pass `company_id` to target any company. Optional filters: `status`, `date_from`, `date_to`.",
+                "operationId": "1eb50d9d6830d9ee1078d15d454826b4",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "format"
+                                ],
+                                "properties": {
+                                    "format": {
+                                        "type": "string",
+                                        "enum": [
+                                            "csv",
+                                            "json"
+                                        ],
+                                        "example": "csv"
+                                    },
+                                    "status": {
+                                        "description": "Filter by order status",
+                                        "type": "string",
+                                        "enum": [
+                                            "pending",
+                                            "accepted",
+                                            "prepared",
+                                            "shipped",
+                                            "delivered",
+                                            "cancelled"
+                                        ],
+                                        "nullable": true
+                                    },
+                                    "date_from": {
+                                        "description": "Orders created on/after this date",
+                                        "type": "string",
+                                        "format": "date",
+                                        "nullable": true
+                                    },
+                                    "date_to": {
+                                        "description": "Orders created on/before this date",
+                                        "type": "string",
+                                        "format": "date",
+                                        "nullable": true
+                                    },
+                                    "company_id": {
+                                        "description": "Admin only — scope the export to this company instead of the admin account (admins have no company)",
+                                        "type": "integer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Export queued successfully. Returns the export record with status \"queued\"."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/orders/exports/{id}": {
+            "get": {
+                "tags": [
+                    "Order Exports"
+                ],
+                "summary": "Get export status",
+                "description": "Poll this endpoint while an export is queued/processing. Once `status` is `completed`, download via `/orders/exports/{id}/download`.",
+                "operationId": "8e33dd469043fd1750d782679e60a837",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Export retrieved successfully"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/orders/exports/{id}/download": {
+            "get": {
+                "tags": [
+                    "Order Exports"
+                ],
+                "summary": "Download a completed export",
+                "description": "Stream the generated export file. Only available once the export status is `completed`; otherwise 422.",
+                "operationId": "87b74941f3cb736a18b67c82390fe09f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "File download stream"
                     },
                     "401": {
                         "$ref": "#/components/responses/Unauthorized"
@@ -7540,11 +7735,6 @@
                                                     "type": "integer",
                                                     "example": 10
                                                 },
-                                                "unit_price": {
-                                                    "type": "number",
-                                                    "format": "float",
-                                                    "nullable": true
-                                                },
                                                 "notes": {
                                                     "type": "string",
                                                     "nullable": true
@@ -8150,6 +8340,10 @@
         {
             "name": "Orders",
             "description": "Order management endpoints"
+        },
+        {
+            "name": "Order Exports",
+            "description": "Async order exports (CSV/JSON). Exports are queued, scoped to a single company, and downloaded once completed."
         },
         {
             "name": "Price Lists",

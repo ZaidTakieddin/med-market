@@ -82,7 +82,9 @@ public function create(
     int $createdBy,
     array $items,
     ?string $notes = null,
-    float $taxRate = 0.0
+    float $taxRate = 0.0,
+    ?string $paymentMethod = null,
+    ?int $placedBySalesmanId = null
 ): Order
 ```
 
@@ -91,9 +93,15 @@ public function create(
 -   `$buyerCompanyId` - ID of the buyer company (pharmacy)
 -   `$supplierCompanyId` - ID of the supplier company
 -   `$createdBy` - ID of the user creating the order
--   `$items` - Array of items with `product_id`, `quantity`, `unit_price`, and optional `notes`
+-   `$items` - Array of items with `product_id`, `quantity`, `unit_price`, `pricing_type`, and optional `notes`
 -   `$notes` - Optional order-level notes
 -   `$taxRate` - Tax rate as percentage (e.g., 15.0 for 15%)
+-   `$paymentMethod` - Optional payment terms (`cash`/`net_15`/`net_30`/`net_60`); non-cash reserves trade credit
+-   `$placedBySalesmanId` - Optional salesman attribution, set atomically with order creation
+
+> **Pricing integrity**: unit prices passed into this service must come from
+> `PricingService::resolve` — HTTP endpoints never accept client-supplied prices.
+> Negotiated pricing belongs in custom price lists, which the resolver already honours.
 
 **Returns**: `Order` model instance with items loaded
 
@@ -167,6 +175,49 @@ public function transition(
 
 -   **Stock Deduction**: When order transitions to `accepted` or `prepared` (only if coming from `pending` or `accepted`)
 -   **Stock Reversion**: When order is cancelled (only if stock was previously deducted)
+
+### InvoicePaymentService
+
+**Purpose**: Marks invoices as paid and releases the matching reserved trade credit as one atomic unit.
+
+**Key Responsibilities**:
+
+-   Lock the invoice row inside a transaction (no concurrent double-payment)
+-   Accumulate partial payments (`paid_amount` adds up; capped at the invoice total)
+-   Flip `payment_status` to `paid` only when fully settled; partial payments keep the existing invoice status
+-   Release the newly-paid portion of reserved trade credit for non-cash orders in the same transaction
+-   Idempotent: paying again after full settlement is a no-op (credit is never released twice)
+
+**Usage Example**:
+
+```php
+use App\Domain\Orders\InvoicePaymentService;
+
+$service = app(InvoicePaymentService::class);
+
+// Pay a specific amount (or null for the remaining total)
+$invoice = $service->markAsPaid($invoice, 200.0);
+```
+
+**Exceptions**:
+
+-   `App\Exceptions\DomainException` - If the payment exceeds the invoice total (rendered as 422)
+
+### OrderExportService (Implemented)
+
+Queues async order exports (CSV/JSON) tracked by the `order_exports` table:
+
+-   `request(user, format, filters, ?companyId)` — creates an `OrderExport` record
+    (status `queued`) inside a transaction and dispatches `ExportOrdersJob` on the
+    `exports` queue.
+-   Every export is scoped to **exactly one company** (buyer or supplier side of the
+    matching orders), so exports can never cross the tenancy boundary. Users export
+    their own company's orders; admins may target any company via `company_id`.
+-   The job transitions the record through `queued → processing → completed/failed`
+    (`App\Constants\ExportStatus`), stores the generated file path and order count,
+    and marks failures with a generic error message.
+-   API: `POST /orders/exports` (202), `GET /orders/exports`,
+    `GET /orders/exports/{id}` (poll status), `GET /orders/exports/{id}/download`.
 
 ### Order state machine — `App\Constants\OrderStatus`
 
