@@ -1,8 +1,37 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-08-23 (**Order templates** (#11), **wishlist** (#12), **reviews/ratings** (#13), **driver availability completion** (#6). See entries below)
+> Last Updated: 2026-08-23 (**Audit trail + admin IP allowlist** (#16 partial), **user-management extras** (#18): activity tracking, bulk ops, CSV export. See entries below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
+
+## 🔐 2026-08-23 — Security extras (#16 partial) + user-management extras (#18)
+
+### #16 partial — audit trail & IP allowlist
+
+- New `audit_logs` table (also adds `users.last_login_at`) + `App\Support\AuditLogger`
+  (never throws — auditing can't break the primary operation). Sensitive actions now
+  persist a DB trail in addition to app logs: credit adjustments, invoice payments,
+  stock transfers, user deletions.
+- `GET /audit-logs` (admin; `action`/`subject_type` filters) behind the new
+  `admin.ip` middleware (`config/security.php` → `ADMIN_IP_ALLOWLIST` env, comma-separated
+  IPs). When the env is unset/empty the middleware is a pass-through. Applied to
+  `/analytics/*`, `/audit-logs`, and `/users*`.
+- Not pursued: 2FA (needs an authenticator-app UX decision), data-encryption-at-rest
+  (infrastructure-level).
+
+### #18 leftovers — DONE
+
+- `users.last_login_at` recorded on successful login.
+- `POST /users/bulk-status`: bulk activate/deactivate with per-target guards
+  (self / last-admin targets are skipped and reported per id).
+- `GET /users/export`: streamed admin-only CSV (name/email/phone/role/company/status/
+  last login).
+- User import: covered by single-user create + templates of roles; dedicated Excel
+  import not needed yet.
+
+Deploy note: run migration `2026_08_23_220000_create_audit_logs_table.php` (unpooled;
+also adds `users.last_login_at`). Suite green (**193 tests**), Pint clean, PHPStan
+level 8 clean, Swagger regenerated.
 
 ## 🛒 2026-08-23 — Order templates (#11), wishlist (#12), reviews (#13), driver availability (#6)
 
@@ -1917,8 +1946,8 @@ These features significantly enhance user experience and operational efficiency.
 - [x] Automatic driver suggestion based on availability + region + load (`GET /orders/{id}/suggested-driver`)
 - [x] Load balancing across drivers (least-active-assignments first in the suggestion)
 - [x] Driver location tracking (`driver_locations` pings + latest-location endpoint)
-- [x] Driver schedule management (work hours + region plans/holidays � pre-existing)
-- [x] Driver performance metrics (`GET /analytics/drivers` � delivered count + avg delivery hours)
+- [x] Driver schedule management (work hours + region plans/holidays � pre-existing)
+- [x] Driver performance metrics (`GET /analytics/drivers` � delivered count + avg delivery hours)
 - [x] Endpoints: `POST /api/v1/drivers/{driver}/status`, `GET /api/v1/drivers/available`
 
 #### 7. Payment Integration
@@ -2028,8 +2057,7 @@ These features add value but are not critical for core operations.
 
 These features improve security, performance, and code quality.
 
-#### 16. Security Enhancements
-**Status**: Basic security exists, but can be enhanced
+#### 16. Security Enhancements ? PARTIAL (2026-08-23)
 - [ ] Two-factor authentication (2FA) implementation
 - [ ] Advanced rate limiting (per user/company/IP)
 - [ ] IP whitelisting for admin endpoints
