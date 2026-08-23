@@ -29,6 +29,14 @@ Route::prefix('v1')->group(function () {
         // Dashboard analytics
         Route::get('dashboard', [App\Http\Controllers\Api\V1\DashboardController::class, 'index']);
 
+        // Platform analytics (admin)
+        Route::get('analytics/overview', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'overview']);
+        Route::get('analytics/orders', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'orderTrends']);
+        Route::get('analytics/drivers', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'drivers']);
+
+        // Autocomplete suggestions
+        Route::get('search/suggestions', [App\Http\Controllers\Api\V1\SearchController::class, 'suggestions']);
+
         // Auth routes
         Route::prefix('auth')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);

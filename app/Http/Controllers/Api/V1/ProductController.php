@@ -68,14 +68,37 @@ class ProductController extends BaseApiController
             $query->where('supplier_company_id', $request->supplier_company_id);
         }
 
-        // Filter by category
-        if ($request->has('category_id')) {
-            $query->where('category_id', $request->category_id);
+        // Filter by category / manufacturer (single or comma-separated multiples)
+        if ($request->filled('category_id')) {
+            $query->where('category_id', (int) $request->category_id);
         }
 
-        // Filter by manufacturer
-        if ($request->has('manufacturer_id')) {
-            $query->where('manufacturer_id', $request->manufacturer_id);
+        if ($request->filled('category_ids')) {
+            $ids = collect(explode(',', (string) $request->category_ids))->map(fn ($v) => (int) trim($v))->filter()->unique()->all();
+            $query->whereIn('category_id', $ids);
+        }
+
+        if ($request->filled('manufacturer_id')) {
+            $query->where('manufacturer_id', (int) $request->manufacturer_id);
+        }
+
+        if ($request->filled('manufacturer_ids')) {
+            $ids = collect(explode(',', (string) $request->manufacturer_ids))->map(fn ($v) => (int) trim($v))->filter()->unique()->all();
+            $query->whereIn('manufacturer_id', $ids);
+        }
+
+        // Price range on the pharmacist price
+        if ($request->filled('min_price')) {
+            $query->where('pharmacist_price', '>=', (float) $request->min_price);
+        }
+
+        if ($request->filled('max_price')) {
+            $query->where('pharmacist_price', '<=', (float) $request->max_price);
+        }
+
+        // Availability
+        if ($request->boolean('in_stock')) {
+            $query->where('stock_quantity', '>', 0);
         }
 
         // Filter by active status
@@ -114,7 +137,15 @@ class ProductController extends BaseApiController
             });
         }
 
-        [$products, $pagination] = $this->paginateOrAll($query->latest(), $request);
+        // Sorting
+        $query = match ($request->input('sort')) {
+            'price_asc' => $query->orderBy('pharmacist_price'),
+            'price_desc' => $query->orderByDesc('pharmacist_price'),
+            'name' => $query->orderBy('name'),
+            default => $query->latest(), // newest
+        };
+
+        [$products, $pagination] = $this->paginateOrAll($query, $request);
 
         $additional = [
             'success' => true,

@@ -86,6 +86,17 @@ class CompanyController extends BaseApiController
             });
         }
 
+        // Location filters: by region, or by any region within a city
+        if ($request->filled('region_id')) {
+            $query->where('region_id', (int) $request->region_id);
+        }
+
+        if ($request->filled('city_id')) {
+            $query->whereHas('region', function ($q) use ($request) {
+                $q->where('regions.city_id', (int) $request->city_id);
+            });
+        }
+
         // Search functionality
         if ($request->has('search')) {
             $search = $request->search;
