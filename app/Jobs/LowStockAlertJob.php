@@ -2,14 +2,15 @@
 
 namespace App\Jobs;
 
+use App\Constants\UserRole;
 use App\Models\Product;
+use App\Notifications\LowStockNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class LowStockAlertJob implements ShouldQueue
 {
@@ -32,7 +33,8 @@ class LowStockAlertJob implements ShouldQueue
     public int $timeout = 45;
 
     /**
-     * Create a new job instance.
+     * Alert the supplying company's users when a product falls below its minimum
+     * stock level, via mail + database channels.
      */
     public function __construct(
         public Product $product
@@ -49,10 +51,9 @@ class LowStockAlertJob implements ShouldQueue
         $product = $this->product;
 
         try {
-            // Reload product with supplier company
             $product->load('supplierCompany');
 
-            if (! $product->supplierCompany) {
+            if ($product->supplierCompany === null) {
                 Log::warning('Product has no supplier company for low stock alert', [
                     'product_id' => $product->id,
                     'product_sku' => $product->sku,
@@ -61,10 +62,9 @@ class LowStockAlertJob implements ShouldQueue
                 return;
             }
 
-            // Get supplier company users (suppliers and admins)
+            /** @var \Illuminate\Support\Collection<int, \App\Models\User> $recipients */
             $recipients = $product->supplierCompany->users()
-                ->whereIn('role', ['supplier', 'admin'])
-                ->whereNotNull('email')
+                ->where('role', UserRole::SUPPLIER)
                 ->get();
 
             if ($recipients->isEmpty()) {
@@ -77,15 +77,11 @@ class LowStockAlertJob implements ShouldQueue
                 return;
             }
 
-            // Send alert to each recipient
+            $notification = new LowStockNotification($product);
+
             foreach ($recipients as $user) {
                 try {
-                    // In a real implementation, you would send email here
-                    // For now, we'll log it (since mail is configured to 'log' driver)
-                    Mail::raw($this->buildEmailContent($product), function ($message) use ($user, $product) {
-                        $message->to($user->email, $user->name)
-                            ->subject("Low Stock Alert: {$product->name}");
-                    });
+                    $user->notify($notification);
 
                     Log::info('Low stock alert sent', [
                         'product_id' => $product->id,
@@ -112,29 +108,6 @@ class LowStockAlertJob implements ShouldQueue
             ]);
             throw $e; // Re-throw to trigger retry
         }
-    }
-
-    /**
-     * Build email content.
-     */
-    private function buildEmailContent(Product $product): string
-    {
-        $content = "Low Stock Alert\n\n";
-        $content .= "Product: {$product->name}\n";
-        $content .= "SKU: {$product->sku}\n";
-        $content .= "Current Stock: {$product->stock_quantity}\n";
-        $content .= "Minimum Stock Level: {$product->min_stock_level}\n";
-        $content .= 'Stock Deficit: '.max(0, $product->min_stock_level - $product->stock_quantity)."\n\n";
-
-        if ($product->category) {
-            $content .= "Category: {$product->category}\n";
-        }
-
-        $content .= "\n";
-        $content .= "Please consider restocking this product to avoid stockouts.\n\n";
-        $content .= "Thank you for using Med Market!\n";
-
-        return $content;
     }
 
     /**

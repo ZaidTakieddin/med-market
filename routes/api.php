@@ -35,6 +35,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/me', [AuthController::class, 'me']);
         });
 
+        // Notifications
+        Route::get('notifications/unread-count', [App\Http\Controllers\Api\V1\NotificationController::class, 'unreadCount']);
+        Route::post('notifications/mark-all-read', [App\Http\Controllers\Api\V1\NotificationController::class, 'markAllRead']);
+        Route::post('notifications/{id}/mark-read', [App\Http\Controllers\Api\V1\NotificationController::class, 'markRead']);
+        Route::get('notifications', [App\Http\Controllers\Api\V1\NotificationController::class, 'index']);
+
         // Order exports — registered before the orders apiResource so
         // GET /orders/exports can't be captured by GET /orders/{order}
         Route::get('orders/exports', [App\Http\Controllers\Api\V1\OrderExportController::class, 'index']);

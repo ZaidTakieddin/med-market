@@ -2,14 +2,16 @@
 
 namespace App\Jobs;
 
+use App\Constants\UserRole;
 use App\Models\Order;
+use App\Notifications\OrderStatusNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class SendOrderNotificationJob implements ShouldQueue
 {
@@ -32,7 +34,9 @@ class SendOrderNotificationJob implements ShouldQueue
     public int $timeout = 45;
 
     /**
-     * Create a new job instance.
+     * Notify buyer-side and supplier-side users about an order status change via
+     * mail + database channels. Recipient failures never abort other recipients;
+     * unexpected job-level failures are re-thrown to trigger retry.
      */
     public function __construct(
         public Order $order,
@@ -50,13 +54,11 @@ class SendOrderNotificationJob implements ShouldQueue
     public function handle(): void
     {
         try {
-            // Reload order with relationships
-            $this->order->load(['buyerCompany', 'supplierCompany', 'creator', 'items.product']);
+            $this->order->load(['buyerCompany', 'supplierCompany', 'creator']);
 
-            // Get recipients
             $recipients = $this->getRecipients($this->order);
 
-            if (empty($recipients)) {
+            if ($recipients->isEmpty()) {
                 Log::warning('No recipients found for order notification', [
                     'order_id' => $this->order->id,
                     'order_number' => $this->order->order_number,
@@ -65,26 +67,22 @@ class SendOrderNotificationJob implements ShouldQueue
                 return;
             }
 
-            // Send notification to each recipient
+            $notification = new OrderStatusNotification($this->order, $this->oldStatus, $this->newStatus);
+
             foreach ($recipients as $recipient) {
                 try {
-                    // In a real implementation, you would send email here
-                    // For now, we'll log it (since mail is configured to 'log' driver)
-                    Mail::raw($this->buildEmailContent($this->order, $this->oldStatus, $this->newStatus), function ($message) use ($recipient) {
-                        $message->to($recipient['email'], $recipient['name'])
-                            ->subject($this->getEmailSubject($this->order, $this->newStatus));
-                    });
+                    $recipient->notify($notification);
 
                     Log::info('Order notification sent', [
                         'order_id' => $this->order->id,
                         'order_number' => $this->order->order_number,
-                        'recipient' => $recipient['email'],
+                        'recipient' => $recipient->email,
                         'status_change' => "{$this->oldStatus} -> {$this->newStatus}",
                     ]);
                 } catch (\Exception $e) {
                     Log::error('Failed to send order notification', [
                         'order_id' => $this->order->id,
-                        'recipient' => $recipient['email'],
+                        'recipient' => $recipient->email,
                         'error' => $e->getMessage(),
                     ]);
                     // Continue with other recipients
@@ -101,96 +99,37 @@ class SendOrderNotificationJob implements ShouldQueue
     }
 
     /**
-     * Get recipients for the notification.
+     * Buyer company users (buyers/salesmen), supplier company users (suppliers) and
+     * the order creator, deduplicated by id.
      *
-     * @return list<array<string, mixed>>
+     * @return Collection<int, \App\Models\User>
      */
-    private function getRecipients(Order $order): array
+    private function getRecipients(Order $order): Collection
     {
-        $recipients = [];
+        /** @var Collection<int, \App\Models\User> $recipients */
+        $recipients = collect();
 
-        if ($order->buyerCompany) {
-            $buyerUsers = $order->buyerCompany->users()
-                ->whereIn('role', ['buyer', 'salesman'])
-                ->whereNotNull('email')
-                ->get();
-
-            foreach ($buyerUsers as $user) {
-                $recipients[] = [
-                    'email' => $user->email,
-                    'name' => $user->name,
-                    'type' => 'buyer',
-                ];
-            }
+        if ($order->buyerCompany !== null) {
+            $recipients = $recipients->merge(
+                $order->buyerCompany->users()
+                    ->whereIn('role', UserRole::buyerRoles())
+                    ->get()
+            );
         }
 
-        // Add supplier company users (suppliers)
-        if ($order->supplierCompany) {
-            $supplierUsers = $order->supplierCompany->users()
-                ->whereIn('role', ['supplier', 'admin'])
-                ->whereNotNull('email')
-                ->get();
-
-            foreach ($supplierUsers as $user) {
-                $recipients[] = [
-                    'email' => $user->email,
-                    'name' => $user->name,
-                    'type' => 'supplier',
-                ];
-            }
+        if ($order->supplierCompany !== null) {
+            $recipients = $recipients->merge(
+                $order->supplierCompany->users()
+                    ->where('role', UserRole::SUPPLIER)
+                    ->get()
+            );
         }
 
-        // Add order creator if not already included
-        if ($order->creator && ! collect($recipients)->contains('email', $order->creator->email)) {
-            $recipients[] = [
-                'email' => $order->creator->email,
-                'name' => $order->creator->name,
-                'type' => 'creator',
-            ];
+        if ($order->creator !== null) {
+            $recipients->push($order->creator);
         }
 
-        return $recipients;
-    }
-
-    /**
-     * Build email content.
-     */
-    private function buildEmailContent(Order $order, string $oldStatus, string $newStatus): string
-    {
-        $content = "Order Status Update\n\n";
-        $content .= "Order Number: {$order->order_number}\n";
-        $content .= "Status Changed: {$oldStatus} → {$newStatus}\n";
-        $content .= "Buyer: {$order->buyerCompany?->name}\n";
-        $content .= "Supplier: {$order->supplierCompany?->name}\n";
-        $content .= 'Total Amount: '.number_format((float) $order->total_amount, 2)." SAR\n";
-        $content .= "Items: {$order->items->count()}\n\n";
-
-        if ($order->notes) {
-            $content .= "Notes: {$order->notes}\n\n";
-        }
-
-        $content .= "Thank you for using Med Market!\n";
-
-        return $content;
-    }
-
-    /**
-     * Get email subject based on status.
-     */
-    private function getEmailSubject(Order $order, string $status): string
-    {
-        $statusLabels = [
-            'pending' => 'Pending',
-            'accepted' => 'Accepted',
-            'prepared' => 'Prepared',
-            'shipped' => 'Shipped',
-            'delivered' => 'Delivered',
-            'cancelled' => 'Cancelled',
-        ];
-
-        $statusLabel = $statusLabels[$status] ?? ucfirst($status);
-
-        return "Order {$order->order_number} - {$statusLabel}";
+        return $recipients->unique('id');
     }
 
     /**
