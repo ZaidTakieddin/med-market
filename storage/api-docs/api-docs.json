@@ -451,6 +451,113 @@
                 ]
             }
         },
+        "/auth/2fa/enable": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Start two-factor enrolment",
+                "description": "Generates a TOTP secret for the authenticated user. Returns the secret and an otpauth:// URI to render as a QR code. Complete with /auth/2fa/confirm.",
+                "operationId": "c45ad9a7beaa759e91a4e507bbf5b9a2",
+                "responses": {
+                    "200": {
+                        "description": "Secret generated (not yet active)"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/auth/2fa/confirm": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Confirm two-factor enrolment",
+                "description": "Verifies the first authenticator code and activates 2FA. Returns single-use recovery codes — store them securely; they are shown only once.",
+                "operationId": "0b83369459be9cedff765229cf20879d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "code"
+                                ],
+                                "properties": {
+                                    "code": {
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "2FA enabled; recovery codes returned once"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/auth/2fa/disable": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Disable two-factor authentication",
+                "description": "Disable 2FA.",
+                "operationId": "de6c3becc833521a97d7193e3cec53c9",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "code"
+                                ],
+                                "properties": {
+                                    "code": {
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "2FA disabled"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/UnprocessableEntity"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/buyer-supplier-relationships": {
             "get": {
                 "tags": [
@@ -5843,7 +5950,8 @@
                                         "type": "string",
                                         "enum": [
                                             "csv",
-                                            "json"
+                                            "json",
+                                            "xlsx"
                                         ],
                                         "example": "csv"
                                     },

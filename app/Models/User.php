@@ -58,6 +58,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     /**
@@ -74,6 +76,7 @@ class User extends Authenticatable
             'employment_end_date' => 'date',
             'holidays' => 'array',
             'last_login_at' => 'datetime',
+            'two_factor_enabled' => 'boolean',
         ];
     }
 

@@ -35,7 +35,7 @@ class OrderExportController extends BaseApiController
             content: new OA\JsonContent(
                 required: ['format'],
                 properties: [
-                    new OA\Property(property: 'format', type: 'string', enum: ['csv', 'json'], example: 'csv'),
+                    new OA\Property(property: 'format', type: 'string', enum: ['csv', 'json', 'xlsx'], example: 'csv'),
                     new OA\Property(property: 'status', type: 'string', nullable: true, description: 'Filter by order status', enum: ['pending', 'accepted', 'prepared', 'shipped', 'delivered', 'cancelled']),
                     new OA\Property(property: 'date_from', type: 'string', format: 'date', nullable: true, description: 'Orders created on/after this date'),
                     new OA\Property(property: 'date_to', type: 'string', format: 'date', nullable: true, description: 'Orders created on/before this date'),

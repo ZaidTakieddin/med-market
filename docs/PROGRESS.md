@@ -1,8 +1,40 @@
 # Med Market - Development Progress Tracker
 
-> Last Updated: 2026-08-23 (**WebSockets via Laravel Reverb** (#10 completion) + **saved searches & history** (#9 completion). See entries below)
+> Last Updated: 2026-08-23 (**Niceties batch**: regions-served stats (#8 final), xlsx exports (#3), TOTP 2FA with recovery codes (#16). See entries below)
 
 > Docs now live in `docs/`; `README.md` and `CLAUDE.md` remain at the repo root.
+
+## ✨ 2026-08-23 — Niceties: regions-served stats, xlsx exports, TOTP 2FA
+
+### #8 final — Regions-served statistics
+
+Supplier dashboard payload gains `regionsServed`: delivered orders grouped by the
+buyer's region (+ city), ranked by spend, limited by `?limit=`.
+
+### #3 final — Excel (xlsx) order exports
+
+`POST /orders/exports` now accepts `format: xlsx` alongside csv/json. The job writes a
+native workbook via maatwebsite/excel (`OrdersExport` FromArray+headings, auto-sized)
+onto the same tracked file path; download flow unchanged. Verified by magic-byte test
+(`PK` zip header).
+
+### #16 — Two-factor authentication (TOTP)
+
+New dependency `pragmarx/google2fa`. Flow:
+
+1. `POST /auth/2fa/enable` → secret + otpauth:// URI (render QR client-side).
+2. `POST /auth/2fa/confirm {code}` → activates 2FA and returns **8 single-use recovery
+   codes** (stored bcrypt-hashed, shown once).
+3. Login with 2FA enabled requires `code` — a valid TOTP (±1 window) or an unused
+   recovery code (consumed on use). Missing/wrong code → 401 "Invalid two-factor code".
+4. `POST /auth/2fa/disable {code}` verifies a current code then wipes enrolment.
+
+Secret is encrypted at rest; recovery codes hashed; both hidden from serialization.
+Last-admin-style safety not applicable here (2FA is opt-in per user).
+Tests: `TwoFactorTest` (full cycle, recovery single-use, disable guard).
+
+Deploy note: run migration `2026_08_23_240000_add_two_factor_columns_to_users.php`
+(unpooled connection).
 
 ## 📡 2026-08-23 — Reverb WebSockets (#10 complete) + saved searches (#9 complete)
 
@@ -1943,7 +1975,7 @@ such as Cloudflare R2) is a one-line config change.
 - [x] `GET /api/v1/orders/exports` - List export history (company-scoped; admins see all)
 - [x] `GET /api/v1/orders/exports/{id}` - Get export status (queued/processing/completed/failed)
 - [x] `GET /api/v1/orders/exports/{id}/download` - Download exported file
-- [x] Export format options (CSV, JSON; Excel possible later via the same job pattern)
+- [x] Export format options (CSV, JSON, xlsx via maatwebsite/excel)
 - [x] Export filtering (date range, status, company — always scoped to exactly one company)
 - [x] Background export processing with status updates (`order_exports` table + `App\Constants\ExportStatus`)
 
@@ -2003,7 +2035,7 @@ These features significantly enhance user experience and operational efficiency.
 - [x] Supplier dashboard endpoints:
   - [x] Sales statistics (total sales, revenue, orders count)
   - [x] Top products by sales
-  - [ ] Regions served statistics
+  - [x] Regions served statistics (`regionsServed` in the supplier dashboard)
   - [x] Order trends (daily/weekly/monthly — admin analytics; supplier dashboard has the daily series)
   - [x] Customer statistics (top buyers on the supplier dashboard)
 - [x] Buyer dashboard endpoints:

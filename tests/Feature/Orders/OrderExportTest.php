@@ -134,6 +134,27 @@ class OrderExportTest extends TestCase
         $this->getJson("/api/v1/orders/exports/{$export->id}/download")->assertStatus(422);
     }
 
+    public function test_xlsx_export_generates_a_binary_workbook(): void
+    {
+        Storage::fake();
+        [$supplier, , $order] = $this->makeOrders();
+
+        $export = OrderExport::factory()->create([
+            'company_id' => $supplier->id,
+            'format' => 'xlsx',
+        ]);
+
+        (new ExportOrdersJob($export))->handle();
+
+        $export->refresh();
+        $this->assertSame(ExportStatus::COMPLETED, $export->status);
+        $this->assertSame(1, $export->orders_count);
+        Storage::assertExists((string) $export->file_path);
+        // xlsx is a zip container — verify the magic header bytes.
+        $bytes = substr((string) Storage::get((string) $export->file_path), 0, 2);
+        $this->assertSame('PK', $bytes);
+    }
+
     /**
      * Create an export whose file actually exists on the fake disk.
      *

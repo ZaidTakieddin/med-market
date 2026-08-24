@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Auth\TwoFactorService;
 use App\Domain\Users\RegistrationService;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Auth\LoginRequest;
@@ -9,12 +10,17 @@ use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Authentication', description: 'User authentication endpoints')]
 class AuthController extends BaseApiController
 {
+    public function __construct(
+        private TwoFactorService $twoFactorService
+    ) {}
+
     /**
      * Register a new user.
      */
@@ -125,6 +131,14 @@ class AuthController extends BaseApiController
             return $this->error('Invalid credentials', null, 401);
         }
 
+        // Two-factor challenge: a valid TOTP code or an unused recovery code must
+        // accompany the password when 2FA is enabled.
+        if ($user->two_factor_enabled) {
+            if (! $this->twoFactorService->verifyLoginChallenge($user, (string) ($request->code ?? ''))) {
+                return $this->error('Invalid two-factor code', null, 401);
+            }
+        }
+
         $token = $user->createToken('auth-token')->plainTextToken;
 
         // Activity tracking (user-management metrics).
@@ -205,5 +219,81 @@ class AuthController extends BaseApiController
         return $this->success(
             new UserResource($user)
         );
+    }
+
+    /**
+     * Start 2FA enrolment.
+     */
+    #[OA\Post(
+        path: '/auth/2fa/enable',
+        summary: 'Start two-factor enrolment',
+        description: 'Generates a TOTP secret for the authenticated user. Returns the secret and an otpauth:// URI to render as a QR code. Complete with /auth/2fa/confirm.',
+        tags: ['Authentication'],
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(response: 200, description: 'Secret generated (not yet active)'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+        ]
+    )]
+    public function startTwoFactor(Request $request): JsonResponse
+    {
+        return $this->success(
+            $this->twoFactorService->start($this->currentUser()),
+            'Two-factor secret generated. Confirm with a code from your authenticator app.'
+        );
+    }
+
+    /**
+     * Confirm 2FA enrolment.
+     */
+    #[OA\Post(
+        path: '/auth/2fa/confirm',
+        summary: 'Confirm two-factor enrolment',
+        description: 'Verifies the first authenticator code and activates 2FA. Returns single-use recovery codes — store them securely; they are shown only once.',
+        tags: ['Authentication'],
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(required: ['code'], properties: [
+            new OA\Property(property: 'code', type: 'string', example: '123456'),
+        ])),
+        responses: [
+            new OA\Response(response: 200, description: '2FA enabled; recovery codes returned once'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+        ]
+    )]
+    public function confirmTwoFactor(Request $request): JsonResponse
+    {
+        $data = $request->validate(['code' => ['required', 'string']]);
+
+        $codes = $this->twoFactorService->confirm($this->currentUser(), (string) $data['code']);
+
+        return $this->success([
+            'enabled' => true,
+            'recoveryCodes' => $codes,
+        ], 'Two-factor authentication enabled');
+    }
+
+    /**
+     * Disable 2FA.
+     */
+    #[OA\Post(
+        path: '/auth/2fa/disable',
+        summary: 'Disable two-factor authentication',
+        tags: ['Authentication'],
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(required: ['code'], properties: [
+            new OA\Property(property: 'code', type: 'string', example: '123456'),
+        ])),
+        responses: [
+            new OA\Response(response: 200, description: '2FA disabled'),
+            new OA\Response(response: 422, ref: '#/components/responses/UnprocessableEntity'),
+        ]
+    )]
+    public function disableTwoFactor(Request $request): JsonResponse
+    {
+        $data = $request->validate(['code' => ['required', 'string']]);
+
+        $this->twoFactorService->disable($this->currentUser(), (string) $data['code']);
+
+        return $this->success(null, 'Two-factor authentication disabled');
     }
 }

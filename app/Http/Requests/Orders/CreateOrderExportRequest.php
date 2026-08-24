@@ -19,7 +19,7 @@ class CreateOrderExportRequest extends BaseFormRequest
     public function rules(): array
     {
         return [
-            'format' => ['required', 'string', Rule::in(['csv', 'json'])],
+            'format' => ['required', 'string', Rule::in(['csv', 'json', 'xlsx'])],
             'status' => ['nullable', 'string', Rule::in(OrderStatus::all())],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],

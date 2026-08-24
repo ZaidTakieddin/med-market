@@ -32,7 +32,41 @@ class DashboardService
             'salesSeries' => $this->salesSeries($supplierCompanyId, $days),
             'topProducts' => $this->topProducts($supplierCompanyId, $limit),
             'topBuyers' => $this->topBuyers($supplierCompanyId, $limit),
+            'regionsServed' => $this->regionsServed($supplierCompanyId, $limit),
         ];
+    }
+
+    /**
+     * Regions served: fulfilled-order footprint grouped by the buyer's region,
+     * ranked by spend.
+     *
+     * @return list<array{region: string|null, city: string|null, ordersCount: int, totalSpent: float}>
+     */
+    private function regionsServed(?int $supplierCompanyId, int $limit): array
+    {
+        $rows = $this->scopedOrders($supplierCompanyId)
+            ->where('orders.status', OrderStatus::DELIVERED)
+            ->join('companies as buyers', 'buyers.id', '=', 'orders.buyer_company_id')
+            ->leftJoin('regions', 'regions.id', '=', 'buyers.region_id')
+            ->leftJoin('cities', 'cities.id', '=', 'regions.city_id')
+            ->whereNull('buyers.deleted_at')
+            ->selectRaw("COALESCE(regions.name, 'غير محدد') as region_name, COALESCE(cities.name, '') as city_name, COUNT(*) as orders_count, SUM(orders.total_amount) as total_spent")
+            ->groupBy('regions.name', 'cities.name')
+            ->orderByDesc('total_spent')
+            ->limit($limit)
+            ->get();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $result[] = [
+                'region' => (string) $row->getAttribute('region_name'),
+                'city' => $row->getAttribute('city_name') !== '' ? (string) $row->getAttribute('city_name') : null,
+                'ordersCount' => (int) $row->getAttribute('orders_count'),
+                'totalSpent' => round((float) $row->getAttribute('total_spent'), 2),
+            ];
+        }
+
+        return $result;
     }
 
     /**

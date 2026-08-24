@@ -22,7 +22,7 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonStructure([
-                'data' => ['kpis', 'salesSeries', 'topProducts', 'topBuyers'],
+                'data' => ['kpis', 'salesSeries', 'topProducts', 'topBuyers', 'regionsServed'],
             ]);
     }
 

@@ -112,12 +112,16 @@ class ExportOrdersJob implements ShouldQueue
     }
 
     /**
-     * Generate export file.
+     * Generate the export file, branching to a native Excel writer for xlsx.
      *
      * @param  \Illuminate\Database\Eloquent\Collection<int, Order>  $orders
      */
     private function generateExportFile($orders, string $format): string
     {
+        if ($format === 'xlsx') {
+            return $this->storeExcelExport($orders);
+        }
+
         $directory = 'exports/orders/'.now()->format('Y/m');
         $timestamp = now()->format('Ymd_His');
         $filename = "orders_export_{$this->export->id}_{$timestamp}.{$format}";
@@ -126,15 +130,30 @@ class ExportOrdersJob implements ShouldQueue
         // Ensure directory exists
         Storage::makeDirectory($directory);
 
-        // Generate content based on format
         $content = match ($format) {
             'csv' => $this->generateCsvContent($orders),
             'json' => $this->generateJsonContent($orders),
             default => $this->generateCsvContent($orders),
         };
 
-        // Save file
         Storage::put($path, $content);
+
+        return $path;
+    }
+
+    /**
+     * Write an .xlsx workbook via maatwebsite/excel onto the default disk.
+     *
+     * @param  \Illuminate\Database\Eloquent\Collection<int, Order>  $orders
+     */
+    private function storeExcelExport($orders): string
+    {
+        $path = 'exports/orders/'.now()->format('Y/m').'/orders_export_'.$this->export->id.'_'.now()->format('Ymd_His').'.xlsx';
+
+        \Maatwebsite\Excel\Facades\Excel::store(
+            new \App\Domain\Orders\Exports\OrdersExport($orders),
+            $path,
+        );
 
         return $path;
     }

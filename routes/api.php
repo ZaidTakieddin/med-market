@@ -21,6 +21,11 @@ Route::prefix('v1')->group(function () {
         Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
     });
 
+    // Two-factor enrolment (authenticated)
+    Route::post('auth/2fa/enable', [AuthController::class, 'startTwoFactor']);
+    Route::post('auth/2fa/confirm', [AuthController::class, 'confirmTwoFactor']);
+    Route::post('auth/2fa/disable', [AuthController::class, 'disableTwoFactor']);
+
     // Protected routes (require authentication, rate-limited per account)
     Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         // Enums (system constants for dropdowns, forms)
